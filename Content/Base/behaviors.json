@@ -202,7 +202,8 @@
     {
       "id": "behavior.relic.patient_bell_after_spell",
       "steps": [
-        { "id": 1, "op": "flow.stop" }
+        { "id": 1, "op": "counter.add", "target": "event.actor", "counter": "counter.bonus.focus", "amount": 1, "next": 2 },
+        { "id": 2, "op": "flow.stop" }
       ]
     }
   ]

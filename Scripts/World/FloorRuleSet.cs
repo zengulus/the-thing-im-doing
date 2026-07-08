@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace TheThingImDoing.World;
 
 public sealed class FloorRuleSet
@@ -21,7 +23,11 @@ public sealed class FloorRuleSet
 
     public string DisplayName => ActiveRule?.DisplayName ?? ActiveRuleId;
     public string Description => ActiveRule?.Description ?? "";
-    public string? PushCollisionBehaviorId => ActiveRule?.PushCollisionBehaviorId;
+
+    public IEnumerable<string> GetBehaviorIds(string trigger)
+    {
+        return ActiveRule?.GetBehaviorIds(trigger) ?? [];
+    }
 
     public static FloorRuleSet BrittleStone()
     {

@@ -5,7 +5,12 @@
       "id": "rule.brittle_stone",
       "displayNameKey": "rules.brittle_stone.name",
       "descriptionKey": "rules.brittle_stone.description",
-      "pushCollisionBehaviorId": "behavior.rule.brittle_stone_push_collision",
+      "hooks": [
+        {
+          "trigger": "push_collision",
+          "behaviorId": "behavior.rule.brittle_stone_push_collision"
+        }
+      ],
       "tags": [ "terrain", "push" ]
     }
   ]

@@ -1,21 +1,29 @@
 using System.Collections.Generic;
 using System.Linq;
+using TheThingImDoing.Content;
 
 namespace TheThingImDoing.Spells;
 
 public sealed class Working
 {
     private readonly List<WorkingNode> _nodes = new();
+    private readonly Dictionary<int, WorkingNodeLayout> _layout = new();
 
-    public Working(string displayName)
+    public Working(string id, string displayNameKey)
     {
-        DisplayName = displayName;
+        Id = id;
+        DisplayNameKey = displayNameKey;
     }
 
-    public string DisplayName { get; set; }
+    public const int CurrentSchemaVersion = 1;
+    public int SchemaVersion { get; set; } = CurrentSchemaVersion;
+    public string Id { get; set; }
+    public string DisplayNameKey { get; set; }
+    public string DisplayName => GameStrings.Get(DisplayNameKey);
     public int MaxSteps { get; set; } = 24;
     public int? EntryNodeId { get; set; }
     public IReadOnlyList<WorkingNode> Nodes => _nodes;
+    public IReadOnlyDictionary<int, WorkingNodeLayout> Layout => _layout;
 
     public string EstimatedCounterSummary
     {
@@ -53,6 +61,7 @@ public sealed class Working
     public void RemoveNode(int nodeId)
     {
         _nodes.RemoveAll(node => node.Id == nodeId);
+        _layout.Remove(nodeId);
 
         foreach (WorkingNode node in _nodes)
         {
@@ -75,6 +84,19 @@ public sealed class Working
         return _nodes.Count == 0 ? 1 : _nodes.Max(node => node.Id) + 1;
     }
 
+    public WorkingNodeLayout GetNodeLayout(int nodeId)
+    {
+        return _layout.TryGetValue(nodeId, out WorkingNodeLayout layout) ? layout : default;
+    }
+
+    public void SetNodeLayout(int nodeId, WorkingNodeLayout layout)
+    {
+        if (GetNode(nodeId) != null)
+        {
+            _layout[nodeId] = layout;
+        }
+    }
+
     private static void AddAll(Dictionary<string, int> target, IReadOnlyDictionary<string, int> source)
     {
         foreach ((string counterId, int amount) in source)
@@ -90,10 +112,10 @@ public sealed class Working
 
     public Working Clone()
     {
-        var clone = new Working(DisplayName)
+        var clone = new Working(Id, DisplayNameKey)
         {
-            MaxSteps = MaxSteps,
-            EntryNodeId = EntryNodeId
+            SchemaVersion = SchemaVersion,
+            MaxSteps = MaxSteps
         };
 
         foreach (WorkingNode node in _nodes)
@@ -101,6 +123,14 @@ public sealed class Working
             clone.AddNode(node.Clone());
         }
 
+        foreach ((int nodeId, WorkingNodeLayout layout) in _layout)
+        {
+            clone._layout[nodeId] = layout;
+        }
+
+        clone.EntryNodeId = EntryNodeId;
         return clone;
     }
 }
+
+public readonly record struct WorkingNodeLayout(float X, float Y);

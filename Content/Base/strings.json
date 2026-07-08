@@ -146,7 +146,7 @@
   "rules.brittle_stone.description": "Pushing an actor into raised stone breaks the stone and deals 1 damage.",
 
   "relics.patient_bell.name": "Patient Bell",
-  "relics.patient_bell.description": "Example relic scaffold. It listens after a spell resolves and routes through a behavior hook.",
+  "relics.patient_bell.description": "After a Working resolves, gain 1 focus.",
 
   "workings.mark_or_damage.name": "Mark or Damage",
   "workings.emergency_wall.name": "Emergency Wall",

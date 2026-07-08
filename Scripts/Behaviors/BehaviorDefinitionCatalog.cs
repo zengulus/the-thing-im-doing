@@ -8,78 +8,136 @@ namespace TheThingImDoing.Behaviors;
 
 public static class BehaviorDefinitionCatalog
 {
-    private static readonly Lazy<IReadOnlyDictionary<string, BehaviorDefinition>> Definitions = new(LoadDefinitions);
+    private static readonly Lazy<ContentRegistryResult<BehaviorDefinition>> Registry = new(LoadRegistry);
 
     public static BehaviorDefinition Get(string id)
     {
-        return Definitions.Value[id];
+        return Registry.Value.Definitions[id];
     }
 
     public static bool TryGet(string id, [NotNullWhen(true)] out BehaviorDefinition? definition)
     {
-        return Definitions.Value.TryGetValue(id, out definition);
+        return Registry.Value.Definitions.TryGetValue(id, out definition);
     }
 
-    private static IReadOnlyDictionary<string, BehaviorDefinition> LoadDefinitions()
+    public static bool IsDisabled(string id)
     {
-        var definitions = new Dictionary<string, BehaviorDefinition>(StringComparer.Ordinal);
+        return Registry.Value.DisabledIds.Contains(id);
+    }
 
-        foreach (BehaviorContentDefinition contentDefinition in ContentJsonLoader.LoadItems<BehaviorContentFile, BehaviorContentDefinition>(
-                     "behaviors.json",
-                     file => file.Behaviors))
+    private static ContentRegistryResult<BehaviorDefinition> LoadRegistry()
+    {
+        ContentRegistryResult<BehaviorDefinition> result = ContentRegistry.Build(
+            "behavior",
+            ContentJsonLoader.LoadItemsWithSources<BehaviorContentFile, BehaviorContentDefinition>(
+                "behaviors.json",
+                file => file.Behaviors),
+            Resolve);
+
+        BehaviorPrimitiveCatalog.ValidateBehaviorReferences(
+            result.Definitions.Keys.ToHashSet(StringComparer.Ordinal),
+            result.DisabledIds);
+
+        return new ContentRegistryResult<BehaviorDefinition>(
+            result.Definitions
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
+            result.DisabledIds);
+    }
+
+    private static ContentValidationResult<BehaviorDefinition> Resolve(BehaviorContentDefinition content)
+    {
+        var issues = new List<string>();
+
+        if (content.Steps.Count == 0)
         {
-            foreach (BehaviorStepContentDefinition step in contentDefinition.Steps)
-            {
-                ValidateStep(contentDefinition.Id, step);
-            }
-
-            definitions[contentDefinition.Id] = new BehaviorDefinition(
-                contentDefinition.Id,
-                contentDefinition.Steps
-                    .Select(step => new BehaviorStepDefinition(
-                        step.Id,
-                        step.Op,
-                        step.Next,
-                        step.True,
-                        step.False,
-                        step.Amount,
-                        step.Counter,
-                        step.Effect,
-                        step.Relation,
-                        step.Ref,
-                        step.State,
-                        step.Target,
-                        step.Source,
-                        step.Mode))
-                    .ToArray());
+            issues.Add("has no steps.");
         }
 
-        return definitions;
+        HashSet<int> stepIds = content.Steps.Select(step => step.Id).ToHashSet();
+
+        if (stepIds.Count != content.Steps.Count)
+        {
+            issues.Add("has duplicate step ids.");
+        }
+
+        foreach (BehaviorStepContentDefinition step in content.Steps)
+        {
+            issues.AddRange(ValidateStep(content.Id, step, stepIds));
+        }
+
+        if (ContentRegistry.HasAnyIssue(issues, out IReadOnlyList<string> issueList))
+        {
+            return new ContentValidationResult<BehaviorDefinition>(null, issueList);
+        }
+
+        return ContentRegistry.Valid(new BehaviorDefinition(
+            content.Id,
+            content.Steps
+                .Select(step => new BehaviorStepDefinition(
+                    step.Id,
+                    step.Op,
+                    step.Next,
+                    step.True,
+                    step.False,
+                    step.Amount,
+                    step.Counter,
+                    step.Effect,
+                    step.Relation,
+                    step.Ref,
+                    step.State,
+                    step.Target,
+                    step.Source,
+                    step.Mode))
+                .ToArray()));
     }
 
-    private static void ValidateStep(string behaviorId, BehaviorStepContentDefinition step)
+    private static IEnumerable<string> ValidateStep(
+        string behaviorId,
+        BehaviorStepContentDefinition step,
+        IReadOnlySet<int> stepIds)
     {
+        if (step.Id <= 0)
+        {
+            yield return $"step {step.Id} must have a positive id.";
+        }
+
+        if (string.IsNullOrWhiteSpace(step.Op))
+        {
+            yield return $"step {step.Id} has a blank op.";
+            yield break;
+        }
+
+        foreach ((string label, int? targetId) in new[] { ("next", step.Next), ("true", step.True), ("false", step.False) })
+        {
+            if (targetId.HasValue && !stepIds.Contains(targetId.Value))
+            {
+                yield return $"step {step.Id} {label} references missing step {targetId.Value}.";
+            }
+        }
+
         if (!BehaviorPrimitiveCatalog.TryGet(step.Op, out BehaviorPrimitiveDefinition? primitive))
         {
-            return;
+            yield return BehaviorPrimitiveCatalog.IsDisabled(step.Op)
+                ? $"step {step.Id} references disabled primitive '{step.Op}'."
+                : $"step {step.Id} references missing primitive '{step.Op}'.";
+            yield break;
         }
 
-        foreach (BehaviorPrimitiveParameterDefinition parameter in primitive.Parameters ?? [])
+        foreach (BehaviorPrimitiveParameterDefinition parameter in primitive.Parameters ?? Array.Empty<BehaviorPrimitiveParameterDefinition>())
         {
             string value = GetParameterValue(step, parameter.Name);
 
             if (parameter.Required && string.IsNullOrWhiteSpace(value))
             {
-                Console.Error.WriteLine(
-                    $"Behavior '{behaviorId}' step {step.Id} op '{step.Op}' is missing required parameter '{parameter.Name}'.");
+                yield return $"step {step.Id} op '{step.Op}' is missing required parameter '{parameter.Name}'.";
             }
 
             if (parameter.AllowedValues is { Count: > 0 }
                 && !string.IsNullOrWhiteSpace(value)
                 && !parameter.AllowedValues.Contains(value, StringComparer.Ordinal))
             {
-                Console.Error.WriteLine(
-                    $"Behavior '{behaviorId}' step {step.Id} op '{step.Op}' has invalid {parameter.Name} '{value}'.");
+                yield return $"step {step.Id} op '{step.Op}' has invalid {parameter.Name} '{value}'.";
             }
         }
     }
@@ -101,15 +159,16 @@ public static class BehaviorDefinitionCatalog
         };
     }
 
-    private sealed class BehaviorContentFile
+    private sealed class BehaviorContentFile : IContentFile
     {
         public int SchemaVersion { get; set; }
         public List<BehaviorContentDefinition> Behaviors { get; set; } = [];
     }
 
-    private sealed class BehaviorContentDefinition
+    private sealed class BehaviorContentDefinition : IContentDefinition
     {
         public string Id { get; set; } = "";
+        public string Operation { get; set; } = "";
         public List<BehaviorStepContentDefinition> Steps { get; set; } = [];
     }
 

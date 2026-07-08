@@ -66,6 +66,13 @@ public sealed class WorkingResult
             costAdjustment);
     }
 
+    public WorkingResult WithHookChanges(bool changedWorld)
+    {
+        return changedWorld
+            ? new WorkingResult(Succeeded, Trace, FailureReason, true, CounterCosts, CounterGains, CostAdjustment)
+            : this;
+    }
+
     private static IReadOnlyDictionary<string, int> CopyNonZero(IReadOnlyDictionary<string, int> counters)
     {
         return counters

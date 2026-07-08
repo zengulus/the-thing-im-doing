@@ -4,6 +4,7 @@ using System.Linq;
 using TheThingImDoing.Actors;
 using TheThingImDoing.Behaviors;
 using TheThingImDoing.Content;
+using TheThingImDoing.Relics;
 using TheThingImDoing.Spells;
 using TheThingImDoing.World;
 
@@ -14,6 +15,7 @@ public sealed class TacticalEncounter
     private readonly Dictionary<int, EncounterActor> _actorsById = new();
     private readonly Dictionary<GridPos, CounterSet> _tileCounters = new();
     private readonly Dictionary<GridPos, List<EffectInstance>> _tileEffects = new();
+    private readonly List<string> _relicIds = new();
     private int _nextActorId = 1;
     private int _nextTileEffectInstanceId = 1;
 
@@ -23,6 +25,7 @@ public sealed class TacticalEncounter
         Turns = new TurnSystem();
         FloorRules = FloorRuleSet.BrittleStone();
         Player = AddActor(Faction.Player, playerStart, health: 5);
+        _relicIds.Add("relic.patient_bell");
     }
 
     private TacticalEncounter(
@@ -32,6 +35,7 @@ public sealed class TacticalEncounter
         Dictionary<int, EncounterActor> actorsById,
         Dictionary<GridPos, CounterSet> tileCounters,
         Dictionary<GridPos, List<EffectInstance>> tileEffects,
+        List<string> relicIds,
         int nextActorId,
         int nextTileEffectInstanceId,
         int playerActorId)
@@ -42,6 +46,7 @@ public sealed class TacticalEncounter
         _actorsById = actorsById;
         _tileCounters = tileCounters;
         _tileEffects = tileEffects;
+        _relicIds = relicIds;
         _nextActorId = nextActorId;
         _nextTileEffectInstanceId = nextTileEffectInstanceId;
         Player = _actorsById[playerActorId];
@@ -53,6 +58,7 @@ public sealed class TacticalEncounter
     public EncounterActor Player { get; }
 
     public IReadOnlyCollection<EncounterActor> Actors => _actorsById.Values;
+    public IReadOnlyList<string> RelicIds => _relicIds;
 
     public IEnumerable<EncounterActor> Enemies
     {
@@ -223,6 +229,21 @@ public sealed class TacticalEncounter
         EffectInstance instance = target.GetOrAddEffect(effectId, ownerActorId);
         AddStartingStacks(instance, definition, stacks);
         RunEffectTrigger(target, instance, EffectTriggerIds.Apply);
+        RunRuleHooks(
+            RuleTriggerIds.EffectApplied,
+            new OmenTrace(),
+            eventActor: target,
+            eventDamage: stacks);
+        RunRelicHooks(
+            RuleTriggerIds.EffectApplied,
+            new OmenTrace(),
+            eventActor: target,
+            eventDamage: stacks);
+        RunRelicHooks(
+            EffectTriggerIds.Apply,
+            new OmenTrace(),
+            eventActor: target,
+            eventDamage: stacks);
         return instance;
     }
 
@@ -240,6 +261,21 @@ public sealed class TacticalEncounter
 
         EffectInstance instance = GetOrAddTileEffect(position, effectId, ownerActorId);
         AddStartingStacks(instance, definition, stacks);
+        RunRuleHooks(
+            RuleTriggerIds.EffectApplied,
+            new OmenTrace(),
+            eventTile: position,
+            eventDamage: stacks);
+        RunRelicHooks(
+            RuleTriggerIds.EffectApplied,
+            new OmenTrace(),
+            eventTile: position,
+            eventDamage: stacks);
+        RunRelicHooks(
+            EffectTriggerIds.Apply,
+            new OmenTrace(),
+            eventTile: position,
+            eventDamage: stacks);
         return instance;
     }
 
@@ -347,11 +383,12 @@ public sealed class TacticalEncounter
     {
         var machine = new WorkingMachine();
         TacticalEncounter previewEncounter = Clone();
-        return machine.Execute(
+        WorkingResult result = machine.Execute(
             working,
             new EncounterSpellWorld(previewEncounter),
             previewEncounter.Player.Id,
             selectedTarget);
+        return result.WithHookChanges(previewEncounter.RunAfterSpellResolvedHooks(result.Trace));
     }
 
     public WorkingResult TryCastWorking(Working working, GridPos selectedTarget)
@@ -369,6 +406,7 @@ public sealed class TacticalEncounter
             new EncounterSpellWorld(this),
             Player.Id,
             selectedTarget);
+        result = result.WithHookChanges(RunAfterSpellResolvedHooks(result.Trace));
 
         Turns.EndPlayerTurn();
         return result;
@@ -436,6 +474,7 @@ public sealed class TacticalEncounter
         foreach (EncounterActor enemy in Enemies.ToArray())
         {
             RunEffectTrigger(enemy, EffectTriggerIds.TurnStart);
+            RunRelicHooks(EffectTriggerIds.TurnStart, new OmenTrace(), eventActor: enemy);
 
             if (!enemy.IsAlive)
             {
@@ -454,6 +493,7 @@ public sealed class TacticalEncounter
         if (Result == GameResult.InProgress)
         {
             RunEffectTrigger(Player, EffectTriggerIds.TurnStart);
+            RunRelicHooks(EffectTriggerIds.TurnStart, new OmenTrace(), eventActor: Player);
         }
 
         if (Result == GameResult.InProgress)
@@ -477,6 +517,16 @@ public sealed class TacticalEncounter
         }
 
         actor.ApplyDamage(nextAmount);
+        RunRuleHooks(
+            RuleTriggerIds.AfterDamage,
+            new OmenTrace(),
+            eventActor: actor,
+            eventDamage: nextAmount);
+        RunRelicHooks(
+            RuleTriggerIds.AfterDamage,
+            new OmenTrace(),
+            eventActor: actor,
+            eventDamage: nextAmount);
 
         if (!actor.IsAlive)
         {
@@ -510,6 +560,8 @@ public sealed class TacticalEncounter
         }
 
         Grid.SetTile(position, state);
+        RunRuleHooks(RuleTriggerIds.TileStateChanged, new OmenTrace(), eventTile: position);
+        RunRelicHooks(RuleTriggerIds.TileStateChanged, new OmenTrace(), eventTile: position);
         return true;
     }
 
@@ -533,7 +585,7 @@ public sealed class TacticalEncounter
                 continue;
             }
 
-            if (TryRunPushCollisionRule(actor, destination, direction))
+            if (TryRunPushCollisionHooks(actor, destination, direction))
             {
                 return true;
             }
@@ -629,6 +681,7 @@ public sealed class TacticalEncounter
             actorClones,
             tileCounterClones,
             tileEffectClones,
+            _relicIds.ToList(),
             _nextActorId,
             _nextTileEffectInstanceId,
             Player.Id);
@@ -645,26 +698,34 @@ public sealed class TacticalEncounter
         };
     }
 
-    private bool TryRunPushCollisionRule(EncounterActor actor, GridPos destination, Direction direction)
+    public void AddRelic(string relicId)
     {
-        if (string.IsNullOrWhiteSpace(FloorRules.PushCollisionBehaviorId))
+        if (!_relicIds.Contains(relicId, StringComparer.Ordinal))
         {
-            return false;
+            _relicIds.Add(relicId);
         }
+    }
 
-        var trace = new OmenTrace();
-        BehaviorExecutionResult result = new BehaviorMachine().Execute(
-            FloorRules.PushCollisionBehaviorId,
-            new BehaviorExecutionContext
-            {
-                Encounter = this,
-                EventActor = actor,
-                EventTile = destination,
-                EventDirection = direction,
-                Trace = trace
-            });
+    public bool RemoveRelic(string relicId)
+    {
+        return _relicIds.Remove(relicId);
+    }
 
-        return result.ChangedWorld;
+    private bool TryRunPushCollisionHooks(EncounterActor actor, GridPos destination, Direction direction)
+    {
+        bool changedWorld = RunRuleHooks(
+            RuleTriggerIds.PushCollision,
+            new OmenTrace(),
+            eventActor: actor,
+            eventTile: destination,
+            eventDirection: direction).ChangedWorld;
+        changedWorld |= RunRelicHooks(
+            RuleTriggerIds.PushCollision,
+            new OmenTrace(),
+            eventActor: actor,
+            eventTile: destination,
+            eventDirection: direction).ChangedWorld;
+        return changedWorld;
     }
 
     private EncounterActor AddActor(
@@ -697,7 +758,25 @@ public sealed class TacticalEncounter
 
         actor.Position = destination;
         RunEffectTrigger(actor, EffectTriggerIds.Move);
+        RunRelicHooks(
+            EffectTriggerIds.Move,
+            new OmenTrace(),
+            eventActor: actor,
+            eventTile: destination,
+            eventDirection: direction);
         RunBecameAdjacentHooks(actor, origin);
+        RunRuleHooks(
+            RuleTriggerIds.AfterMove,
+            new OmenTrace(),
+            eventActor: actor,
+            eventTile: destination,
+            eventDirection: direction);
+        RunRelicHooks(
+            RuleTriggerIds.AfterMove,
+            new OmenTrace(),
+            eventActor: actor,
+            eventTile: destination,
+            eventDirection: direction);
         return true;
     }
 
@@ -718,19 +797,6 @@ public sealed class TacticalEncounter
             });
     }
 
-    private void RunEffectTrigger(EncounterActor target, string triggerId)
-    {
-        foreach (EffectInstance instance in target.Effects.ToArray())
-        {
-            RunEffectTrigger(target, instance, triggerId);
-
-            if (!target.IsAlive)
-            {
-                break;
-            }
-        }
-    }
-
     private int RunBeforeDamageHooks(EncounterActor target, int amount)
     {
         int nextAmount = amount;
@@ -742,7 +808,7 @@ public sealed class TacticalEncounter
                 instance,
                 EffectTriggerIds.BeforeDamage,
                 eventActor: target,
-                eventDamage: nextAmount).EventDamage;
+                eventDamage: nextAmount).Context.EventDamage;
 
             if (nextAmount <= 0)
             {
@@ -750,7 +816,24 @@ public sealed class TacticalEncounter
             }
         }
 
-        return nextAmount;
+        HookExecutionResult ruleResult = RunRuleHooks(
+            RuleTriggerIds.BeforeDamage,
+            new OmenTrace(),
+            eventActor: target,
+            eventDamage: nextAmount);
+        nextAmount = ruleResult.Context.EventDamage;
+
+        if (nextAmount <= 0)
+        {
+            return 0;
+        }
+
+        HookExecutionResult relicResult = RunRelicHooks(
+            EffectTriggerIds.BeforeDamage,
+            new OmenTrace(),
+            eventActor: target,
+            eventDamage: nextAmount);
+        return relicResult.Context.EventDamage;
     }
 
     private void RunBecameAdjacentHooks(EncounterActor movedActor, GridPos origin)
@@ -777,24 +860,109 @@ public sealed class TacticalEncounter
         }
     }
 
-    private BehaviorExecutionContext RunEffectBehavior(
+    private bool RunAfterSpellResolvedHooks(OmenTrace trace)
+    {
+        bool changedWorld = false;
+
+        foreach (EncounterActor actor in Actors.Where(actor => actor.IsAlive).ToArray())
+        {
+            changedWorld |= RunEffectTrigger(actor, EffectTriggerIds.AfterSpellResolved, trace).ChangedWorld;
+        }
+
+        changedWorld |= RunRuleHooks(
+            RuleTriggerIds.AfterSpellResolved,
+            trace,
+            eventActor: Player).ChangedWorld;
+        changedWorld |= RunRelicHooks(
+            EffectTriggerIds.AfterSpellResolved,
+            trace,
+            eventActor: Player).ChangedWorld;
+
+        return changedWorld;
+    }
+
+    private HookExecutionResult RunRuleHooks(
+        string trigger,
+        OmenTrace trace,
+        EncounterActor? eventActor = null,
+        GridPos? eventTile = null,
+        Direction? eventDirection = null,
+        int eventDamage = 0)
+    {
+        var context = new BehaviorExecutionContext
+        {
+            Encounter = this,
+            EventActor = eventActor,
+            EventTile = eventTile,
+            EventDirection = eventDirection,
+            EventDamage = eventDamage,
+            Trace = trace
+        };
+
+        return RunHookBehaviors(FloorRules.GetBehaviorIds(trigger), context);
+    }
+
+    private HookExecutionResult RunRelicHooks(
+        string trigger,
+        OmenTrace trace,
+        EncounterActor? eventActor = null,
+        GridPos? eventTile = null,
+        Direction? eventDirection = null,
+        int eventDamage = 0)
+    {
+        var context = new BehaviorExecutionContext
+        {
+            Encounter = this,
+            EventActor = eventActor,
+            EventTile = eventTile,
+            EventDirection = eventDirection,
+            EventDamage = eventDamage,
+            Trace = trace
+        };
+
+        IEnumerable<string> behaviorIds = _relicIds
+            .Select(id => RelicDefinitionCatalog.TryGet(id, out RelicDefinition? relic) ? relic : null)
+            .OfType<RelicDefinition>()
+            .SelectMany(relic => relic.GetBehaviorIds(trigger));
+
+        return RunHookBehaviors(behaviorIds, context);
+    }
+
+    private static HookExecutionResult RunHookBehaviors(
+        IEnumerable<string> behaviorIds,
+        BehaviorExecutionContext context)
+    {
+        bool changedWorld = false;
+        var machine = new BehaviorMachine();
+
+        foreach (string behaviorId in behaviorIds)
+        {
+            BehaviorExecutionResult result = machine.Execute(behaviorId, context);
+            changedWorld |= result.ChangedWorld;
+        }
+
+        return new HookExecutionResult(context, changedWorld);
+    }
+
+    private HookExecutionResult RunEffectBehavior(
         EncounterActor target,
         EffectInstance instance,
         string behaviorId,
         EncounterActor? eventActor = null,
-        int eventDamage = 0)
+        int eventDamage = 0,
+        OmenTrace? trace = null)
     {
         if (string.IsNullOrWhiteSpace(behaviorId))
         {
-            return new BehaviorExecutionContext
+            return new HookExecutionResult(new BehaviorExecutionContext
             {
                 Encounter = this,
                 EventActor = eventActor ?? target,
                 EventDamage = eventDamage,
                 EffectTarget = target,
                 Effect = instance,
-                Trace = new OmenTrace()
-            };
+                Trace = trace ?? new OmenTrace()
+            }, false);
         }
 
         var context = new BehaviorExecutionContext
@@ -804,33 +972,62 @@ public sealed class TacticalEncounter
             EventDamage = eventDamage,
             EffectTarget = target,
             Effect = instance,
-            Trace = new OmenTrace()
+            Trace = trace ?? new OmenTrace()
         };
 
-        new BehaviorMachine().Execute(
+        BehaviorExecutionResult result = new BehaviorMachine().Execute(
             behaviorId,
             context);
 
-        return context;
+        return new HookExecutionResult(context, result.ChangedWorld);
     }
 
-    private BehaviorExecutionContext RunEffectTrigger(
+    private HookExecutionResult RunEffectTrigger(
+        EncounterActor target,
+        string triggerId,
+        OmenTrace? trace = null)
+    {
+        HookExecutionResult result = RunEffectBehavior(
+            target,
+            new EffectInstance(0, "", target.Id),
+            "",
+            trace: trace);
+        bool changedWorld = false;
+
+        foreach (EffectInstance instance in target.Effects.ToArray())
+        {
+            result = RunEffectTrigger(target, instance, triggerId, trace: trace);
+            changedWorld |= result.ChangedWorld;
+
+            if (!target.IsAlive)
+            {
+                break;
+            }
+        }
+
+        return new HookExecutionResult(result.Context, changedWorld);
+    }
+
+    private HookExecutionResult RunEffectTrigger(
         EncounterActor target,
         EffectInstance instance,
         string triggerId,
         EncounterActor? eventActor = null,
-        int eventDamage = 0)
+        int eventDamage = 0,
+        OmenTrace? trace = null)
     {
         if (!EffectDefinitionCatalog.TryGet(instance.EffectId, out EffectDefinition? definition))
         {
-            return RunEffectBehavior(target, instance, "", eventActor, eventDamage);
+            return RunEffectBehavior(target, instance, "", eventActor, eventDamage, trace);
         }
 
-        BehaviorExecutionContext context = RunEffectBehavior(target, instance, "", eventActor, eventDamage);
+        HookExecutionResult result = RunEffectBehavior(target, instance, "", eventActor, eventDamage, trace);
+        bool changedWorld = false;
 
         foreach (string behaviorId in definition.GetBehaviorIds(triggerId))
         {
-            context = RunEffectBehavior(target, instance, behaviorId, eventActor, context.EventDamage);
+            result = RunEffectBehavior(target, instance, behaviorId, eventActor, result.Context.EventDamage, trace);
+            changedWorld |= result.ChangedWorld;
 
             if (!target.IsAlive || eventActor?.IsAlive == false)
             {
@@ -838,7 +1035,7 @@ public sealed class TacticalEncounter
             }
         }
 
-        return context;
+        return new HookExecutionResult(result.Context, changedWorld);
     }
 
     private EffectInstance GetOrAddTileEffect(GridPos position, string effectId, int ownerActorId)
@@ -901,6 +1098,8 @@ public sealed class TacticalEncounter
             _ => false
         };
     }
+
+    private readonly record struct HookExecutionResult(BehaviorExecutionContext Context, bool ChangedWorld);
 }
 
 public sealed class EncounterActor

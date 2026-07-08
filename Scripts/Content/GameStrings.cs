@@ -22,6 +22,12 @@ public static class GameStrings
         return Strings.TryGetValue(key, out string? value) ? value : $"#{key}";
     }
 
+    public static bool Has(string key)
+    {
+        EnsureLoaded();
+        return Strings.ContainsKey(key);
+    }
+
     public static void Reload()
     {
         _loaded = false;
@@ -71,8 +77,18 @@ public static class GameStrings
             return;
         }
 
-        Dictionary<string, string>? loadedStrings = JsonSerializer.Deserialize<Dictionary<string, string>>(
-            File.ReadAllText(hostPath));
+        Dictionary<string, string>? loadedStrings;
+
+        try
+        {
+            loadedStrings = JsonSerializer.Deserialize<Dictionary<string, string>>(
+                File.ReadAllText(hostPath));
+        }
+        catch (Exception exception)
+        {
+            ContentDiagnostics.Warn($"Could not load strings file {path}: {exception.Message}");
+            return;
+        }
 
         if (loadedStrings == null)
         {

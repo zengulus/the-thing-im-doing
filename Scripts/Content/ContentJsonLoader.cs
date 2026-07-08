@@ -21,7 +21,19 @@ public static class ContentJsonLoader
     public static IEnumerable<TItem> LoadItems<TFile, TItem>(
         string fileName,
         Func<TFile, IEnumerable<TItem>?> selectItems)
-        where TFile : class
+        where TFile : class, IContentFile
+    {
+        foreach (LoadedContentItem<TItem> item in LoadItemsWithSources(fileName, selectItems))
+        {
+            yield return item.Value;
+        }
+    }
+
+    public static IEnumerable<LoadedContentItem<TItem>> LoadItemsWithSources<TFile, TItem>(
+        string fileName,
+        Func<TFile, IEnumerable<TItem>?> selectItems,
+        int supportedSchemaVersion = 1)
+        where TFile : class, IContentFile
     {
         foreach (string path in GetLoadPaths(fileName))
         {
@@ -29,6 +41,19 @@ public static class ContentJsonLoader
 
             if (contentFile == null)
             {
+                continue;
+            }
+
+            if (contentFile.SchemaVersion <= 0)
+            {
+                ContentDiagnostics.Warn($"Content file {path} is missing schemaVersion and was skipped.");
+                continue;
+            }
+
+            if (contentFile.SchemaVersion != supportedSchemaVersion)
+            {
+                ContentDiagnostics.Warn(
+                    $"Content file {path} uses schemaVersion {contentFile.SchemaVersion}; expected {supportedSchemaVersion}.");
                 continue;
             }
 
@@ -41,7 +66,7 @@ public static class ContentJsonLoader
 
             foreach (TItem item in items)
             {
-                yield return item;
+                yield return new LoadedContentItem<TItem>(item, path);
             }
         }
     }

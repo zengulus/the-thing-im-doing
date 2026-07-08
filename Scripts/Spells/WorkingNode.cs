@@ -1,19 +1,15 @@
-using Godot;
-
 namespace TheThingImDoing.Spells;
 
 public sealed class WorkingNode
 {
-    public WorkingNode(int id, string clauseId, Vector2 boardPosition)
+    public WorkingNode(int id, string clauseId)
     {
         Id = id;
         ClauseId = clauseId;
-        BoardPosition = boardPosition;
     }
 
     public int Id { get; }
     public string ClauseId { get; set; }
-    public Vector2 BoardPosition { get; set; }
     public int? NextNodeId { get; set; }
     public int? TrueNodeId { get; set; }
     public int? FalseNodeId { get; set; }
@@ -65,7 +61,7 @@ public sealed class WorkingNode
 
     public WorkingNode Clone()
     {
-        return new WorkingNode(Id, ClauseId, BoardPosition)
+        return new WorkingNode(Id, ClauseId)
         {
             NextNodeId = NextNodeId,
             TrueNodeId = TrueNodeId,

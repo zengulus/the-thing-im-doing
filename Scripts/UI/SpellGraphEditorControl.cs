@@ -86,10 +86,11 @@ public partial class SpellGraphEditorControl : Control
         int column = (_working.Nodes.Count % 3);
         int row = _working.Nodes.Count / 3;
         var position = new Vector2(18 + column * 210, 22 + row * 135);
-        var node = new WorkingNode(nodeId, clauseId, position);
+        var node = new WorkingNode(nodeId, clauseId);
 
         WorkingNode? previous = _working.Nodes.LastOrDefault();
         _working.AddNode(node);
+        SetNodePosition(node.Id, position);
 
         if (previous != null
             && previous.NextNodeId == null
@@ -138,7 +139,7 @@ public partial class SpellGraphEditorControl : Control
         ClauseDefinitionCatalog.TryGet(node.ClauseId, out ClauseDefinition? definition);
         var card = new PanelContainer
         {
-            Position = node.BoardPosition,
+            Position = GetNodePosition(node),
             Size = new Vector2(NodeWidth, NodeHeight),
             CustomMinimumSize = new Vector2(NodeWidth, NodeHeight),
             MouseFilter = MouseFilterEnum.Stop
@@ -246,8 +247,9 @@ public partial class SpellGraphEditorControl : Control
             && _draggingByNode.TryGetValue(node.Id, out bool isDragging)
             && isDragging)
         {
-            node.BoardPosition = ClampToBoard(card.Position + mouseMotion.Relative);
-            card.Position = node.BoardPosition;
+            Vector2 position = ClampToBoard(card.Position + mouseMotion.Relative);
+            SetNodePosition(node.Id, position);
+            card.Position = position;
             NotifyChanged(redrawOnly: true);
         }
     }
@@ -336,12 +338,28 @@ public partial class SpellGraphEditorControl : Control
         DrawPolyline(GetBezierPoints(start, controlA, controlB, end), color, width: 3.0f);
     }
 
-    private static Vector2 GetInputPosition(WorkingNode node)
+    private Vector2 GetNodePosition(WorkingNode node)
     {
-        return node.BoardPosition + new Vector2(0, 28);
+        if (_working == null)
+        {
+            return Vector2.Zero;
+        }
+
+        WorkingNodeLayout layout = _working.GetNodeLayout(node.Id);
+        return new Vector2(layout.X, layout.Y);
     }
 
-    private static Vector2 GetOutputPosition(WorkingNode node, WorkingOutputPort port)
+    private void SetNodePosition(int nodeId, Vector2 position)
+    {
+        _working?.SetNodeLayout(nodeId, new WorkingNodeLayout(position.X, position.Y));
+    }
+
+    private Vector2 GetInputPosition(WorkingNode node)
+    {
+        return GetNodePosition(node) + new Vector2(0, 28);
+    }
+
+    private Vector2 GetOutputPosition(WorkingNode node, WorkingOutputPort port)
     {
         float y = port switch
         {
@@ -350,7 +368,7 @@ public partial class SpellGraphEditorControl : Control
             _ => 82
         };
 
-        return node.BoardPosition + new Vector2(NodeWidth, y);
+        return GetNodePosition(node) + new Vector2(NodeWidth, y);
     }
 
     private static Vector2[] GetBezierPoints(Vector2 start, Vector2 controlA, Vector2 controlB, Vector2 end)

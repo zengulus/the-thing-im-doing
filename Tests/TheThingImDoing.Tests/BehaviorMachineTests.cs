@@ -187,6 +187,39 @@ public sealed class BehaviorMachineTests
         Assert.Empty(encounter.Player.Effects);
     }
 
+    [Fact]
+    public void RelicHook_AfterSpellResolvedRunsOnCloneForPreviewAndRealEncounterForCast()
+    {
+        var encounter = new TacticalEncounter(5, 5, new GridPos(1, 1));
+        encounter.AddDummyEnemy(new GridPos(3, 1), health: 3);
+        Working working = WorkingSamples.CreateMarkOrDamage();
+
+        WorkingResult preview = encounter.PreviewWorking(working, new GridPos(3, 1));
+
+        Assert.True(preview.ChangedWorld);
+        Assert.Equal(0, encounter.Player.Counters.Get("counter.bonus.focus"));
+
+        WorkingResult cast = encounter.TryCastWorking(working, new GridPos(3, 1));
+
+        Assert.True(cast.Succeeded);
+        Assert.Equal(1, encounter.Player.Counters.Get("counter.bonus.focus"));
+    }
+
+    [Fact]
+    public void WorkingJson_RoundTripsSemanticDataAndOptionalLayout()
+    {
+        Working working = WorkingSamples.CreateEmergencyWall();
+
+        Working roundTripped = WorkingJson.FromJson(working.ToJson());
+
+        Assert.Equal(working.Id, roundTripped.Id);
+        Assert.Equal(working.DisplayNameKey, roundTripped.DisplayNameKey);
+        Assert.Equal(working.EntryNodeId, roundTripped.EntryNodeId);
+        Assert.Equal(working.Nodes.Count, roundTripped.Nodes.Count);
+        Assert.Equal(working.Nodes[1].ClauseId, roundTripped.Nodes[1].ClauseId);
+        Assert.Equal(working.GetNodeLayout(1), roundTripped.GetNodeLayout(1));
+    }
+
     private static BehaviorStepDefinition Step(
         int id,
         string op,

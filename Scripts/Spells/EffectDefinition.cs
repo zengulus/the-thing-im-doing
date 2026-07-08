@@ -37,4 +37,5 @@ public static class EffectTriggerIds
     public const string Death = "death";
     public const string ActorBecameAdjacent = "actor_became_adjacent";
     public const string BeforeDamage = "before_damage";
+    public const string AfterSpellResolved = "after_spell_resolved";
 }
