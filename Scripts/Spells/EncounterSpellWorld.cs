@@ -68,6 +68,26 @@ public sealed class EncounterSpellWorld : ISpellWorld
         _encounter.AddActorMark(target.Id, ownerActorId);
     }
 
+    public int GetCounter(EncounterActor target, string counterId)
+    {
+        return _encounter.GetActorCounter(target.Id, counterId);
+    }
+
+    public int AddCounter(EncounterActor target, string counterId, int amount)
+    {
+        return _encounter.AddActorCounter(target.Id, counterId, amount);
+    }
+
+    public int GetCounter(GridPos pos, string counterId)
+    {
+        return _encounter.GetTileCounter(pos, counterId);
+    }
+
+    public int AddCounter(GridPos pos, string counterId, int amount)
+    {
+        return _encounter.AddTileCounter(pos, counterId, amount);
+    }
+
     public void ApplyDamage(EncounterActor target, int amount, EncounterActor? source)
     {
         _encounter.TryDamageActor(target.Id, amount);
@@ -88,4 +108,3 @@ public sealed class EncounterSpellWorld : ISpellWorld
         _encounter.TryRaiseStone(pos);
     }
 }
-

@@ -59,6 +59,37 @@
       ]
     },
     {
+      "id": "behavior.clause.poison_them",
+      "steps": [
+        { "id": 1, "op": "add_focus_actor_counter", "counter": "poison", "amount": 3 }
+      ]
+    },
+    {
+      "id": "behavior.clause.bleed_them",
+      "steps": [
+        { "id": 1, "op": "add_focus_actor_counter", "counter": "bleed", "amount": 1 }
+      ]
+    },
+    {
+      "id": "behavior.clause.venom_burst",
+      "steps": [
+        { "id": 1, "op": "branch_focus_actor_counter_at_least", "counter": "poison", "amount": 1, "true": 2, "false": 4 },
+        { "id": 2, "op": "add_focus_actor_counter", "counter": "poison", "amount": -1, "next": 3 },
+        { "id": 3, "op": "damage_focus_actor", "amount": 2, "next": 4 },
+        { "id": 4, "op": "stop" }
+      ]
+    },
+    {
+      "id": "behavior.clause.rend_bleed",
+      "steps": [
+        { "id": 1, "op": "branch_focus_actor_counter_at_least", "counter": "bleed", "amount": 1, "true": 2, "false": 5 },
+        { "id": 2, "op": "add_focus_actor_counter", "counter": "bleed", "amount": -1, "next": 3 },
+        { "id": 3, "op": "damage_focus_actor", "amount": 1, "next": 4 },
+        { "id": 4, "op": "push_focus", "amount": 1, "next": 5 },
+        { "id": 5, "op": "stop" }
+      ]
+    },
+    {
       "id": "behavior.clause.remember_them",
       "steps": [
         { "id": 1, "op": "remember_focus" }

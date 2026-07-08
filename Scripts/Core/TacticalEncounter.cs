@@ -12,6 +12,7 @@ namespace TheThingImDoing.Core;
 public sealed class TacticalEncounter
 {
     private readonly Dictionary<int, EncounterActor> _actorsById = new();
+    private readonly Dictionary<GridPos, CounterSet> _tileCounters = new();
     private readonly HashSet<ActorMark> _actorMarks = new();
     private readonly HashSet<TileMark> _tileMarks = new();
     private int _nextActorId = 1;
@@ -29,6 +30,7 @@ public sealed class TacticalEncounter
         TurnSystem turns,
         FloorRuleSet floorRules,
         Dictionary<int, EncounterActor> actorsById,
+        Dictionary<GridPos, CounterSet> tileCounters,
         HashSet<ActorMark> actorMarks,
         HashSet<TileMark> tileMarks,
         int nextActorId,
@@ -38,6 +40,7 @@ public sealed class TacticalEncounter
         Turns = turns;
         FloorRules = floorRules;
         _actorsById = actorsById;
+        _tileCounters = tileCounters;
         _actorMarks = actorMarks;
         _tileMarks = tileMarks;
         _nextActorId = nextActorId;
@@ -155,6 +158,50 @@ public sealed class TacticalEncounter
         return _tileMarks.Contains(new TileMark(position, ownerActorId));
     }
 
+    public int GetActorCounter(int actorId, string counterId)
+    {
+        return _actorsById.TryGetValue(actorId, out EncounterActor? actor)
+            ? actor.Counters.Get(counterId)
+            : 0;
+    }
+
+    public int AddActorCounter(int actorId, string counterId, int amount)
+    {
+        return _actorsById.TryGetValue(actorId, out EncounterActor? actor)
+            ? actor.Counters.Add(counterId, amount)
+            : 0;
+    }
+
+    public int GetTileCounter(GridPos position, string counterId)
+    {
+        return _tileCounters.TryGetValue(position, out CounterSet? counters)
+            ? counters.Get(counterId)
+            : 0;
+    }
+
+    public int AddTileCounter(GridPos position, string counterId, int amount)
+    {
+        if (!Grid.IsInside(position))
+        {
+            return 0;
+        }
+
+        if (!_tileCounters.TryGetValue(position, out CounterSet? counters))
+        {
+            counters = new CounterSet();
+            _tileCounters.Add(position, counters);
+        }
+
+        int next = counters.Add(counterId, amount);
+
+        if (counters.All.Count == 0)
+        {
+            _tileCounters.Remove(position);
+        }
+
+        return next;
+    }
+
     public void AddActorMark(int targetActorId, int ownerActorId)
     {
         _actorMarks.Add(new ActorMark(targetActorId, ownerActorId));
@@ -265,12 +312,25 @@ public sealed class TacticalEncounter
 
         foreach (EncounterActor enemy in Enemies.ToArray())
         {
+            ApplyPoisonAtTurnStart(enemy);
+
+            if (!enemy.IsAlive)
+            {
+                Grid.RemoveActor(enemy.Id);
+                continue;
+            }
+
             TakeDummyEnemyTurn(enemy);
 
             if (Result != GameResult.InProgress)
             {
                 break;
             }
+        }
+
+        if (Result == GameResult.InProgress)
+        {
+            ApplyPoisonAtTurnStart(Player);
         }
 
         if (Result == GameResult.InProgress)
@@ -361,12 +421,16 @@ public sealed class TacticalEncounter
         var actorClones = _actorsById.ToDictionary(
             pair => pair.Key,
             pair => pair.Value.Clone());
+        var tileCounterClones = _tileCounters.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value.Clone());
 
         return new TacticalEncounter(
             Grid.Clone(),
             Turns.Clone(),
             FloorRules,
             actorClones,
+            tileCounterClones,
             _actorMarks.ToHashSet(),
             _tileMarks.ToHashSet(),
             _nextActorId,
@@ -434,7 +498,33 @@ public sealed class TacticalEncounter
         }
 
         actor.Position = destination;
+        ApplyBleedAfterMove(actor);
         return true;
+    }
+
+    private void ApplyPoisonAtTurnStart(EncounterActor actor)
+    {
+        int poison = actor.Counters.Get("poison");
+
+        if (poison <= 0)
+        {
+            return;
+        }
+
+        TryDamageActor(actor.Id, 1);
+        actor.Counters.Add("poison", -1);
+    }
+
+    private void ApplyBleedAfterMove(EncounterActor actor)
+    {
+        int bleed = actor.Counters.Get("bleed");
+
+        if (bleed <= 0)
+        {
+            return;
+        }
+
+        TryDamageActor(actor.Id, bleed);
     }
 
     private void TakeDummyEnemyTurn(EncounterActor enemy)
@@ -487,6 +577,7 @@ public sealed class EncounterActor
     public int MaxHealth { get; }
     public int Health { get; private set; }
     public int BrainCounter { get; internal set; }
+    public CounterSet Counters { get; } = new();
     public bool IsAlive => Health > 0;
 
     public void ApplyDamage(int amount)
@@ -501,11 +592,18 @@ public sealed class EncounterActor
 
     public EncounterActor Clone()
     {
-        return new EncounterActor(Id, Faction, Position, MaxHealth, EnemyId)
+        var clone = new EncounterActor(Id, Faction, Position, MaxHealth, EnemyId)
         {
             Health = Health,
             BrainCounter = BrainCounter
         };
+
+        foreach ((string counterId, int amount) in Counters.All)
+        {
+            clone.Counters.Add(counterId, amount);
+        }
+
+        return clone;
     }
 }
 

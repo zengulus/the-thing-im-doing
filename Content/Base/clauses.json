@@ -7,7 +7,8 @@
       "playerTextKey": "clauses.aim_at_target.player_text",
       "tooltipKey": "clauses.aim_at_target.tooltip",
       "family": "Targeting",
-      "baseFocusCost": 0,
+      "counterCosts": {},
+      "counterGains": {},
       "behaviorId": "behavior.clause.aim_at_target",
       "tags": [ "targeting" ]
     },
@@ -17,7 +18,8 @@
       "playerTextKey": "clauses.aim_at_nearest_foe.player_text",
       "tooltipKey": "clauses.aim_at_nearest_foe.tooltip",
       "family": "Targeting",
-      "baseFocusCost": 0,
+      "counterCosts": {},
+      "counterGains": {},
       "behaviorId": "behavior.clause.aim_at_nearest_foe",
       "tags": [ "targeting", "enemy" ]
     },
@@ -27,7 +29,8 @@
       "playerTextKey": "clauses.if_marked.player_text",
       "tooltipKey": "clauses.if_marked.tooltip",
       "family": "Condition",
-      "baseFocusCost": 0,
+      "counterCosts": {},
+      "counterGains": {},
       "behaviorId": "behavior.clause.if_marked",
       "isCondition": true,
       "tags": [ "condition", "mark" ]
@@ -38,7 +41,8 @@
       "playerTextKey": "clauses.if_occupied.player_text",
       "tooltipKey": "clauses.if_occupied.tooltip",
       "family": "Condition",
-      "baseFocusCost": 0,
+      "counterCosts": {},
+      "counterGains": {},
       "behaviorId": "behavior.clause.if_occupied",
       "isCondition": true,
       "tags": [ "condition", "tile" ]
@@ -49,7 +53,8 @@
       "playerTextKey": "clauses.if_clear.player_text",
       "tooltipKey": "clauses.if_clear.tooltip",
       "family": "Condition",
-      "baseFocusCost": 0,
+      "counterCosts": {},
+      "counterGains": {},
       "behaviorId": "behavior.clause.if_clear",
       "isCondition": true,
       "tags": [ "condition", "tile" ]
@@ -60,7 +65,8 @@
       "playerTextKey": "clauses.mark_them.player_text",
       "tooltipKey": "clauses.mark_them.tooltip",
       "family": "Mark",
-      "baseFocusCost": 1,
+      "counterCosts": { "focus": 1 },
+      "counterGains": {},
       "behaviorId": "behavior.clause.mark_them",
       "tags": [ "mark" ]
     },
@@ -70,7 +76,8 @@
       "playerTextKey": "clauses.spark_them.player_text",
       "tooltipKey": "clauses.spark_them.tooltip",
       "family": "Effect",
-      "baseFocusCost": 1,
+      "counterCosts": { "focus": 1 },
+      "counterGains": {},
       "behaviorId": "behavior.clause.spark_them",
       "tags": [ "damage", "mark-synergy" ]
     },
@@ -80,7 +87,8 @@
       "playerTextKey": "clauses.raise_stone.player_text",
       "tooltipKey": "clauses.raise_stone.tooltip",
       "family": "Effect",
-      "baseFocusCost": 1,
+      "counterCosts": { "focus": 1 },
+      "counterGains": {},
       "behaviorId": "behavior.clause.raise_stone",
       "tags": [ "terrain" ]
     },
@@ -90,9 +98,54 @@
       "playerTextKey": "clauses.push_them.player_text",
       "tooltipKey": "clauses.push_them.tooltip",
       "family": "Effect",
-      "baseFocusCost": 1,
+      "counterCosts": { "focus": 1 },
+      "counterGains": {},
       "behaviorId": "behavior.clause.push_them",
       "tags": [ "movement", "terrain" ]
+    },
+    {
+      "id": "clause.poison_them",
+      "displayNameKey": "clauses.poison_them.name",
+      "playerTextKey": "clauses.poison_them.player_text",
+      "tooltipKey": "clauses.poison_them.tooltip",
+      "family": "Effect",
+      "counterCosts": { "focus": 1 },
+      "counterGains": {},
+      "behaviorId": "behavior.clause.poison_them",
+      "tags": [ "counter", "poison" ]
+    },
+    {
+      "id": "clause.bleed_them",
+      "displayNameKey": "clauses.bleed_them.name",
+      "playerTextKey": "clauses.bleed_them.player_text",
+      "tooltipKey": "clauses.bleed_them.tooltip",
+      "family": "Effect",
+      "counterCosts": { "focus": 1 },
+      "counterGains": {},
+      "behaviorId": "behavior.clause.bleed_them",
+      "tags": [ "counter", "bleed" ]
+    },
+    {
+      "id": "clause.venom_burst",
+      "displayNameKey": "clauses.venom_burst.name",
+      "playerTextKey": "clauses.venom_burst.player_text",
+      "tooltipKey": "clauses.venom_burst.tooltip",
+      "family": "Effect",
+      "counterCosts": {},
+      "counterGains": {},
+      "behaviorId": "behavior.clause.venom_burst",
+      "tags": [ "counter", "poison", "consume", "damage" ]
+    },
+    {
+      "id": "clause.rend_bleed",
+      "displayNameKey": "clauses.rend_bleed.name",
+      "playerTextKey": "clauses.rend_bleed.player_text",
+      "tooltipKey": "clauses.rend_bleed.tooltip",
+      "family": "Effect",
+      "counterCosts": {},
+      "counterGains": {},
+      "behaviorId": "behavior.clause.rend_bleed",
+      "tags": [ "counter", "bleed", "consume", "damage", "movement" ]
     },
     {
       "id": "clause.remember_them",
@@ -100,7 +153,8 @@
       "playerTextKey": "clauses.remember_them.player_text",
       "tooltipKey": "clauses.remember_them.tooltip",
       "family": "Memory",
-      "baseFocusCost": 0,
+      "counterCosts": {},
+      "counterGains": { "memory": 1 },
       "behaviorId": "behavior.clause.remember_them",
       "tags": [ "memory" ]
     },
@@ -110,10 +164,10 @@
       "playerTextKey": "clauses.return_to_remembered.player_text",
       "tooltipKey": "clauses.return_to_remembered.tooltip",
       "family": "Memory",
-      "baseFocusCost": 0,
+      "counterCosts": { "memory": 1 },
+      "counterGains": {},
       "behaviorId": "behavior.clause.return_to_remembered",
       "tags": [ "memory" ]
     }
   ]
 }
-

@@ -31,7 +31,14 @@ public static class BehaviorDefinitionCatalog
             definitions[contentDefinition.Id] = new BehaviorDefinition(
                 contentDefinition.Id,
                 contentDefinition.Steps
-                    .Select(step => new BehaviorStepDefinition(step.Id, step.Op, step.Next, step.True, step.False, step.Amount))
+                    .Select(step => new BehaviorStepDefinition(
+                        step.Id,
+                        step.Op,
+                        step.Next,
+                        step.True,
+                        step.False,
+                        step.Amount,
+                        step.Counter))
                     .ToArray());
         }
 
@@ -58,5 +65,6 @@ public static class BehaviorDefinitionCatalog
         public int? True { get; set; }
         public int? False { get; set; }
         public int? Amount { get; set; }
+        public string Counter { get; set; } = "";
     }
 }

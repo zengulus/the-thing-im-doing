@@ -39,7 +39,12 @@ public sealed class WorkingMachine
             if (steps >= context.StepLimit)
             {
                 trace.Add("Backlash: the working exceeded its step limit.");
-                return WorkingResult.Failed(trace, "Step limit exceeded.", changedWorld, context.FocusSpent);
+                return WorkingResult.Failed(
+                    trace,
+                    "Step limit exceeded.",
+                    changedWorld,
+                    context.CounterCosts,
+                    context.CounterGains);
             }
 
             WorkingNode? node = working.GetNode(currentNodeId.Value);
@@ -47,7 +52,12 @@ public sealed class WorkingMachine
             if (node == null)
             {
                 trace.Add($"Backlash: node {currentNodeId.Value} no longer exists.");
-                return WorkingResult.Failed(trace, "Missing node.", changedWorld, context.FocusSpent);
+                return WorkingResult.Failed(
+                    trace,
+                    "Missing node.",
+                    changedWorld,
+                    context.CounterCosts,
+                    context.CounterGains);
             }
 
             steps++;
@@ -57,7 +67,7 @@ public sealed class WorkingMachine
         }
 
         trace.Add("The working ended.");
-        return WorkingResult.Success(trace, changedWorld, context.FocusSpent);
+        return WorkingResult.Success(trace, changedWorld, context.CounterCosts, context.CounterGains);
     }
 
     private static NodeExecutionResult ExecuteNode(
@@ -73,7 +83,17 @@ public sealed class WorkingMachine
             return NodeExecutionResult.Next(node.NextNodeId);
         }
 
-        context.FocusSpent += definition.BaseFocusCost;
+        foreach ((string counterId, int amount) in definition.CounterCosts)
+        {
+            caster.Counters.Add(counterId, -amount);
+        }
+
+        foreach ((string counterId, int amount) in definition.CounterGains)
+        {
+            caster.Counters.Add(counterId, amount);
+        }
+
+        context.RecordCounterChanges(definition);
 
         var behaviorResult = new BehaviorMachine().Execute(
             definition.BehaviorId,

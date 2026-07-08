@@ -39,7 +39,8 @@ public static class ClauseDefinitionCatalog
                 contentDefinition.DisplayNameKey,
                 contentDefinition.PlayerTextKey,
                 family,
-                contentDefinition.BaseFocusCost,
+                contentDefinition.CounterCosts,
+                contentDefinition.CounterGains,
                 contentDefinition.TooltipKey,
                 contentDefinition.BehaviorId,
                 contentDefinition.IsCondition,
@@ -65,7 +66,8 @@ public static class ClauseDefinitionCatalog
         public string PlayerTextKey { get; set; } = "";
         public string TooltipKey { get; set; } = "";
         public string Family { get; set; } = "";
-        public int BaseFocusCost { get; set; }
+        public Dictionary<string, int> CounterCosts { get; set; } = [];
+        public Dictionary<string, int> CounterGains { get; set; } = [];
         public string BehaviorId { get; set; } = "";
         public bool IsCondition { get; set; }
         public List<string> Tags { get; set; } = [];

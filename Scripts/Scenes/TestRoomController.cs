@@ -493,7 +493,7 @@ public partial class TestRoomController : Node2D
 
         var detail = new Label
         {
-            Text = $"{definition.Family} | cost {definition.BaseFocusCost}\n{definition.Tooltip}",
+            Text = $"{definition.Family} | counters {definition.CounterSummary}\n{definition.Tooltip}",
             AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
         detail.AddThemeFontSizeOverride("font_size", 11);
@@ -649,7 +649,7 @@ public partial class TestRoomController : Node2D
 
         if (_workingTitleLabel != null)
         {
-            _workingTitleLabel.Text = $"{working.DisplayName}    Cost {working.EstimatedFocusCost}";
+            _workingTitleLabel.Text = $"{working.DisplayName}    Counters {working.EstimatedCounterSummary}";
         }
 
         for (int i = 0; i < _slotButtons.Length; i++)
@@ -697,7 +697,7 @@ public partial class TestRoomController : Node2D
     {
         string status = result.Succeeded ? "ok" : $"failed: {result.FailureReason}";
         string traceText =
-            $"{label}: {status} | spent {result.FocusSpent}\n" +
+            $"{label}: {status} | counters {result.CounterSummary}\n" +
             result.Trace.ToDisplayText();
 
         if (_traceLabel != null)
@@ -841,7 +841,8 @@ public partial class TestRoomController : Node2D
 
         bool marked = _encounter.HasActorMark(actor.Id, _encounter.Player.Id);
         string sigil = GetActorSigil(actor);
-        label.Text = marked ? $"{sigil}\nM" : $"{sigil}\n{actor.Health}";
+        string counters = actor.Counters.All.Count == 0 ? "" : $" {actor.Counters}";
+        label.Text = marked ? $"{sigil}\nM{counters}" : $"{sigil}\n{actor.Health}{counters}";
     }
 
     private static Color GetActorColor(EncounterActor actor)

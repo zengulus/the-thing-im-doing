@@ -10,4 +10,5 @@ public sealed record BehaviorStepDefinition(
     int? Next,
     int? True,
     int? False,
-    int? Amount);
+    int? Amount,
+    string Counter);

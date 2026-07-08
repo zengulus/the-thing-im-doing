@@ -109,6 +109,11 @@ public sealed class BehaviorMachine
             "push_focus" => PushFocus(step.Amount ?? 1, context),
             "remember_focus" => RememberFocus(context),
             "return_to_remembered" => ReturnToRemembered(context),
+            "add_focus_actor_counter" => AddFocusActorCounter(step.Counter, step.Amount ?? 1, context),
+            "add_focus_tile_counter" => AddFocusTileCounter(step.Counter, step.Amount ?? 1, context),
+            "add_caster_counter" => AddCasterCounter(step.Counter, step.Amount ?? 1, context),
+            "branch_focus_actor_counter_at_least" => BranchFocusActorCounterAtLeast(step.Counter, step.Amount ?? 1, context),
+            "branch_focus_tile_counter_at_least" => BranchFocusTileCounterAtLeast(step.Counter, step.Amount ?? 1, context),
             "branch_enemy_adjacent_player" => BranchEnemyAdjacentPlayer(context),
             "damage_player" => DamagePlayer(step.Amount ?? 1, context),
             "step_toward_player" => StepTowardPlayer(context),
@@ -310,6 +315,74 @@ public sealed class BehaviorMachine
 
         context.Trace.Add("Return failed because no sign was remembered.");
         return AtomResult.Next();
+    }
+
+    private static AtomResult AddFocusActorCounter(string counterId, int amount, BehaviorExecutionContext context)
+    {
+        if (string.IsNullOrWhiteSpace(counterId) || context.SpellWorld == null)
+        {
+            return AtomResult.Next();
+        }
+
+        EncounterActor? target = GetFocusActor(context);
+
+        if (target == null)
+        {
+            context.Trace.Add($"Tried to add {counterId}, but no actor was focused.");
+            return AtomResult.Next();
+        }
+
+        int next = context.SpellWorld.AddCounter(target, counterId, amount);
+        context.Trace.Add($"Set {counterId} on actor {target.Id} to {next}.");
+        return AtomResult.Next(changedWorld: amount != 0);
+    }
+
+    private static AtomResult AddFocusTileCounter(string counterId, int amount, BehaviorExecutionContext context)
+    {
+        if (string.IsNullOrWhiteSpace(counterId) || context.SpellWorld == null || context.Working?.FocusTile == null)
+        {
+            return AtomResult.Next();
+        }
+
+        GridPos position = context.Working.FocusTile.Value;
+        int next = context.SpellWorld.AddCounter(position, counterId, amount);
+        context.Trace.Add($"Set {counterId} on tile {position} to {next}.");
+        return AtomResult.Next(changedWorld: amount != 0);
+    }
+
+    private static AtomResult AddCasterCounter(string counterId, int amount, BehaviorExecutionContext context)
+    {
+        if (string.IsNullOrWhiteSpace(counterId) || context.SpellWorld == null || context.Caster == null)
+        {
+            return AtomResult.Next();
+        }
+
+        int next = context.SpellWorld.AddCounter(context.Caster, counterId, amount);
+        context.Trace.Add($"Set {counterId} on caster to {next}.");
+        return AtomResult.Next(changedWorld: amount != 0);
+    }
+
+    private static AtomResult BranchFocusActorCounterAtLeast(string counterId, int amount, BehaviorExecutionContext context)
+    {
+        bool passed = false;
+
+        if (!string.IsNullOrWhiteSpace(counterId) && context.SpellWorld != null)
+        {
+            EncounterActor? target = GetFocusActor(context);
+            passed = target != null && context.SpellWorld.GetCounter(target, counterId) >= amount;
+        }
+
+        return Branch(passed, $"{counterId} at least {amount}", context);
+    }
+
+    private static AtomResult BranchFocusTileCounterAtLeast(string counterId, int amount, BehaviorExecutionContext context)
+    {
+        bool passed = !string.IsNullOrWhiteSpace(counterId)
+            && context.SpellWorld != null
+            && context.Working?.FocusTile != null
+            && context.SpellWorld.GetCounter(context.Working.FocusTile.Value, counterId) >= amount;
+
+        return Branch(passed, $"{counterId} at least {amount}", context);
     }
 
     private static AtomResult BranchEnemyAdjacentPlayer(BehaviorExecutionContext context)

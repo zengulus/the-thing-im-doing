@@ -17,13 +17,25 @@ public sealed class Working
     public int? EntryNodeId { get; set; }
     public IReadOnlyList<WorkingNode> Nodes => _nodes;
 
-    public int EstimatedFocusCost
+    public string EstimatedCounterSummary
     {
         get
         {
-            return _nodes.Sum(node => ClauseDefinitionCatalog.TryGet(node.ClauseId, out ClauseDefinition? definition)
-                ? definition.BaseFocusCost
-                : 0);
+            var costs = new Dictionary<string, int>();
+            var gains = new Dictionary<string, int>();
+
+            foreach (WorkingNode node in _nodes)
+            {
+                if (!ClauseDefinitionCatalog.TryGet(node.ClauseId, out ClauseDefinition? definition))
+                {
+                    continue;
+                }
+
+                AddAll(costs, definition.CounterCosts);
+                AddAll(gains, definition.CounterGains);
+            }
+
+            return ClauseDefinition.FormatCounters(costs, gains);
         }
     }
 
@@ -61,6 +73,19 @@ public sealed class Working
     public int GetNextAvailableNodeId()
     {
         return _nodes.Count == 0 ? 1 : _nodes.Max(node => node.Id) + 1;
+    }
+
+    private static void AddAll(Dictionary<string, int> target, IReadOnlyDictionary<string, int> source)
+    {
+        foreach ((string counterId, int amount) in source)
+        {
+            if (amount == 0)
+            {
+                continue;
+            }
+
+            target[counterId] = target.GetValueOrDefault(counterId) + amount;
+        }
     }
 
     public Working Clone()
