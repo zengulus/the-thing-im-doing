@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "enemies": [
+    {
+      "id": "enemy.glass_hound",
+      "displayNameKey": "enemies.glass_hound.name",
+      "sigilKey": "enemies.glass_hound.sigil",
+      "maxHealth": 4,
+      "purposeKey": "enemies.glass_hound.purpose",
+      "behaviorId": "behavior.enemy.glass_hound_turn",
+      "defaultIntentKey": "enemies.glass_hound.intent.chase",
+      "tintHex": "#e65a52",
+      "intentRules": [
+        {
+          "when": "adjacent_to_player",
+          "intentKey": "enemies.glass_hound.intent.attack"
+        }
+      ],
+      "tags": [ "melee", "chaser" ]
+    },
+    {
+      "id": "enemy.ash_scribe",
+      "displayNameKey": "enemies.ash_scribe.name",
+      "sigilKey": "enemies.ash_scribe.sigil",
+      "maxHealth": 3,
+      "purposeKey": "enemies.ash_scribe.purpose",
+      "behaviorId": "behavior.enemy.ash_scribe_turn",
+      "defaultIntentKey": "enemies.ash_scribe.intent.mark",
+      "tintHex": "#f27a3d",
+      "intentRules": [
+        {
+          "when": "brain_counter_at_least",
+          "amount": 2,
+          "intentKey": "enemies.ash_scribe.intent.detonate"
+        }
+      ],
+      "tags": [ "caster", "mark" ]
+    },
+    {
+      "id": "enemy.root_saint",
+      "displayNameKey": "enemies.root_saint.name",
+      "sigilKey": "enemies.root_saint.sigil",
+      "maxHealth": 3,
+      "purposeKey": "enemies.root_saint.purpose",
+      "behaviorId": "behavior.enemy.root_saint_turn",
+      "defaultIntentKey": "enemies.root_saint.intent.raise",
+      "tintHex": "#6bbf61",
+      "intentRules": [
+        {
+          "when": "adjacent_to_blocking",
+          "intentKey": "enemies.root_saint.intent.mend_then_raise"
+        }
+      ],
+      "tags": [ "terrain", "healer" ]
+    }
+  ]
+}

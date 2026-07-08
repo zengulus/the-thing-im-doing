@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Scenes/TestRoomController.cs" id="1_3jx7u"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_3jx7u")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(256, 220)
+enabled = true
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="StatusLabel" type="Label" parent="CanvasLayer"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 500.0
+offset_bottom = 260.0
+text = "Loading test room..."

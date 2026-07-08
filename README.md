@@ -5,6 +5,7 @@ Godot 4 .NET / C# project.
 ## Design
 
 - [Magic Glyph Combinatoric Roguelike RPG](docs/design.md)
+- [Project Rules](docs/rules.md)
 
 ## Local Setup
 

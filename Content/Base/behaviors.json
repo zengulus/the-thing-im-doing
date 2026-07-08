@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "behaviors": [
+    {
+      "id": "behavior.clause.aim_at_target",
+      "steps": [
+        { "id": 1, "op": "focus_selected_target" }
+      ]
+    },
+    {
+      "id": "behavior.clause.aim_at_nearest_foe",
+      "steps": [
+        { "id": 1, "op": "focus_nearest_enemy" }
+      ]
+    },
+    {
+      "id": "behavior.clause.if_marked",
+      "steps": [
+        { "id": 1, "op": "branch_focus_marked" }
+      ]
+    },
+    {
+      "id": "behavior.clause.if_occupied",
+      "steps": [
+        { "id": 1, "op": "branch_focus_occupied" }
+      ]
+    },
+    {
+      "id": "behavior.clause.if_clear",
+      "steps": [
+        { "id": 1, "op": "branch_focus_clear" }
+      ]
+    },
+    {
+      "id": "behavior.clause.mark_them",
+      "steps": [
+        { "id": 1, "op": "mark_focus" }
+      ]
+    },
+    {
+      "id": "behavior.clause.spark_them",
+      "steps": [
+        { "id": 1, "op": "branch_focus_marked", "true": 2, "false": 3 },
+        { "id": 2, "op": "damage_focus_actor", "amount": 2, "next": 4 },
+        { "id": 3, "op": "damage_focus_actor", "amount": 1, "next": 4 },
+        { "id": 4, "op": "stop" }
+      ]
+    },
+    {
+      "id": "behavior.clause.raise_stone",
+      "steps": [
+        { "id": 1, "op": "raise_stone_focus" }
+      ]
+    },
+    {
+      "id": "behavior.clause.push_them",
+      "steps": [
+        { "id": 1, "op": "push_focus", "amount": 1 }
+      ]
+    },
+    {
+      "id": "behavior.clause.remember_them",
+      "steps": [
+        { "id": 1, "op": "remember_focus" }
+      ]
+    },
+    {
+      "id": "behavior.clause.return_to_remembered",
+      "steps": [
+        { "id": 1, "op": "return_to_remembered" }
+      ]
+    },
+    {
+      "id": "behavior.enemy.glass_hound_turn",
+      "steps": [
+        { "id": 1, "op": "branch_enemy_adjacent_player", "true": 2, "false": 3 },
+        { "id": 2, "op": "damage_player", "amount": 1, "next": 4 },
+        { "id": 3, "op": "step_toward_player", "next": 4 },
+        { "id": 4, "op": "stop" }
+      ]
+    },
+    {
+      "id": "behavior.enemy.ash_scribe_turn",
+      "steps": [
+        { "id": 1, "op": "increment_counter" },
+        { "id": 2, "op": "branch_counter_at_least", "amount": 3, "true": 3, "false": 5 },
+        { "id": 3, "op": "detonate_owned_tile_marks", "amount": 1 },
+        { "id": 4, "op": "reset_counter", "next": 6 },
+        { "id": 5, "op": "mark_player_tile", "next": 6 },
+        { "id": 6, "op": "stop" }
+      ]
+    },
+    {
+      "id": "behavior.enemy.root_saint_turn",
+      "steps": [
+        { "id": 1, "op": "heal_self_if_adjacent_blocking", "amount": 1 },
+        { "id": 2, "op": "raise_adjacent_stone" }
+      ]
+    },
+    {
+      "id": "behavior.rule.brittle_stone_push_collision",
+      "steps": [
+        { "id": 1, "op": "branch_event_tile_raised_stone", "true": 2 },
+        { "id": 2, "op": "break_event_tile" },
+        { "id": 3, "op": "damage_event_actor", "amount": 1 }
+      ]
+    },
+    {
+      "id": "behavior.relic.patient_bell_after_spell",
+      "steps": [
+        { "id": 1, "op": "stop" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "clauses": [
+    {
+      "id": "clause.aim_at_target",
+      "displayNameKey": "clauses.aim_at_target.name",
+      "playerTextKey": "clauses.aim_at_target.player_text",
+      "tooltipKey": "clauses.aim_at_target.tooltip",
+      "family": "Targeting",
+      "baseFocusCost": 0,
+      "behaviorId": "behavior.clause.aim_at_target",
+      "tags": [ "targeting" ]
+    },
+    {
+      "id": "clause.aim_at_nearest_foe",
+      "displayNameKey": "clauses.aim_at_nearest_foe.name",
+      "playerTextKey": "clauses.aim_at_nearest_foe.player_text",
+      "tooltipKey": "clauses.aim_at_nearest_foe.tooltip",
+      "family": "Targeting",
+      "baseFocusCost": 0,
+      "behaviorId": "behavior.clause.aim_at_nearest_foe",
+      "tags": [ "targeting", "enemy" ]
+    },
+    {
+      "id": "clause.if_marked",
+      "displayNameKey": "clauses.if_marked.name",
+      "playerTextKey": "clauses.if_marked.player_text",
+      "tooltipKey": "clauses.if_marked.tooltip",
+      "family": "Condition",
+      "baseFocusCost": 0,
+      "behaviorId": "behavior.clause.if_marked",
+      "isCondition": true,
+      "tags": [ "condition", "mark" ]
+    },
+    {
+      "id": "clause.if_occupied",
+      "displayNameKey": "clauses.if_occupied.name",
+      "playerTextKey": "clauses.if_occupied.player_text",
+      "tooltipKey": "clauses.if_occupied.tooltip",
+      "family": "Condition",
+      "baseFocusCost": 0,
+      "behaviorId": "behavior.clause.if_occupied",
+      "isCondition": true,
+      "tags": [ "condition", "tile" ]
+    },
+    {
+      "id": "clause.if_clear",
+      "displayNameKey": "clauses.if_clear.name",
+      "playerTextKey": "clauses.if_clear.player_text",
+      "tooltipKey": "clauses.if_clear.tooltip",
+      "family": "Condition",
+      "baseFocusCost": 0,
+      "behaviorId": "behavior.clause.if_clear",
+      "isCondition": true,
+      "tags": [ "condition", "tile" ]
+    },
+    {
+      "id": "clause.mark_them",
+      "displayNameKey": "clauses.mark_them.name",
+      "playerTextKey": "clauses.mark_them.player_text",
+      "tooltipKey": "clauses.mark_them.tooltip",
+      "family": "Mark",
+      "baseFocusCost": 1,
+      "behaviorId": "behavior.clause.mark_them",
+      "tags": [ "mark" ]
+    },
+    {
+      "id": "clause.spark_them",
+      "displayNameKey": "clauses.spark_them.name",
+      "playerTextKey": "clauses.spark_them.player_text",
+      "tooltipKey": "clauses.spark_them.tooltip",
+      "family": "Effect",
+      "baseFocusCost": 1,
+      "behaviorId": "behavior.clause.spark_them",
+      "tags": [ "damage", "mark-synergy" ]
+    },
+    {
+      "id": "clause.raise_stone",
+      "displayNameKey": "clauses.raise_stone.name",
+      "playerTextKey": "clauses.raise_stone.player_text",
+      "tooltipKey": "clauses.raise_stone.tooltip",
+      "family": "Effect",
+      "baseFocusCost": 1,
+      "behaviorId": "behavior.clause.raise_stone",
+      "tags": [ "terrain" ]
+    },
+    {
+      "id": "clause.push_them",
+      "displayNameKey": "clauses.push_them.name",
+      "playerTextKey": "clauses.push_them.player_text",
+      "tooltipKey": "clauses.push_them.tooltip",
+      "family": "Effect",
+      "baseFocusCost": 1,
+      "behaviorId": "behavior.clause.push_them",
+      "tags": [ "movement", "terrain" ]
+    },
+    {
+      "id": "clause.remember_them",
+      "displayNameKey": "clauses.remember_them.name",
+      "playerTextKey": "clauses.remember_them.player_text",
+      "tooltipKey": "clauses.remember_them.tooltip",
+      "family": "Memory",
+      "baseFocusCost": 0,
+      "behaviorId": "behavior.clause.remember_them",
+      "tags": [ "memory" ]
+    },
+    {
+      "id": "clause.return_to_remembered",
+      "displayNameKey": "clauses.return_to_remembered.name",
+      "playerTextKey": "clauses.return_to_remembered.player_text",
+      "tooltipKey": "clauses.return_to_remembered.tooltip",
+      "family": "Memory",
+      "baseFocusCost": 0,
+      "behaviorId": "behavior.clause.return_to_remembered",
+      "tags": [ "memory" ]
+    }
+  ]
+}
+

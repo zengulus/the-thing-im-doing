@@ -74,6 +74,11 @@ public sealed class TacticalGrid
         return _actorsByPosition.TryGetValue(position, out int actorId) ? actorId : null;
     }
 
+    public IReadOnlyDictionary<int, GridPos> GetActorPositions()
+    {
+        return _positionsByActor;
+    }
+
     public GridPos? GetActorPosition(int actorId)
     {
         return _positionsByActor.TryGetValue(actorId, out GridPos position) ? position : null;
@@ -115,6 +120,27 @@ public sealed class TacticalGrid
         return true;
     }
 
+    public TacticalGrid Clone()
+    {
+        var clone = new TacticalGrid(Width, Height);
+
+        for (int y = 0; y < Height; y++)
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                var position = new GridPos(x, y);
+                clone.SetTile(position, GetTile(position));
+            }
+        }
+
+        foreach ((int actorId, GridPos position) in _positionsByActor)
+        {
+            clone.TryAddActor(actorId, position);
+        }
+
+        return clone;
+    }
+
     private void ThrowIfOutside(GridPos position)
     {
         if (!IsInside(position))
@@ -123,4 +149,3 @@ public sealed class TacticalGrid
         }
     }
 }
-

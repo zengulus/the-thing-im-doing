@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "primitives": [
+    {
+      "id": "stop",
+      "displayNameKey": "behavior_primitives.stop.name",
+      "descriptionKey": "behavior_primitives.stop.description",
+      "scopes": [ "spell", "enemy", "rule", "relic" ],
+      "tags": [ "flow" ]
+    },
+    {
+      "id": "focus_selected_target",
+      "displayNameKey": "behavior_primitives.focus_selected_target.name",
+      "descriptionKey": "behavior_primitives.focus_selected_target.description",
+      "scopes": [ "spell" ],
+      "tags": [ "targeting" ]
+    },
+    {
+      "id": "focus_nearest_enemy",
+      "displayNameKey": "behavior_primitives.focus_nearest_enemy.name",
+      "descriptionKey": "behavior_primitives.focus_nearest_enemy.description",
+      "scopes": [ "spell" ],
+      "tags": [ "targeting", "enemy" ]
+    },
+    {
+      "id": "branch_focus_marked",
+      "displayNameKey": "behavior_primitives.branch_focus_marked.name",
+      "descriptionKey": "behavior_primitives.branch_focus_marked.description",
+      "scopes": [ "spell" ],
+      "tags": [ "branch", "mark" ]
+    },
+    {
+      "id": "branch_focus_occupied",
+      "displayNameKey": "behavior_primitives.branch_focus_occupied.name",
+      "descriptionKey": "behavior_primitives.branch_focus_occupied.description",
+      "scopes": [ "spell" ],
+      "tags": [ "branch", "tile" ]
+    },
+    {
+      "id": "branch_focus_clear",
+      "displayNameKey": "behavior_primitives.branch_focus_clear.name",
+      "descriptionKey": "behavior_primitives.branch_focus_clear.description",
+      "scopes": [ "spell" ],
+      "tags": [ "branch", "tile" ]
+    },
+    {
+      "id": "mark_focus",
+      "displayNameKey": "behavior_primitives.mark_focus.name",
+      "descriptionKey": "behavior_primitives.mark_focus.description",
+      "scopes": [ "spell" ],
+      "tags": [ "mark" ]
+    },
+    {
+      "id": "damage_focus_actor",
+      "displayNameKey": "behavior_primitives.damage_focus_actor.name",
+      "descriptionKey": "behavior_primitives.damage_focus_actor.description",
+      "scopes": [ "spell" ],
+      "tags": [ "damage" ]
+    },
+    {
+      "id": "raise_stone_focus",
+      "displayNameKey": "behavior_primitives.raise_stone_focus.name",
+      "descriptionKey": "behavior_primitives.raise_stone_focus.description",
+      "scopes": [ "spell" ],
+      "tags": [ "terrain" ]
+    },
+    {
+      "id": "push_focus",
+      "displayNameKey": "behavior_primitives.push_focus.name",
+      "descriptionKey": "behavior_primitives.push_focus.description",
+      "scopes": [ "spell" ],
+      "tags": [ "movement" ]
+    },
+    {
+      "id": "remember_focus",
+      "displayNameKey": "behavior_primitives.remember_focus.name",
+      "descriptionKey": "behavior_primitives.remember_focus.description",
+      "scopes": [ "spell" ],
+      "tags": [ "memory" ]
+    },
+    {
+      "id": "return_to_remembered",
+      "displayNameKey": "behavior_primitives.return_to_remembered.name",
+      "descriptionKey": "behavior_primitives.return_to_remembered.description",
+      "scopes": [ "spell" ],
+      "tags": [ "memory" ]
+    },
+    {
+      "id": "branch_enemy_adjacent_player",
+      "displayNameKey": "behavior_primitives.branch_enemy_adjacent_player.name",
+      "descriptionKey": "behavior_primitives.branch_enemy_adjacent_player.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "branch", "position" ]
+    },
+    {
+      "id": "damage_player",
+      "displayNameKey": "behavior_primitives.damage_player.name",
+      "descriptionKey": "behavior_primitives.damage_player.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "damage" ]
+    },
+    {
+      "id": "step_toward_player",
+      "displayNameKey": "behavior_primitives.step_toward_player.name",
+      "descriptionKey": "behavior_primitives.step_toward_player.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "movement" ]
+    },
+    {
+      "id": "increment_counter",
+      "displayNameKey": "behavior_primitives.increment_counter.name",
+      "descriptionKey": "behavior_primitives.increment_counter.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "memory" ]
+    },
+    {
+      "id": "branch_counter_at_least",
+      "displayNameKey": "behavior_primitives.branch_counter_at_least.name",
+      "descriptionKey": "behavior_primitives.branch_counter_at_least.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "branch", "memory" ]
+    },
+    {
+      "id": "detonate_owned_tile_marks",
+      "displayNameKey": "behavior_primitives.detonate_owned_tile_marks.name",
+      "descriptionKey": "behavior_primitives.detonate_owned_tile_marks.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "mark", "damage" ]
+    },
+    {
+      "id": "reset_counter",
+      "displayNameKey": "behavior_primitives.reset_counter.name",
+      "descriptionKey": "behavior_primitives.reset_counter.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "memory" ]
+    },
+    {
+      "id": "mark_player_tile",
+      "displayNameKey": "behavior_primitives.mark_player_tile.name",
+      "descriptionKey": "behavior_primitives.mark_player_tile.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "mark" ]
+    },
+    {
+      "id": "heal_self_if_adjacent_blocking",
+      "displayNameKey": "behavior_primitives.heal_self_if_adjacent_blocking.name",
+      "descriptionKey": "behavior_primitives.heal_self_if_adjacent_blocking.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "healing", "terrain" ]
+    },
+    {
+      "id": "raise_adjacent_stone",
+      "displayNameKey": "behavior_primitives.raise_adjacent_stone.name",
+      "descriptionKey": "behavior_primitives.raise_adjacent_stone.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "terrain" ]
+    },
+    {
+      "id": "branch_event_tile_raised_stone",
+      "displayNameKey": "behavior_primitives.branch_event_tile_raised_stone.name",
+      "descriptionKey": "behavior_primitives.branch_event_tile_raised_stone.description",
+      "scopes": [ "rule" ],
+      "tags": [ "branch", "terrain" ]
+    },
+    {
+      "id": "break_event_tile",
+      "displayNameKey": "behavior_primitives.break_event_tile.name",
+      "descriptionKey": "behavior_primitives.break_event_tile.description",
+      "scopes": [ "rule" ],
+      "tags": [ "terrain" ]
+    },
+    {
+      "id": "damage_event_actor",
+      "displayNameKey": "behavior_primitives.damage_event_actor.name",
+      "descriptionKey": "behavior_primitives.damage_event_actor.description",
+      "scopes": [ "rule" ],
+      "tags": [ "damage" ]
+    },
+    {
+      "id": "primitive.composite_spark",
+      "displayNameKey": "behavior_primitives.composite_spark.name",
+      "descriptionKey": "behavior_primitives.composite_spark.description",
+      "behaviorId": "behavior.clause.spark_them",
+      "scopes": [ "spell" ],
+      "tags": [ "composite", "example" ]
+    }
+  ]
+}

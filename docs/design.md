@@ -79,7 +79,6 @@ Internal code may use precise engineering names where useful.
 * Bosses.
 * Complex relic economy.
 * Multiple registers.
-* Graph-based spell editing.
 * Unbounded loops.
 * Hidden rule discovery.
 * Large content pools.
@@ -153,7 +152,6 @@ res://
     Spells/
       Working.cs
       ClauseDefinition.cs
-      ClauseId.cs
       ClauseFamily.cs
       WorkingMachine.cs
       WorkingContext.cs
@@ -162,30 +160,23 @@ res://
       WorkingResult.cs
       ISpellWorld.cs
 
-    Spells/Clauses/
-      AimNearestFoeClause.cs
-      AimTargetClause.cs
-      MarkClause.cs
-      SparkClause.cs
-      IfMarkedClause.cs
-      IfOccupiedClause.cs
-      ElseClause.cs
-      RaiseStoneClause.cs
-      PushClause.cs
-      RememberClause.cs
-      ReturnToRememberedClause.cs
+    Behaviors/
+      BehaviorDefinition.cs
+      BehaviorDefinitionCatalog.cs
+      BehaviorPrimitiveDefinition.cs
+      BehaviorPrimitiveCatalog.cs
+      BehaviorMachine.cs
 
     World/
       TacticalGrid.cs
       TileState.cs
       TileOccupancy.cs
       FloorRuleSet.cs
-      LocalRule.cs
+      FloorRuleDefinition.cs
 
-    Enemies/
-      AshScribeBrain.cs
-      GlassHoundBrain.cs
-      RootSaintBrain.cs
+    Relics/
+      RelicDefinition.cs
+      RelicDefinitionCatalog.cs
 
     UI/
       SpellEditorController.cs
@@ -193,10 +184,14 @@ res://
       OmenTracePanelController.cs
       SpellBarController.cs
 
-  Resources/
-    Clauses/
-    LocalRules/
-    EnemyConfigs/
+  Content/Base/
+    clauses.json
+    behaviors.json
+    behavior_primitives.json
+    enemies.json
+    rules.json
+    relics.json
+    strings.json
 ```
 
 ---
@@ -226,13 +221,14 @@ Defines one available magical clause.
 
 Fields:
 
-* `ClauseId Id`
-* `string DisplayName`
-* `string PlayerText`
+* `string Id`
+* `string DisplayNameKey`
+* `string PlayerTextKey`
 * `ClauseFamily Family`
 * `int BaseFocusCost`
-* `string Tooltip`
-* execution behavior reference
+* `string TooltipKey`
+* `string BehaviorId`
+* tags and condition flag
 
 Clauses should be mechanically small but player-facing text should be readable.
 
@@ -259,6 +255,8 @@ Responsibilities:
 * Return a `WorkingResult`.
 
 Must not depend directly on scene nodes.
+
+Clause execution delegates to behavior graph IDs. The machine should not switch on clause IDs.
 
 ---
 
@@ -574,9 +572,15 @@ Start with one rule only. Add others after preview and trace support them.
 
 ## Spell Editor
 
-* Linear list of clauses.
-* Add/remove/reorder clauses.
-* Maximum 4 clauses initially.
+* Opens as a full-screen codex/workbench page, not as a floating panel over combat.
+* Left side explains the available clauses and lets the player add them.
+* Right side contains the node board, prepared slots, cast/preview actions, and full trace.
+* Node-based board inspired by ComfyUI.
+* Clauses are nodes with input and output ports.
+* Ordinary clauses have a single flow output.
+* Condition clauses expose true/false flow outputs.
+* Add/remove/drag/connect clause nodes.
+* Maximum practical graph size should remain small initially.
 * Later increase to 6 or 7.
 * Use readable clause text, not opcode names.
 * Show tooltip for each clause.
@@ -585,6 +589,8 @@ Start with one rule only. Add others after preview and trace support them.
 ## Spell Preview
 
 Mandatory.
+
+Preview feedback must remain visible even when the full editor page is closed.
 
 Show:
 
@@ -622,14 +628,14 @@ Goal: move player and enemies on a grid.
 
 Tasks:
 
-* [ ] Create `GridPos` and `Direction`.
-* [ ] Create `TacticalGrid`.
-* [ ] Add tile occupancy.
-* [ ] Add player scene.
-* [ ] Add basic movement.
-* [ ] Add one dummy enemy.
-* [ ] Add turn alternation.
-* [ ] Add win/loss checks.
+* [x] Create `GridPos` and `Direction`.
+* [x] Create `TacticalGrid`.
+* [x] Add tile occupancy.
+* [x] Add player scene.
+* [x] Add basic movement.
+* [x] Add one dummy enemy.
+* [x] Add turn alternation.
+* [x] Add win/loss checks.
 
 Acceptance:
 
@@ -646,14 +652,14 @@ Goal: execute a simple working without UI polish.
 
 Tasks:
 
-* [ ] Create `Working`.
-* [ ] Create `ClauseDefinition`.
-* [ ] Create `WorkingMachine`.
-* [ ] Create `WorkingContext`.
-* [ ] Create `OmenTrace`.
-* [ ] Create `ISpellWorld`.
-* [ ] Implement `aim at target`.
-* [ ] Implement `spark them`.
+* [x] Create `Working`.
+* [x] Create `ClauseDefinition`.
+* [x] Create `WorkingMachine`.
+* [x] Create `WorkingContext`.
+* [x] Create `OmenTrace`.
+* [x] Create `ISpellWorld`.
+* [x] Implement `aim at target`.
+* [x] Implement `spark them`.
 
 Acceptance:
 
@@ -669,12 +675,12 @@ Goal: support the first real spell grammar.
 
 Tasks:
 
-* [ ] Implement marks.
-* [ ] Implement `aim at nearest foe`.
-* [ ] Implement `if marked`.
-* [ ] Implement `else`.
-* [ ] Implement `mark them`.
-* [ ] Implement trace output for passed/failed conditions.
+* [x] Implement marks.
+* [x] Implement `aim at nearest foe`.
+* [x] Implement `if marked`.
+* [x] Replace `else` clause with condition false-output ports.
+* [x] Implement `mark them`.
+* [x] Implement trace output for passed/failed conditions.
 
 Acceptance:
 
@@ -691,13 +697,14 @@ Goal: allow player to assemble workings.
 
 Tasks:
 
-* [ ] Create basic spell editor UI.
-* [ ] Display available clauses.
-* [ ] Add clause to working.
-* [ ] Remove clause from working.
-* [ ] Reorder clauses.
-* [ ] Enforce max clause count.
-* [ ] Save to one of two prepared slots.
+* [x] Create basic node-board spell editor UI.
+* [x] Display available clauses.
+* [x] Add clause to working.
+* [x] Remove clause from working.
+* [x] Drag clause nodes.
+* [x] Connect clause nodes.
+* [x] Enforce max graph size.
+* [x] Save edits directly to one of two prepared slots.
 
 Acceptance:
 
@@ -715,9 +722,9 @@ Goal: make spell outcomes understandable before casting.
 Tasks:
 
 * [ ] Add spell preview overlay.
-* [ ] Add omen trace panel.
-* [ ] Run `WorkingMachine` in preview mode.
-* [ ] Show damage, marks, raised stone, and failed clauses.
+* [x] Add omen trace panel.
+* [x] Run `WorkingMachine` in preview mode.
+* [x] Show damage, marks, raised stone, and failed clauses.
 * [ ] Add step-through trace if feasible.
 
 Acceptance:
@@ -735,11 +742,11 @@ Goal: support terrain manipulation.
 
 Tasks:
 
-* [ ] Implement `raise stone`.
-* [ ] Implement `push them`.
-* [ ] Implement wall/stone collision.
-* [ ] Add `Brittle Stone` local rule.
-* [ ] Add trace events for push and collision.
+* [x] Implement `raise stone`.
+* [x] Implement `push them`.
+* [x] Implement wall/stone collision.
+* [x] Add `Brittle Stone` local rule.
+* [x] Add trace events for push and collision.
 
 Acceptance:
 
@@ -757,11 +764,11 @@ Goal: make enemies pressure spell-building.
 
 Tasks:
 
-* [ ] Implement Ash Scribe.
-* [ ] Implement Glass Hound.
-* [ ] Implement Root Saint.
-* [ ] Add enemy intent display.
-* [ ] Add simple enemy configs.
+* [x] Implement Ash Scribe.
+* [x] Implement Glass Hound.
+* [x] Implement Root Saint.
+* [x] Add enemy intent display.
+* [x] Add simple enemy configs.
 
 Acceptance:
 
@@ -778,12 +785,12 @@ Goal: determine whether the core loop is fun.
 
 Tasks:
 
-* [ ] Create one hand-authored test room.
-* [ ] Include all three enemy types.
-* [ ] Include two prepared slots.
-* [ ] Include one active local rule.
-* [ ] Add restart button.
-* [ ] Add simple debug logging.
+* [x] Create one hand-authored test room.
+* [x] Include all three enemy types.
+* [x] Include two prepared slots.
+* [x] Include one active local rule.
+* [x] Add restart button.
+* [x] Add simple debug logging.
 * [ ] Run repeated self-tests.
 
 Acceptance:
@@ -849,7 +856,7 @@ Do not introduce abstractions that are not needed by the current or next milesto
 
 Do not build a generalized RPG framework.
 
-Do not implement graph-based spells.
+Keep graph-based spells compact and readable.
 
 Do not add procedural generation until the hand-authored test room is fun.
 

@@ -10,6 +10,16 @@ public enum TurnPhase
 
 public sealed class TurnSystem
 {
+    public TurnSystem()
+    {
+    }
+
+    public TurnSystem(TurnPhase phase, int round)
+    {
+        Phase = phase;
+        Round = round;
+    }
+
     public TurnPhase Phase { get; private set; } = TurnPhase.PlayerTurn;
     public int Round { get; private set; } = 1;
 
@@ -37,5 +47,9 @@ public sealed class TurnSystem
         Phase = TurnPhase.PlayerTurn;
         PhaseChanged?.Invoke(Phase);
     }
-}
 
+    public TurnSystem Clone()
+    {
+        return new TurnSystem(Phase, Round);
+    }
+}

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "rules": [
+    {
+      "id": "rule.brittle_stone",
+      "displayNameKey": "rules.brittle_stone.name",
+      "descriptionKey": "rules.brittle_stone.description",
+      "pushCollisionBehaviorId": "behavior.rule.brittle_stone_push_collision",
+      "tags": [ "terrain", "push" ]
+    }
+  ]
+}

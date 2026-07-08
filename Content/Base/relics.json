@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "relics": [
+    {
+      "id": "relic.patient_bell",
+      "displayNameKey": "relics.patient_bell.name",
+      "descriptionKey": "relics.patient_bell.description",
+      "hooks": [
+        {
+          "trigger": "after_spell_resolved",
+          "behaviorId": "behavior.relic.patient_bell_after_spell"
+        }
+      ],
+      "tags": [ "focus", "timing", "example" ]
+    }
+  ]
+}
