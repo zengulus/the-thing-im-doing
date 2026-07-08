@@ -1,0 +1,18 @@
+# Godot 4
+.godot/
+export_presets.cfg
+
+# Godot C# / .NET
+.mono/
+bin/
+obj/
+
+# IDEs and local machine state
+.vscode/
+.idea/
+*.sln.DotSettings.user
+
+# OS files
+.DS_Store
+Thumbs.db
+
