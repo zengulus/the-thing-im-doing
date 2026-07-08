@@ -11,4 +11,8 @@ public sealed record BehaviorStepDefinition(
     int? True,
     int? False,
     int? Amount,
-    string Counter);
+    string Counter,
+    string Effect,
+    string Relation,
+    string Ref,
+    string State);

@@ -20,7 +20,7 @@ public partial class TestRoomController : Node2D
     private readonly Dictionary<int, CharacterBody2D> _actorVisuals = new();
     private readonly Working[] _preparedWorkings =
     {
-        WorkingSamples.CreateMarkOrSpark(),
+        WorkingSamples.CreateMarkOrDamage(),
         WorkingSamples.CreateEmergencyWall()
     };
 
@@ -158,17 +158,17 @@ public partial class TestRoomController : Node2D
             DrawRect(GetTileRect(_selectedTarget).Grow(-3), new Color(1.0f, 0.84f, 0.30f), filled: false, width: 3.0f);
         }
 
-        foreach (TileMark mark in _encounter.TileMarks)
+        foreach (TileCondition condition in _encounter.TileConditions.Where(condition => condition.ConditionId == "condition.marked"))
         {
-            Color color = mark.OwnerActorId == _encounter.Player.Id
+            Color color = condition.OwnerActorId == _encounter.Player.Id
                 ? new Color(0.95f, 0.62f, 1.0f, 0.65f)
                 : new Color(1.0f, 0.46f, 0.18f, 0.65f);
-            DrawCircle(GridToWorldCenter(mark.Position), TileSize * 0.16f, color);
+            DrawCircle(GridToWorldCenter(condition.Position), TileSize * 0.16f, color);
         }
 
         foreach (EncounterActor actor in _encounter.Actors.Where(actor => actor.IsAlive))
         {
-            if (_encounter.HasActorMark(actor.Id, _encounter.Player.Id))
+            if (_encounter.HasActorCondition(actor.Id, "condition.marked", _encounter.Player.Id))
             {
                 DrawRect(GetTileRect(actor.Position).Grow(-6), new Color(0.95f, 0.62f, 1.0f), filled: false, width: 2.0f);
             }
@@ -629,7 +629,7 @@ public partial class TestRoomController : Node2D
     private void ResetSelectedWorkingToSample()
     {
         _preparedWorkings[_selectedWorkingIndex] = _selectedWorkingIndex == 0
-            ? WorkingSamples.CreateMarkOrSpark()
+            ? WorkingSamples.CreateMarkOrDamage()
             : WorkingSamples.CreateEmergencyWall();
 
         _spellEditor?.SetWorking(_preparedWorkings[_selectedWorkingIndex]);
@@ -697,7 +697,7 @@ public partial class TestRoomController : Node2D
     {
         string status = result.Succeeded ? "ok" : $"failed: {result.FailureReason}";
         string traceText =
-            $"{label}: {status} | counters {result.CounterSummary}\n" +
+            $"{label}: {status} | counters {result.CounterSummary} | cost {result.CostAdjustmentSummary}\n" +
             result.Trace.ToDisplayText();
 
         if (_traceLabel != null)
@@ -839,9 +839,15 @@ public partial class TestRoomController : Node2D
             return;
         }
 
-        bool marked = _encounter.HasActorMark(actor.Id, _encounter.Player.Id);
+        bool marked = _encounter.HasActorCondition(actor.Id, "condition.marked", _encounter.Player.Id);
         string sigil = GetActorSigil(actor);
-        string counters = actor.Counters.All.Count == 0 ? "" : $" {actor.Counters}";
+        string countersText = string.Join(
+            ", ",
+            actor.Counters.All
+                .Where(counter => !counter.Key.StartsWith("condition."))
+                .OrderBy(counter => counter.Key)
+                .Select(counter => $"{counter.Key} {counter.Value}"));
+        string counters = countersText.Length == 0 ? "" : $" {countersText}";
         label.Text = marked ? $"{sigil}\nM{counters}" : $"{sigil}\n{actor.Health}{counters}";
     }
 

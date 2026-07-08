@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TheThingImDoing.Actors;
 using TheThingImDoing.Core;
+using TheThingImDoing.World;
 
 namespace TheThingImDoing.Spells;
 
@@ -12,22 +13,18 @@ public interface ISpellWorld
 
     EncounterActor? GetActor(int actorId);
     EncounterActor? GetActorAt(GridPos pos);
-    EncounterActor? GetNearestEnemy(EncounterActor caster);
-    IEnumerable<EncounterActor> GetEnemiesOf(EncounterActor caster);
-
-    bool HasMark(GridPos pos, int ownerActorId);
-    bool HasMark(EncounterActor target, int ownerActorId);
-    void AddMark(GridPos pos, int ownerActorId, int durationTurns = 2);
-    void AddMark(EncounterActor target, int ownerActorId, int durationTurns = 2);
+    EncounterActor? GetNearestActor(EncounterActor source, string relation);
+    IEnumerable<EncounterActor> GetActorsByRelation(EncounterActor source, string relation);
 
     int GetCounter(EncounterActor target, string counterId);
     int AddCounter(EncounterActor target, string counterId, int amount);
     int GetCounter(GridPos pos, string counterId);
     int AddCounter(GridPos pos, string counterId, int amount);
+    LingeringEffectInstance? AttachLingeringEffect(EncounterActor target, string effectId, EncounterActor owner, int stacks);
 
     void ApplyDamage(EncounterActor target, int amount, EncounterActor? source);
     bool TryPushActor(EncounterActor target, Direction direction, int distance, EncounterActor? source);
 
-    bool CanRaiseStone(GridPos pos);
-    void RaiseStone(GridPos pos, int durationTurns = 2);
+    bool CanSetTileState(GridPos pos, TileState state);
+    void SetTileState(GridPos pos, TileState state);
 }

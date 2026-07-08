@@ -5,21 +5,21 @@ namespace TheThingImDoing.Spells;
 
 public static class WorkingSamples
 {
-    public static Working CreateMarkOrSpark()
+    public static Working CreateMarkOrDamage()
     {
-        var working = new Working(GameStrings.Get("workings.mark_or_spark.name"));
+        var working = new Working(GameStrings.Get("workings.mark_or_damage.name"));
         var aim = new WorkingNode(1, "clause.aim_at_nearest_foe", new Vector2(16, 24));
         var condition = new WorkingNode(2, "clause.if_marked", new Vector2(220, 24));
-        var spark = new WorkingNode(3, "clause.spark_them", new Vector2(430, 4));
+        var damage = new WorkingNode(3, "clause.damage_them", new Vector2(430, 4));
         var mark = new WorkingNode(4, "clause.mark_them", new Vector2(430, 140));
 
         aim.NextNodeId = condition.Id;
-        condition.TrueNodeId = spark.Id;
+        condition.TrueNodeId = damage.Id;
         condition.FalseNodeId = mark.Id;
 
         working.AddNode(aim);
         working.AddNode(condition);
-        working.AddNode(spark);
+        working.AddNode(damage);
         working.AddNode(mark);
         working.EntryNodeId = aim.Id;
 

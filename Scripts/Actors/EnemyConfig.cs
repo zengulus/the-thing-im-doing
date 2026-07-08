@@ -41,7 +41,7 @@ public sealed record EnemyConfig(
     }
 }
 
-public sealed record EnemyIntentRule(string When, string IntentKey, int? Amount = null);
+public sealed record EnemyIntentRule(string When, string IntentKey, int? Amount = null, string Counter = "");
 
 public static class EnemyConfigCatalog
 {
@@ -77,7 +77,7 @@ public static class EnemyConfigCatalog
                 contentDefinition.DefaultIntentKey,
                 contentDefinition.TintHex,
                 contentDefinition.IntentRules
-                    .Select(rule => new EnemyIntentRule(rule.When, rule.IntentKey, rule.Amount))
+                    .Select(rule => new EnemyIntentRule(rule.When, rule.IntentKey, rule.Amount, rule.Counter))
                     .ToArray(),
                 contentDefinition.Tags);
         }
@@ -112,5 +112,6 @@ public static class EnemyConfigCatalog
         public string When { get; set; } = "";
         public string IntentKey { get; set; } = "";
         public int? Amount { get; set; }
+        public string Counter { get; set; } = "";
     }
 }

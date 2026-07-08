@@ -33,7 +33,7 @@
       "counterGains": {},
       "behaviorId": "behavior.clause.if_marked",
       "isCondition": true,
-      "tags": [ "condition", "mark" ]
+      "tags": [ "condition", "condition.marked" ]
     },
     {
       "id": "clause.if_occupied",
@@ -64,22 +64,22 @@
       "displayNameKey": "clauses.mark_them.name",
       "playerTextKey": "clauses.mark_them.player_text",
       "tooltipKey": "clauses.mark_them.tooltip",
-      "family": "Mark",
-      "counterCosts": { "focus": 1 },
+      "family": "Condition",
+      "counterCosts": {},
       "counterGains": {},
       "behaviorId": "behavior.clause.mark_them",
-      "tags": [ "mark" ]
+      "tags": [ "condition", "condition.marked" ]
     },
     {
-      "id": "clause.spark_them",
-      "displayNameKey": "clauses.spark_them.name",
-      "playerTextKey": "clauses.spark_them.player_text",
-      "tooltipKey": "clauses.spark_them.tooltip",
+      "id": "clause.damage_them",
+      "displayNameKey": "clauses.damage_them.name",
+      "playerTextKey": "clauses.damage_them.player_text",
+      "tooltipKey": "clauses.damage_them.tooltip",
       "family": "Effect",
-      "counterCosts": { "focus": 1 },
+      "counterCosts": {},
       "counterGains": {},
-      "behaviorId": "behavior.clause.spark_them",
-      "tags": [ "damage", "mark-synergy" ]
+      "behaviorId": "behavior.clause.damage_them",
+      "tags": [ "damage" ]
     },
     {
       "id": "clause.raise_stone",
@@ -87,7 +87,7 @@
       "playerTextKey": "clauses.raise_stone.player_text",
       "tooltipKey": "clauses.raise_stone.tooltip",
       "family": "Effect",
-      "counterCosts": { "focus": 1 },
+      "counterCosts": {},
       "counterGains": {},
       "behaviorId": "behavior.clause.raise_stone",
       "tags": [ "terrain" ]
@@ -98,7 +98,7 @@
       "playerTextKey": "clauses.push_them.player_text",
       "tooltipKey": "clauses.push_them.tooltip",
       "family": "Effect",
-      "counterCosts": { "focus": 1 },
+      "counterCosts": {},
       "counterGains": {},
       "behaviorId": "behavior.clause.push_them",
       "tags": [ "movement", "terrain" ]
@@ -109,10 +109,10 @@
       "playerTextKey": "clauses.poison_them.player_text",
       "tooltipKey": "clauses.poison_them.tooltip",
       "family": "Effect",
-      "counterCosts": { "focus": 1 },
+      "counterCosts": {},
       "counterGains": {},
       "behaviorId": "behavior.clause.poison_them",
-      "tags": [ "counter", "poison" ]
+      "tags": [ "lingering", "linger.poison" ]
     },
     {
       "id": "clause.bleed_them",
@@ -120,54 +120,113 @@
       "playerTextKey": "clauses.bleed_them.player_text",
       "tooltipKey": "clauses.bleed_them.tooltip",
       "family": "Effect",
-      "counterCosts": { "focus": 1 },
+      "counterCosts": {},
       "counterGains": {},
       "behaviorId": "behavior.clause.bleed_them",
-      "tags": [ "counter", "bleed" ]
+      "tags": [ "lingering", "linger.bleed" ]
     },
     {
-      "id": "clause.venom_burst",
-      "displayNameKey": "clauses.venom_burst.name",
-      "playerTextKey": "clauses.venom_burst.player_text",
-      "tooltipKey": "clauses.venom_burst.tooltip",
+      "id": "clause.spend_poison",
+      "displayNameKey": "clauses.spend_poison.name",
+      "playerTextKey": "clauses.spend_poison.player_text",
+      "tooltipKey": "clauses.spend_poison.tooltip",
+      "family": "Condition",
+      "counterCosts": {},
+      "counterGains": {},
+      "behaviorId": "behavior.clause.spend_poison",
+      "isCondition": true,
+      "tags": [ "lingering", "linger.poison", "cost", "mitigator" ]
+    },
+    {
+      "id": "clause.spend_bleed",
+      "displayNameKey": "clauses.spend_bleed.name",
+      "playerTextKey": "clauses.spend_bleed.player_text",
+      "tooltipKey": "clauses.spend_bleed.tooltip",
+      "family": "Condition",
+      "counterCosts": {},
+      "counterGains": {},
+      "behaviorId": "behavior.clause.spend_bleed",
+      "isCondition": true,
+      "tags": [ "lingering", "linger.bleed", "cost", "mitigator" ]
+    },
+    {
+      "id": "clause.lightning_shield",
+      "displayNameKey": "clauses.lightning_shield.name",
+      "playerTextKey": "clauses.lightning_shield.player_text",
+      "tooltipKey": "clauses.lightning_shield.tooltip",
       "family": "Effect",
       "counterCosts": {},
       "counterGains": {},
-      "behaviorId": "behavior.clause.venom_burst",
-      "tags": [ "counter", "poison", "consume", "damage" ]
+      "behaviorId": "behavior.clause.lightning_shield",
+      "tags": [ "lingering", "linger.lightning_shield" ]
     },
     {
-      "id": "clause.rend_bleed",
-      "displayNameKey": "clauses.rend_bleed.name",
-      "playerTextKey": "clauses.rend_bleed.player_text",
-      "tooltipKey": "clauses.rend_bleed.tooltip",
+      "id": "clause.add_lightning_charge",
+      "displayNameKey": "clauses.add_lightning_charge.name",
+      "playerTextKey": "clauses.add_lightning_charge.player_text",
+      "tooltipKey": "clauses.add_lightning_charge.tooltip",
+      "family": "Effect",
+      "counterCosts": {},
+      "counterGains": { "counter.bonus.charge": 1 },
+      "behaviorId": "behavior.clause.add_lightning_charge",
+      "tags": [ "counter", "counter.bonus.charge", "linger.lightning_shield" ]
+    },
+    {
+      "id": "clause.add_lightning_ward",
+      "displayNameKey": "clauses.add_lightning_ward.name",
+      "playerTextKey": "clauses.add_lightning_ward.player_text",
+      "tooltipKey": "clauses.add_lightning_ward.tooltip",
       "family": "Effect",
       "counterCosts": {},
       "counterGains": {},
-      "behaviorId": "behavior.clause.rend_bleed",
-      "tags": [ "counter", "bleed", "consume", "damage", "movement" ]
+      "behaviorId": "behavior.clause.add_lightning_ward",
+      "tags": [ "lingering", "linger.ward" ]
     },
     {
-      "id": "clause.remember_them",
-      "displayNameKey": "clauses.remember_them.name",
-      "playerTextKey": "clauses.remember_them.player_text",
-      "tooltipKey": "clauses.remember_them.tooltip",
+      "id": "clause.spend_focus",
+      "displayNameKey": "clauses.spend_focus.name",
+      "playerTextKey": "clauses.spend_focus.player_text",
+      "tooltipKey": "clauses.spend_focus.tooltip",
+      "family": "Condition",
+      "counterCosts": {},
+      "counterGains": {},
+      "behaviorId": "behavior.clause.spend_focus",
+      "isCondition": true,
+      "tags": [ "counter", "counter.bonus.focus", "cost", "mitigator" ]
+    },
+    {
+      "id": "clause.spend_memory",
+      "displayNameKey": "clauses.spend_memory.name",
+      "playerTextKey": "clauses.spend_memory.player_text",
+      "tooltipKey": "clauses.spend_memory.tooltip",
+      "family": "Condition",
+      "counterCosts": {},
+      "counterGains": {},
+      "behaviorId": "behavior.clause.spend_memory",
+      "isCondition": true,
+      "tags": [ "counter", "counter.bonus.memory", "cost", "mitigator" ]
+    },
+    {
+      "id": "clause.store_memory_ref",
+      "displayNameKey": "clauses.store_memory_ref.name",
+      "playerTextKey": "clauses.store_memory_ref.player_text",
+      "tooltipKey": "clauses.store_memory_ref.tooltip",
       "family": "Memory",
       "counterCosts": {},
-      "counterGains": { "memory": 1 },
-      "behaviorId": "behavior.clause.remember_them",
-      "tags": [ "memory" ]
+      "counterGains": { "counter.bonus.memory": 1 },
+      "behaviorId": "behavior.clause.store_memory_ref",
+      "tags": [ "counter.bonus.memory" ]
     },
     {
-      "id": "clause.return_to_remembered",
-      "displayNameKey": "clauses.return_to_remembered.name",
-      "playerTextKey": "clauses.return_to_remembered.player_text",
-      "tooltipKey": "clauses.return_to_remembered.tooltip",
+      "id": "clause.focus_memory_ref",
+      "displayNameKey": "clauses.focus_memory_ref.name",
+      "playerTextKey": "clauses.focus_memory_ref.player_text",
+      "tooltipKey": "clauses.focus_memory_ref.tooltip",
       "family": "Memory",
-      "counterCosts": { "memory": 1 },
+      "counterCosts": {},
       "counterGains": {},
-      "behaviorId": "behavior.clause.return_to_remembered",
-      "tags": [ "memory" ]
+      "behaviorId": "behavior.clause.focus_memory_ref",
+      "tags": [ "counter.bonus.memory" ]
     }
   ]
 }

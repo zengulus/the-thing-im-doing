@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "lingeringEffects": [
+    {
+      "id": "linger.poison",
+      "displayNameKey": "lingering.poison.name",
+      "onApplyBehaviorId": "",
+      "onTurnStartBehaviorId": "behavior.lingering.poison_turn_start",
+      "onMoveBehaviorId": "",
+      "onDeathBehaviorId": "",
+      "onActorBecameAdjacentBehaviorId": "",
+      "onBeforeDamageBehaviorId": "",
+      "counters": [ "counter.stack" ]
+    },
+    {
+      "id": "linger.bleed",
+      "displayNameKey": "lingering.bleed.name",
+      "onApplyBehaviorId": "",
+      "onTurnStartBehaviorId": "",
+      "onMoveBehaviorId": "behavior.lingering.bleed_move",
+      "onDeathBehaviorId": "",
+      "onActorBecameAdjacentBehaviorId": "",
+      "onBeforeDamageBehaviorId": "",
+      "counters": [ "counter.stack" ]
+    },
+    {
+      "id": "linger.lightning_shield",
+      "displayNameKey": "lingering.lightning_shield.name",
+      "onApplyBehaviorId": "",
+      "onTurnStartBehaviorId": "",
+      "onMoveBehaviorId": "",
+      "onDeathBehaviorId": "",
+      "onActorBecameAdjacentBehaviorId": "behavior.lingering.lightning_shield_adjacent",
+      "onBeforeDamageBehaviorId": "",
+      "counters": []
+    },
+    {
+      "id": "linger.ward",
+      "displayNameKey": "lingering.ward.name",
+      "onApplyBehaviorId": "",
+      "onTurnStartBehaviorId": "",
+      "onMoveBehaviorId": "",
+      "onDeathBehaviorId": "",
+      "onActorBecameAdjacentBehaviorId": "",
+      "onBeforeDamageBehaviorId": "behavior.lingering.ward_before_damage",
+      "counters": [ "counter.stack" ]
+    }
+  ]
+}

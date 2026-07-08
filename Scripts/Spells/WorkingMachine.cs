@@ -44,7 +44,8 @@ public sealed class WorkingMachine
                     "Step limit exceeded.",
                     changedWorld,
                     context.CounterCosts,
-                    context.CounterGains);
+                    context.CounterGains,
+                    context.CostAdjustment);
             }
 
             WorkingNode? node = working.GetNode(currentNodeId.Value);
@@ -57,7 +58,8 @@ public sealed class WorkingMachine
                     "Missing node.",
                     changedWorld,
                     context.CounterCosts,
-                    context.CounterGains);
+                    context.CounterGains,
+                    context.CostAdjustment);
             }
 
             steps++;
@@ -67,7 +69,12 @@ public sealed class WorkingMachine
         }
 
         trace.Add("The working ended.");
-        return WorkingResult.Success(trace, changedWorld, context.CounterCosts, context.CounterGains);
+        return WorkingResult.Success(
+            trace,
+            changedWorld,
+            context.CounterCosts,
+            context.CounterGains,
+            context.CostAdjustment);
     }
 
     private static NodeExecutionResult ExecuteNode(
@@ -87,13 +94,13 @@ public sealed class WorkingMachine
         {
             caster.Counters.Add(counterId, -amount);
         }
+        context.RecordCasterCounterCosts(definition, caster);
 
         foreach ((string counterId, int amount) in definition.CounterGains)
         {
             caster.Counters.Add(counterId, amount);
         }
-
-        context.RecordCounterChanges(definition);
+        context.RecordCasterCounterGains(definition, caster);
 
         var behaviorResult = new BehaviorMachine().Execute(
             definition.BehaviorId,

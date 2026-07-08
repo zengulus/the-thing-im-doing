@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -21,7 +22,31 @@ public sealed class CounterSet
             return Get(counterId);
         }
 
+        if (IsCondition(counterId))
+        {
+            return Set(counterId, Get(counterId) + amount > 0 ? 1 : 0);
+        }
+
         int next = Get(counterId) + amount;
+
+        if (next <= 0)
+        {
+            _counters.Remove(counterId);
+            return 0;
+        }
+
+        _counters[counterId] = next;
+        return next;
+    }
+
+    public int Set(string counterId, int amount)
+    {
+        if (string.IsNullOrWhiteSpace(counterId))
+        {
+            return 0;
+        }
+
+        int next = IsCondition(counterId) ? Math.Clamp(amount, 0, 1) : amount;
 
         if (next <= 0)
         {
@@ -50,5 +75,10 @@ public sealed class CounterSet
         return _counters.Count == 0
             ? "none"
             : string.Join(", ", _counters.OrderBy(pair => pair.Key).Select(pair => $"{pair.Key} {pair.Value}"));
+    }
+
+    private static bool IsCondition(string counterId)
+    {
+        return counterId.StartsWith("condition.");
     }
 }

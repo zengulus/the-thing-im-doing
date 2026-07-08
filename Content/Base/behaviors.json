@@ -10,13 +10,13 @@
     {
       "id": "behavior.clause.aim_at_nearest_foe",
       "steps": [
-        { "id": 1, "op": "focus_nearest_enemy" }
+        { "id": 1, "op": "focus_nearest_actor", "relation": "hostile" }
       ]
     },
     {
       "id": "behavior.clause.if_marked",
       "steps": [
-        { "id": 1, "op": "branch_focus_marked" }
+        { "id": 1, "op": "branch_focus_condition", "counter": "condition.marked" }
       ]
     },
     {
@@ -34,106 +34,169 @@
     {
       "id": "behavior.clause.mark_them",
       "steps": [
-        { "id": 1, "op": "mark_focus" }
+        { "id": 1, "op": "apply_focus_condition", "counter": "condition.marked" }
       ]
     },
     {
-      "id": "behavior.clause.spark_them",
+      "id": "behavior.clause.damage_them",
       "steps": [
-        { "id": 1, "op": "branch_focus_marked", "true": 2, "false": 3 },
-        { "id": 2, "op": "damage_focus_actor", "amount": 2, "next": 4 },
-        { "id": 3, "op": "damage_focus_actor", "amount": 1, "next": 4 },
-        { "id": 4, "op": "stop" }
+        { "id": 1, "op": "damage_focus_actor", "amount": 1 }
       ]
     },
     {
       "id": "behavior.clause.raise_stone",
       "steps": [
-        { "id": 1, "op": "raise_stone_focus" }
+        { "id": 1, "op": "set_focus_tile_state", "state": "RaisedStone" }
       ]
     },
     {
       "id": "behavior.clause.push_them",
       "steps": [
-        { "id": 1, "op": "push_focus", "amount": 1 }
+        { "id": 1, "op": "push_focus_away_from_self", "amount": 1 }
       ]
     },
     {
       "id": "behavior.clause.poison_them",
       "steps": [
-        { "id": 1, "op": "add_focus_actor_counter", "counter": "poison", "amount": 3 }
+        { "id": 1, "op": "attach_lingering_to_focus", "effect": "linger.poison", "amount": 3 }
       ]
     },
     {
       "id": "behavior.clause.bleed_them",
       "steps": [
-        { "id": 1, "op": "add_focus_actor_counter", "counter": "bleed", "amount": 1 }
+        { "id": 1, "op": "attach_lingering_to_focus", "effect": "linger.bleed", "amount": 1 }
       ]
     },
     {
-      "id": "behavior.clause.venom_burst",
+      "id": "behavior.clause.spend_poison",
       "steps": [
-        { "id": 1, "op": "branch_focus_actor_counter_at_least", "counter": "poison", "amount": 1, "true": 2, "false": 4 },
-        { "id": 2, "op": "add_focus_actor_counter", "counter": "poison", "amount": -1, "next": 3 },
-        { "id": 3, "op": "damage_focus_actor", "amount": 2, "next": 4 },
-        { "id": 4, "op": "stop" }
+        { "id": 1, "op": "consume_focus_lingering_counter", "effect": "linger.poison", "counter": "counter.stack", "amount": 1 }
       ]
     },
     {
-      "id": "behavior.clause.rend_bleed",
+      "id": "behavior.clause.spend_bleed",
       "steps": [
-        { "id": 1, "op": "branch_focus_actor_counter_at_least", "counter": "bleed", "amount": 1, "true": 2, "false": 5 },
-        { "id": 2, "op": "add_focus_actor_counter", "counter": "bleed", "amount": -1, "next": 3 },
-        { "id": 3, "op": "damage_focus_actor", "amount": 1, "next": 4 },
-        { "id": 4, "op": "push_focus", "amount": 1, "next": 5 },
-        { "id": 5, "op": "stop" }
+        { "id": 1, "op": "consume_focus_lingering_counter", "effect": "linger.bleed", "counter": "counter.stack", "amount": 1 }
       ]
     },
     {
-      "id": "behavior.clause.remember_them",
+      "id": "behavior.clause.lightning_shield",
       "steps": [
-        { "id": 1, "op": "remember_focus" }
+        { "id": 1, "op": "attach_lingering_to_focus", "effect": "linger.lightning_shield", "amount": 0 }
       ]
     },
     {
-      "id": "behavior.clause.return_to_remembered",
+      "id": "behavior.clause.add_lightning_charge",
       "steps": [
-        { "id": 1, "op": "return_to_remembered" }
+        { "id": 1, "op": "add_focus_actor_counter", "counter": "counter.bonus.charge", "amount": 1 }
+      ]
+    },
+    {
+      "id": "behavior.clause.add_lightning_ward",
+      "steps": [
+        { "id": 1, "op": "attach_lingering_to_focus", "effect": "linger.ward", "amount": 1 }
+      ]
+    },
+    {
+      "id": "behavior.clause.spend_focus",
+      "steps": [
+        { "id": 1, "op": "consume_caster_counter", "counter": "counter.bonus.focus", "amount": 1 }
+      ]
+    },
+    {
+      "id": "behavior.clause.spend_memory",
+      "steps": [
+        { "id": 1, "op": "consume_caster_counter", "counter": "counter.bonus.memory", "amount": 1 }
+      ]
+    },
+    {
+      "id": "behavior.clause.store_memory_ref",
+      "steps": [
+        { "id": 1, "op": "store_focus_ref", "ref": "ref.memory.primary" }
+      ]
+    },
+    {
+      "id": "behavior.clause.focus_memory_ref",
+      "steps": [
+        { "id": 1, "op": "focus_ref", "ref": "ref.memory.primary" }
       ]
     },
     {
       "id": "behavior.enemy.glass_hound_turn",
       "steps": [
-        { "id": 1, "op": "branch_enemy_adjacent_player", "true": 2, "false": 3 },
-        { "id": 2, "op": "damage_player", "amount": 1, "next": 4 },
-        { "id": 3, "op": "step_toward_player", "next": 4 },
-        { "id": 4, "op": "stop" }
+        { "id": 1, "op": "focus_nearest_actor", "relation": "hostile", "next": 2 },
+        { "id": 2, "op": "branch_focus_adjacent_to_self", "true": 3, "false": 4 },
+        { "id": 3, "op": "damage_focus_actor", "amount": 1, "next": 5 },
+        { "id": 4, "op": "step_self_toward_focus", "next": 5 },
+        { "id": 5, "op": "stop" }
       ]
     },
     {
       "id": "behavior.enemy.ash_scribe_turn",
       "steps": [
-        { "id": 1, "op": "increment_counter" },
-        { "id": 2, "op": "branch_counter_at_least", "amount": 3, "true": 3, "false": 5 },
-        { "id": 3, "op": "detonate_owned_tile_marks", "amount": 1 },
-        { "id": 4, "op": "reset_counter", "next": 6 },
-        { "id": 5, "op": "mark_player_tile", "next": 6 },
-        { "id": 6, "op": "stop" }
+        { "id": 1, "op": "add_self_counter", "counter": "counter.ai.charge", "amount": 1 },
+        { "id": 2, "op": "branch_self_counter_at_least", "counter": "counter.ai.charge", "amount": 3, "true": 3, "false": 6 },
+        { "id": 3, "op": "damage_actors_on_owned_tile_condition", "counter": "condition.marked", "amount": 1 },
+        { "id": 4, "op": "clear_owned_tile_condition", "counter": "condition.marked", "next": 5 },
+        { "id": 5, "op": "consume_self_counter", "counter": "counter.ai.charge", "amount": 3, "next": 8 },
+        { "id": 6, "op": "focus_nearest_actor", "relation": "hostile", "next": 7 },
+        { "id": 7, "op": "apply_focus_tile_condition", "counter": "condition.marked", "next": 8 },
+        { "id": 8, "op": "stop" }
       ]
     },
     {
       "id": "behavior.enemy.root_saint_turn",
       "steps": [
-        { "id": 1, "op": "heal_self_if_adjacent_blocking", "amount": 1 },
-        { "id": 2, "op": "raise_adjacent_stone" }
+        { "id": 1, "op": "branch_self_adjacent_blocking", "true": 2, "false": 3 },
+        { "id": 2, "op": "heal_self", "amount": 1, "next": 3 },
+        { "id": 3, "op": "set_first_adjacent_clear_tile_state", "state": "RaisedStone" }
       ]
     },
     {
       "id": "behavior.rule.brittle_stone_push_collision",
       "steps": [
-        { "id": 1, "op": "branch_event_tile_raised_stone", "true": 2 },
-        { "id": 2, "op": "break_event_tile" },
+        { "id": 1, "op": "branch_event_tile_state", "state": "RaisedStone", "true": 2 },
+        { "id": 2, "op": "set_event_tile_state", "state": "Floor" },
         { "id": 3, "op": "damage_event_actor", "amount": 1 }
+      ]
+    },
+    {
+      "id": "behavior.lingering.poison_turn_start",
+      "steps": [
+        { "id": 1, "op": "damage_event_actor", "amount": 1, "next": 2 },
+        { "id": 2, "op": "consume_lingering_counter", "counter": "counter.stack", "amount": 1, "true": 3, "false": 4 },
+        { "id": 3, "op": "branch_lingering_counter_at_least", "counter": "counter.stack", "amount": 1, "true": 5, "false": 4 },
+        { "id": 4, "op": "detach_lingering", "next": 5 },
+        { "id": 5, "op": "stop" }
+      ]
+    },
+    {
+      "id": "behavior.lingering.bleed_move",
+      "steps": [
+        { "id": 1, "op": "damage_event_actor_by_lingering_counter", "counter": "counter.stack" }
+      ]
+    },
+    {
+      "id": "behavior.lingering.lightning_shield_adjacent",
+      "steps": [
+        { "id": 1, "op": "branch_event_actor_hostile_to_lingering_target", "true": 2, "false": 7 },
+        { "id": 2, "op": "branch_lingering_target_counter_at_least", "counter": "counter.bonus.charge", "amount": 1, "true": 3, "false": 6 },
+        { "id": 3, "op": "damage_event_actor_by_lingering_target_counter", "counter": "counter.bonus.charge", "next": 4 },
+        { "id": 4, "op": "consume_lingering_target_counter", "counter": "counter.bonus.charge", "amount": 1, "true": 5, "false": 6 },
+        { "id": 5, "op": "branch_lingering_target_counter_at_least", "counter": "counter.bonus.charge", "amount": 1, "true": 7, "false": 6 },
+        { "id": 6, "op": "detach_lingering", "next": 7 },
+        { "id": 7, "op": "stop" }
+      ]
+    },
+    {
+      "id": "behavior.lingering.ward_before_damage",
+      "steps": [
+        { "id": 1, "op": "branch_lingering_counter_at_least", "counter": "counter.stack", "amount": 1, "true": 2, "false": 5 },
+        { "id": 2, "op": "prevent_event_damage", "next": 3 },
+        { "id": 3, "op": "consume_lingering_counter", "counter": "counter.stack", "amount": 1, "true": 4, "false": 5 },
+        { "id": 4, "op": "branch_lingering_counter_at_least", "counter": "counter.stack", "amount": 1, "true": 6, "false": 5 },
+        { "id": 5, "op": "detach_lingering", "next": 6 },
+        { "id": 6, "op": "stop" }
       ]
     },
     {

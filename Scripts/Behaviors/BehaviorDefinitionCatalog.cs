@@ -38,7 +38,11 @@ public static class BehaviorDefinitionCatalog
                         step.True,
                         step.False,
                         step.Amount,
-                        step.Counter))
+                        step.Counter,
+                        step.Effect,
+                        step.Relation,
+                        step.Ref,
+                        step.State))
                     .ToArray());
         }
 
@@ -66,5 +70,9 @@ public static class BehaviorDefinitionCatalog
         public int? False { get; set; }
         public int? Amount { get; set; }
         public string Counter { get; set; } = "";
+        public string Effect { get; set; } = "";
+        public string Relation { get; set; } = "";
+        public string Ref { get; set; } = "";
+        public string State { get; set; } = "";
     }
 }

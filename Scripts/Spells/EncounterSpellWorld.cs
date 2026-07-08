@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TheThingImDoing.Actors;
 using TheThingImDoing.Core;
+using TheThingImDoing.World;
 
 namespace TheThingImDoing.Spells;
 
@@ -38,34 +39,14 @@ public sealed class EncounterSpellWorld : ISpellWorld
         return _encounter.GetActorAt(pos);
     }
 
-    public EncounterActor? GetNearestEnemy(EncounterActor caster)
+    public EncounterActor? GetNearestActor(EncounterActor source, string relation)
     {
-        return _encounter.GetNearestEnemy(caster);
+        return _encounter.GetNearestActor(source, relation);
     }
 
-    public IEnumerable<EncounterActor> GetEnemiesOf(EncounterActor caster)
+    public IEnumerable<EncounterActor> GetActorsByRelation(EncounterActor source, string relation)
     {
-        return _encounter.Enemies;
-    }
-
-    public bool HasMark(GridPos pos, int ownerActorId)
-    {
-        return _encounter.HasTileMark(pos, ownerActorId);
-    }
-
-    public bool HasMark(EncounterActor target, int ownerActorId)
-    {
-        return _encounter.HasActorMark(target.Id, ownerActorId);
-    }
-
-    public void AddMark(GridPos pos, int ownerActorId, int durationTurns = 2)
-    {
-        _encounter.AddTileMark(pos, ownerActorId);
-    }
-
-    public void AddMark(EncounterActor target, int ownerActorId, int durationTurns = 2)
-    {
-        _encounter.AddActorMark(target.Id, ownerActorId);
+        return _encounter.GetActorsByRelation(source, relation);
     }
 
     public int GetCounter(EncounterActor target, string counterId)
@@ -88,6 +69,11 @@ public sealed class EncounterSpellWorld : ISpellWorld
         return _encounter.AddTileCounter(pos, counterId, amount);
     }
 
+    public LingeringEffectInstance? AttachLingeringEffect(EncounterActor target, string effectId, EncounterActor owner, int stacks)
+    {
+        return _encounter.AttachLingeringEffect(target.Id, effectId, owner.Id, stacks);
+    }
+
     public void ApplyDamage(EncounterActor target, int amount, EncounterActor? source)
     {
         _encounter.TryDamageActor(target.Id, amount);
@@ -98,13 +84,13 @@ public sealed class EncounterSpellWorld : ISpellWorld
         return _encounter.TryPushActor(target.Id, direction, distance);
     }
 
-    public bool CanRaiseStone(GridPos pos)
+    public bool CanSetTileState(GridPos pos, TileState state)
     {
-        return _encounter.CanRaiseStone(pos);
+        return _encounter.CanSetTileState(pos, state);
     }
 
-    public void RaiseStone(GridPos pos, int durationTurns = 2)
+    public void SetTileState(GridPos pos, TileState state)
     {
-        _encounter.TryRaiseStone(pos);
+        _encounter.TrySetTileState(pos, state);
     }
 }

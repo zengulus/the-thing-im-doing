@@ -14,6 +14,8 @@ public sealed class BehaviorExecutionContext
     public EncounterActor? EventActor { get; init; }
     public GridPos? EventTile { get; init; }
     public Direction? EventDirection { get; init; }
+    public int EventDamage { get; set; }
+    public EncounterActor? LingeringTarget { get; init; }
+    public LingeringEffectInstance? LingeringEffect { get; init; }
     public required OmenTrace Trace { get; init; }
 }
-

@@ -29,7 +29,8 @@
       "tintHex": "#f27a3d",
       "intentRules": [
         {
-          "when": "brain_counter_at_least",
+          "when": "self_counter_at_least",
+          "counter": "counter.ai.charge",
           "amount": 2,
           "intentKey": "enemies.ash_scribe.intent.detonate"
         }
