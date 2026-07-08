@@ -15,4 +15,7 @@ public sealed record BehaviorStepDefinition(
     string Effect,
     string Relation,
     string Ref,
-    string State);
+    string State,
+    string Target,
+    string Source,
+    string Mode);

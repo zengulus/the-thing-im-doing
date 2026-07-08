@@ -2,320 +2,289 @@
   "schemaVersion": 1,
   "primitives": [
     {
-      "id": "stop",
-      "displayNameKey": "behavior_primitives.stop.name",
-      "descriptionKey": "behavior_primitives.stop.description",
-      "scopes": [ "spell", "enemy", "rule", "relic", "lingering" ],
+      "id": "flow.stop",
+      "displayNameKey": "behavior_primitives.flow.stop.name",
+      "descriptionKey": "behavior_primitives.flow.stop.description",
+      "scopes": [ "spell", "enemy", "rule", "relic", "effect" ],
       "tags": [ "flow" ]
     },
     {
-      "id": "focus_selected_target",
-      "displayNameKey": "behavior_primitives.focus_selected_target.name",
-      "descriptionKey": "behavior_primitives.focus_selected_target.description",
+      "id": "focus.selected_target",
+      "displayNameKey": "behavior_primitives.focus.selected_target.name",
+      "descriptionKey": "behavior_primitives.focus.selected_target.description",
       "scopes": [ "spell" ],
-      "tags": [ "targeting" ]
+      "tags": [ "focus", "targeting" ]
     },
     {
-      "id": "focus_nearest_actor",
-      "displayNameKey": "behavior_primitives.focus_nearest_actor.name",
-      "descriptionKey": "behavior_primitives.focus_nearest_actor.description",
-      "scopes": [ "spell" ],
-      "tags": [ "targeting", "relation" ]
-    },
-    {
-      "id": "focus_self",
-      "displayNameKey": "behavior_primitives.focus_self.name",
-      "descriptionKey": "behavior_primitives.focus_self.description",
+      "id": "focus.nearest_actor",
+      "displayNameKey": "behavior_primitives.focus.nearest_actor.name",
+      "descriptionKey": "behavior_primitives.focus.nearest_actor.description",
       "scopes": [ "spell", "enemy" ],
-      "tags": [ "targeting" ]
+      "tags": [ "focus", "targeting", "relation" ],
+      "parameters": [
+        { "name": "relation", "type": "relation", "default": "hostile" }
+      ]
     },
     {
-      "id": "branch_focus_occupied",
-      "displayNameKey": "behavior_primitives.branch_focus_occupied.name",
-      "descriptionKey": "behavior_primitives.branch_focus_occupied.description",
+      "id": "focus.self",
+      "displayNameKey": "behavior_primitives.focus.self.name",
+      "descriptionKey": "behavior_primitives.focus.self.description",
+      "scopes": [ "spell", "enemy" ],
+      "tags": [ "focus", "targeting" ]
+    },
+    {
+      "id": "focus.store_ref",
+      "displayNameKey": "behavior_primitives.focus.store_ref.name",
+      "descriptionKey": "behavior_primitives.focus.store_ref.description",
       "scopes": [ "spell" ],
-      "tags": [ "branch", "tile" ]
+      "tags": [ "focus", "reference" ],
+      "parameters": [
+        { "name": "ref", "type": "ref", "required": true }
+      ]
     },
     {
-      "id": "branch_focus_clear",
-      "displayNameKey": "behavior_primitives.branch_focus_clear.name",
-      "descriptionKey": "behavior_primitives.branch_focus_clear.description",
+      "id": "focus.ref",
+      "displayNameKey": "behavior_primitives.focus.ref.name",
+      "descriptionKey": "behavior_primitives.focus.ref.description",
       "scopes": [ "spell" ],
-      "tags": [ "branch", "tile" ]
+      "tags": [ "focus", "reference" ],
+      "parameters": [
+        { "name": "ref", "type": "ref", "required": true }
+      ]
     },
     {
-      "id": "apply_focus_condition",
-      "displayNameKey": "behavior_primitives.apply_focus_condition.name",
-      "descriptionKey": "behavior_primitives.apply_focus_condition.description",
+      "id": "branch.occupied",
+      "displayNameKey": "behavior_primitives.branch.occupied.name",
+      "descriptionKey": "behavior_primitives.branch.occupied.description",
       "scopes": [ "spell" ],
-      "tags": [ "condition" ]
+      "tags": [ "branch", "target" ],
+      "parameters": [
+        { "name": "target", "type": "target", "default": "focus" }
+      ]
     },
     {
-      "id": "branch_focus_condition",
-      "displayNameKey": "behavior_primitives.branch_focus_condition.name",
-      "descriptionKey": "behavior_primitives.branch_focus_condition.description",
+      "id": "branch.clear",
+      "displayNameKey": "behavior_primitives.branch.clear.name",
+      "descriptionKey": "behavior_primitives.branch.clear.description",
       "scopes": [ "spell" ],
-      "tags": [ "branch", "condition" ]
+      "tags": [ "branch", "tile" ],
+      "parameters": [
+        { "name": "target", "type": "tile", "default": "focus.tile" }
+      ]
     },
     {
-      "id": "add_focus_actor_counter",
-      "displayNameKey": "behavior_primitives.add_focus_actor_counter.name",
-      "descriptionKey": "behavior_primitives.add_focus_actor_counter.description",
-      "scopes": [ "spell" ],
-      "tags": [ "counter" ]
-    },
-    {
-      "id": "attach_lingering_to_focus",
-      "displayNameKey": "behavior_primitives.attach_lingering_to_focus.name",
-      "descriptionKey": "behavior_primitives.attach_lingering_to_focus.description",
-      "scopes": [ "spell" ],
-      "tags": [ "lingering" ]
-    },
-    {
-      "id": "add_focus_lingering_counter",
-      "displayNameKey": "behavior_primitives.add_focus_lingering_counter.name",
-      "descriptionKey": "behavior_primitives.add_focus_lingering_counter.description",
-      "scopes": [ "spell" ],
-      "tags": [ "lingering", "counter" ]
-    },
-    {
-      "id": "consume_focus_lingering_counter",
-      "displayNameKey": "behavior_primitives.consume_focus_lingering_counter.name",
-      "descriptionKey": "behavior_primitives.consume_focus_lingering_counter.description",
-      "scopes": [ "spell" ],
-      "tags": [ "branch", "lingering", "counter" ]
-    },
-    {
-      "id": "consume_focus_actor_counter",
-      "displayNameKey": "behavior_primitives.consume_focus_actor_counter.name",
-      "descriptionKey": "behavior_primitives.consume_focus_actor_counter.description",
-      "scopes": [ "spell" ],
-      "tags": [ "branch", "counter" ]
-    },
-    {
-      "id": "consume_caster_counter",
-      "displayNameKey": "behavior_primitives.consume_caster_counter.name",
-      "descriptionKey": "behavior_primitives.consume_caster_counter.description",
-      "scopes": [ "spell" ],
-      "tags": [ "branch", "counter" ]
-    },
-    {
-      "id": "damage_focus_actor",
-      "displayNameKey": "behavior_primitives.damage_focus_actor.name",
-      "descriptionKey": "behavior_primitives.damage_focus_actor.description",
-      "scopes": [ "spell" ],
-      "tags": [ "damage" ]
-    },
-    {
-      "id": "set_focus_tile_state",
-      "displayNameKey": "behavior_primitives.set_focus_tile_state.name",
-      "descriptionKey": "behavior_primitives.set_focus_tile_state.description",
-      "scopes": [ "spell" ],
-      "tags": [ "terrain" ]
-    },
-    {
-      "id": "push_focus_away_from_self",
-      "displayNameKey": "behavior_primitives.push_focus_away_from_self.name",
-      "descriptionKey": "behavior_primitives.push_focus_away_from_self.description",
-      "scopes": [ "spell" ],
-      "tags": [ "movement" ]
-    },
-    {
-      "id": "pull_focus_toward_self",
-      "displayNameKey": "behavior_primitives.pull_focus_toward_self.name",
-      "descriptionKey": "behavior_primitives.pull_focus_toward_self.description",
-      "scopes": [ "spell" ],
-      "tags": [ "movement" ]
-    },
-    {
-      "id": "store_focus_ref",
-      "displayNameKey": "behavior_primitives.store_focus_ref.name",
-      "descriptionKey": "behavior_primitives.store_focus_ref.description",
-      "scopes": [ "spell" ],
-      "tags": [ "reference" ]
-    },
-    {
-      "id": "focus_ref",
-      "displayNameKey": "behavior_primitives.focus_ref.name",
-      "descriptionKey": "behavior_primitives.focus_ref.description",
-      "scopes": [ "spell" ],
-      "tags": [ "reference", "targeting" ]
-    },
-    {
-      "id": "branch_focus_adjacent_to_self",
-      "displayNameKey": "behavior_primitives.branch_focus_adjacent_to_self.name",
-      "descriptionKey": "behavior_primitives.branch_focus_adjacent_to_self.description",
+      "id": "branch.adjacent",
+      "displayNameKey": "behavior_primitives.branch.adjacent.name",
+      "descriptionKey": "behavior_primitives.branch.adjacent.description",
       "scopes": [ "enemy" ],
-      "tags": [ "branch", "position" ]
+      "tags": [ "branch", "position" ],
+      "parameters": [
+        { "name": "source", "type": "actor", "default": "self" },
+        { "name": "target", "type": "actor", "required": true }
+      ]
     },
     {
-      "id": "step_self_toward_focus",
-      "displayNameKey": "behavior_primitives.step_self_toward_focus.name",
-      "descriptionKey": "behavior_primitives.step_self_toward_focus.description",
-      "scopes": [ "enemy" ],
-      "tags": [ "movement" ]
+      "id": "branch.relation",
+      "displayNameKey": "behavior_primitives.branch.relation.name",
+      "descriptionKey": "behavior_primitives.branch.relation.description",
+      "scopes": [ "effect" ],
+      "tags": [ "branch", "relation" ],
+      "parameters": [
+        { "name": "source", "type": "actor", "required": true },
+        { "name": "target", "type": "actor", "required": true },
+        { "name": "relation", "type": "relation", "required": true }
+      ]
     },
     {
-      "id": "add_self_counter",
-      "displayNameKey": "behavior_primitives.add_self_counter.name",
-      "descriptionKey": "behavior_primitives.add_self_counter.description",
-      "scopes": [ "enemy" ],
-      "tags": [ "counter" ]
-    },
-    {
-      "id": "branch_self_counter_at_least",
-      "displayNameKey": "behavior_primitives.branch_self_counter_at_least.name",
-      "descriptionKey": "behavior_primitives.branch_self_counter_at_least.description",
-      "scopes": [ "enemy" ],
-      "tags": [ "branch", "counter" ]
-    },
-    {
-      "id": "consume_self_counter",
-      "displayNameKey": "behavior_primitives.consume_self_counter.name",
-      "descriptionKey": "behavior_primitives.consume_self_counter.description",
-      "scopes": [ "enemy" ],
-      "tags": [ "branch", "counter" ]
-    },
-    {
-      "id": "damage_actors_on_owned_tile_condition",
-      "displayNameKey": "behavior_primitives.damage_actors_on_owned_tile_condition.name",
-      "descriptionKey": "behavior_primitives.damage_actors_on_owned_tile_condition.description",
-      "scopes": [ "enemy" ],
-      "tags": [ "condition", "damage" ]
-    },
-    {
-      "id": "clear_owned_tile_condition",
-      "displayNameKey": "behavior_primitives.clear_owned_tile_condition.name",
-      "descriptionKey": "behavior_primitives.clear_owned_tile_condition.description",
-      "scopes": [ "enemy" ],
-      "tags": [ "condition" ]
-    },
-    {
-      "id": "apply_focus_tile_condition",
-      "displayNameKey": "behavior_primitives.apply_focus_tile_condition.name",
-      "descriptionKey": "behavior_primitives.apply_focus_tile_condition.description",
-      "scopes": [ "enemy" ],
-      "tags": [ "condition" ]
-    },
-    {
-      "id": "branch_self_adjacent_blocking",
-      "displayNameKey": "behavior_primitives.branch_self_adjacent_blocking.name",
-      "descriptionKey": "behavior_primitives.branch_self_adjacent_blocking.description",
-      "scopes": [ "enemy" ],
-      "tags": [ "branch", "terrain" ]
-    },
-    {
-      "id": "heal_self",
-      "displayNameKey": "behavior_primitives.heal_self.name",
-      "descriptionKey": "behavior_primitives.heal_self.description",
-      "scopes": [ "enemy" ],
-      "tags": [ "healing" ]
-    },
-    {
-      "id": "set_first_adjacent_clear_tile_state",
-      "displayNameKey": "behavior_primitives.set_first_adjacent_clear_tile_state.name",
-      "descriptionKey": "behavior_primitives.set_first_adjacent_clear_tile_state.description",
-      "scopes": [ "enemy" ],
-      "tags": [ "terrain" ]
-    },
-    {
-      "id": "branch_event_tile_state",
-      "displayNameKey": "behavior_primitives.branch_event_tile_state.name",
-      "descriptionKey": "behavior_primitives.branch_event_tile_state.description",
+      "id": "branch.tile_state",
+      "displayNameKey": "behavior_primitives.branch.tile_state.name",
+      "descriptionKey": "behavior_primitives.branch.tile_state.description",
       "scopes": [ "rule" ],
-      "tags": [ "branch", "terrain" ]
+      "tags": [ "branch", "terrain" ],
+      "parameters": [
+        { "name": "target", "type": "tile", "required": true },
+        { "name": "state", "type": "tile_state", "required": true }
+      ]
     },
     {
-      "id": "set_event_tile_state",
-      "displayNameKey": "behavior_primitives.set_event_tile_state.name",
-      "descriptionKey": "behavior_primitives.set_event_tile_state.description",
-      "scopes": [ "rule" ],
-      "tags": [ "terrain" ]
+      "id": "branch.adjacent_blocking",
+      "displayNameKey": "behavior_primitives.branch.adjacent_blocking.name",
+      "descriptionKey": "behavior_primitives.branch.adjacent_blocking.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "branch", "terrain" ],
+      "parameters": [
+        { "name": "target", "type": "actor", "default": "self" }
+      ]
     },
     {
-      "id": "branch_event_actor_hostile_to_lingering_target",
-      "displayNameKey": "behavior_primitives.branch_event_actor_hostile_to_lingering_target.name",
-      "descriptionKey": "behavior_primitives.branch_event_actor_hostile_to_lingering_target.description",
-      "scopes": [ "lingering" ],
-      "tags": [ "branch", "relation", "event", "lingering" ]
+      "id": "counter.add",
+      "displayNameKey": "behavior_primitives.counter.add.name",
+      "descriptionKey": "behavior_primitives.counter.add.description",
+      "scopes": [ "spell", "enemy", "effect" ],
+      "tags": [ "counter" ],
+      "parameters": [
+        { "name": "target", "type": "counter_target", "required": true },
+        { "name": "counter", "type": "counter", "required": true },
+        { "name": "amount", "type": "int", "default": "1" }
+      ]
     },
     {
-      "id": "damage_event_actor",
-      "displayNameKey": "behavior_primitives.damage_event_actor.name",
-      "descriptionKey": "behavior_primitives.damage_event_actor.description",
-      "scopes": [ "rule", "lingering" ],
-      "tags": [ "damage" ]
+      "id": "counter.consume",
+      "displayNameKey": "behavior_primitives.counter.consume.name",
+      "descriptionKey": "behavior_primitives.counter.consume.description",
+      "scopes": [ "spell", "enemy", "effect" ],
+      "tags": [ "branch", "counter" ],
+      "parameters": [
+        { "name": "target", "type": "counter_target", "required": true },
+        { "name": "counter", "type": "counter", "required": true },
+        { "name": "amount", "type": "int", "default": "1" }
+      ]
     },
     {
-      "id": "damage_event_actor_by_lingering_counter",
-      "displayNameKey": "behavior_primitives.damage_event_actor_by_lingering_counter.name",
-      "descriptionKey": "behavior_primitives.damage_event_actor_by_lingering_counter.description",
-      "scopes": [ "lingering" ],
-      "tags": [ "damage", "lingering", "counter" ]
+      "id": "counter.at_least",
+      "displayNameKey": "behavior_primitives.counter.at_least.name",
+      "descriptionKey": "behavior_primitives.counter.at_least.description",
+      "scopes": [ "enemy", "effect" ],
+      "tags": [ "branch", "counter" ],
+      "parameters": [
+        { "name": "target", "type": "counter_target", "required": true },
+        { "name": "counter", "type": "counter", "required": true },
+        { "name": "amount", "type": "int", "default": "1" }
+      ]
     },
     {
-      "id": "prevent_event_damage",
-      "displayNameKey": "behavior_primitives.prevent_event_damage.name",
-      "descriptionKey": "behavior_primitives.prevent_event_damage.description",
-      "scopes": [ "lingering" ],
-      "tags": [ "damage", "event", "lingering" ]
+      "id": "damage.apply",
+      "displayNameKey": "behavior_primitives.damage.apply.name",
+      "descriptionKey": "behavior_primitives.damage.apply.description",
+      "scopes": [ "spell", "enemy", "rule", "effect" ],
+      "tags": [ "damage" ],
+      "parameters": [
+        { "name": "target", "type": "actor", "required": true },
+        { "name": "amount", "type": "int", "default": "1" },
+        { "name": "source", "type": "counter_target" },
+        { "name": "counter", "type": "counter" }
+      ]
     },
     {
-      "id": "add_lingering_counter",
-      "displayNameKey": "behavior_primitives.add_lingering_counter.name",
-      "descriptionKey": "behavior_primitives.add_lingering_counter.description",
-      "scopes": [ "lingering" ],
-      "tags": [ "lingering", "counter" ]
+      "id": "damage.prevent_event",
+      "displayNameKey": "behavior_primitives.damage.prevent_event.name",
+      "descriptionKey": "behavior_primitives.damage.prevent_event.description",
+      "scopes": [ "effect" ],
+      "tags": [ "damage", "event" ]
     },
     {
-      "id": "consume_lingering_counter",
-      "displayNameKey": "behavior_primitives.consume_lingering_counter.name",
-      "descriptionKey": "behavior_primitives.consume_lingering_counter.description",
-      "scopes": [ "lingering" ],
-      "tags": [ "branch", "lingering", "counter" ]
+      "id": "effect.attach",
+      "displayNameKey": "behavior_primitives.effect.attach.name",
+      "descriptionKey": "behavior_primitives.effect.attach.description",
+      "scopes": [ "spell", "enemy" ],
+      "tags": [ "effect" ],
+      "parameters": [
+        { "name": "target", "type": "target", "required": true },
+        { "name": "source", "type": "actor", "default": "self" },
+        { "name": "effect", "type": "effect", "required": true },
+        { "name": "amount", "type": "int", "default": "0" }
+      ]
     },
     {
-      "id": "branch_lingering_counter_at_least",
-      "displayNameKey": "behavior_primitives.branch_lingering_counter_at_least.name",
-      "descriptionKey": "behavior_primitives.branch_lingering_counter_at_least.description",
-      "scopes": [ "lingering" ],
-      "tags": [ "branch", "lingering", "counter" ]
+      "id": "effect.detach",
+      "displayNameKey": "behavior_primitives.effect.detach.name",
+      "descriptionKey": "behavior_primitives.effect.detach.description",
+      "scopes": [ "effect" ],
+      "tags": [ "effect" ],
+      "parameters": [
+        { "name": "target", "type": "effect", "default": "effect" },
+        { "name": "source", "type": "target", "default": "effect.target" }
+      ]
     },
     {
-      "id": "branch_lingering_target_counter_at_least",
-      "displayNameKey": "behavior_primitives.branch_lingering_target_counter_at_least.name",
-      "descriptionKey": "behavior_primitives.branch_lingering_target_counter_at_least.description",
-      "scopes": [ "lingering" ],
-      "tags": [ "branch", "lingering", "counter" ]
-    },
-    {
-      "id": "damage_event_actor_by_lingering_target_counter",
-      "displayNameKey": "behavior_primitives.damage_event_actor_by_lingering_target_counter.name",
-      "descriptionKey": "behavior_primitives.damage_event_actor_by_lingering_target_counter.description",
-      "scopes": [ "lingering" ],
-      "tags": [ "damage", "lingering", "counter" ]
-    },
-    {
-      "id": "consume_lingering_target_counter",
-      "displayNameKey": "behavior_primitives.consume_lingering_target_counter.name",
-      "descriptionKey": "behavior_primitives.consume_lingering_target_counter.description",
-      "scopes": [ "lingering" ],
-      "tags": [ "branch", "lingering", "counter" ]
-    },
-    {
-      "id": "detach_lingering",
-      "displayNameKey": "behavior_primitives.detach_lingering.name",
-      "descriptionKey": "behavior_primitives.detach_lingering.description",
-      "scopes": [ "lingering" ],
-      "tags": [ "lingering" ]
-    },
-    {
-      "id": "primitive.composite_damage",
-      "displayNameKey": "behavior_primitives.composite_damage.name",
-      "descriptionKey": "behavior_primitives.composite_damage.description",
-      "behaviorId": "behavior.clause.damage_them",
+      "id": "effect.has",
+      "displayNameKey": "behavior_primitives.effect.has.name",
+      "descriptionKey": "behavior_primitives.effect.has.description",
       "scopes": [ "spell" ],
-      "tags": [ "composite", "example" ]
+      "tags": [ "branch", "effect" ],
+      "parameters": [
+        { "name": "target", "type": "target", "required": true },
+        { "name": "source", "type": "actor", "required": true },
+        { "name": "effect", "type": "effect", "required": true }
+      ]
+    },
+    {
+      "id": "effect.damage_actors_on_owned_tiles",
+      "displayNameKey": "behavior_primitives.effect.damage_actors_on_owned_tiles.name",
+      "descriptionKey": "behavior_primitives.effect.damage_actors_on_owned_tiles.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "effect", "damage", "tile" ],
+      "parameters": [
+        { "name": "effect", "type": "effect", "required": true },
+        { "name": "amount", "type": "int", "default": "1" }
+      ]
+    },
+    {
+      "id": "effect.clear_owned_tiles",
+      "displayNameKey": "behavior_primitives.effect.clear_owned_tiles.name",
+      "descriptionKey": "behavior_primitives.effect.clear_owned_tiles.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "effect", "tile" ],
+      "parameters": [
+        { "name": "effect", "type": "effect", "required": true }
+      ]
+    },
+    {
+      "id": "move.relative",
+      "displayNameKey": "behavior_primitives.move.relative.name",
+      "descriptionKey": "behavior_primitives.move.relative.description",
+      "scopes": [ "spell" ],
+      "tags": [ "movement" ],
+      "parameters": [
+        { "name": "target", "type": "actor", "required": true },
+        { "name": "source", "type": "actor", "default": "self" },
+        { "name": "mode", "type": "enum", "required": true, "allowedValues": [ "away", "toward" ] },
+        { "name": "amount", "type": "int", "default": "1" }
+      ]
+    },
+    {
+      "id": "move.step_toward",
+      "displayNameKey": "behavior_primitives.move.step_toward.name",
+      "descriptionKey": "behavior_primitives.move.step_toward.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "movement" ],
+      "parameters": [
+        { "name": "target", "type": "actor", "default": "self" },
+        { "name": "source", "type": "tile", "required": true }
+      ]
+    },
+    {
+      "id": "tile.set_state",
+      "displayNameKey": "behavior_primitives.tile.set_state.name",
+      "descriptionKey": "behavior_primitives.tile.set_state.description",
+      "scopes": [ "spell", "rule" ],
+      "tags": [ "terrain" ],
+      "parameters": [
+        { "name": "target", "type": "tile", "required": true },
+        { "name": "state", "type": "tile_state", "required": true }
+      ]
+    },
+    {
+      "id": "tile.set_first_adjacent_clear_state",
+      "displayNameKey": "behavior_primitives.tile.set_first_adjacent_clear_state.name",
+      "descriptionKey": "behavior_primitives.tile.set_first_adjacent_clear_state.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "terrain" ],
+      "parameters": [
+        { "name": "target", "type": "actor", "default": "self" },
+        { "name": "state", "type": "tile_state", "required": true }
+      ]
+    },
+    {
+      "id": "heal.apply",
+      "displayNameKey": "behavior_primitives.heal.apply.name",
+      "descriptionKey": "behavior_primitives.heal.apply.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "healing" ],
+      "parameters": [
+        { "name": "target", "type": "actor", "default": "self" },
+        { "name": "amount", "type": "int", "default": "1" }
+      ]
     }
   ]
 }

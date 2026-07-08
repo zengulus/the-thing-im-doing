@@ -13,7 +13,9 @@ public sealed class TacticalEncounter
 {
     private readonly Dictionary<int, EncounterActor> _actorsById = new();
     private readonly Dictionary<GridPos, CounterSet> _tileCounters = new();
+    private readonly Dictionary<GridPos, List<EffectInstance>> _tileEffects = new();
     private int _nextActorId = 1;
+    private int _nextTileEffectInstanceId = 1;
 
     public TacticalEncounter(int width, int height, GridPos playerStart)
     {
@@ -29,7 +31,9 @@ public sealed class TacticalEncounter
         FloorRuleSet floorRules,
         Dictionary<int, EncounterActor> actorsById,
         Dictionary<GridPos, CounterSet> tileCounters,
+        Dictionary<GridPos, List<EffectInstance>> tileEffects,
         int nextActorId,
+        int nextTileEffectInstanceId,
         int playerActorId)
     {
         Grid = grid;
@@ -37,7 +41,9 @@ public sealed class TacticalEncounter
         FloorRules = floorRules;
         _actorsById = actorsById;
         _tileCounters = tileCounters;
+        _tileEffects = tileEffects;
         _nextActorId = nextActorId;
+        _nextTileEffectInstanceId = nextTileEffectInstanceId;
         Player = _actorsById[playerActorId];
     }
 
@@ -65,16 +71,17 @@ public sealed class TacticalEncounter
     {
         get
         {
-            foreach ((GridPos position, CounterSet counters) in _tileCounters)
+            foreach ((GridPos position, List<EffectInstance> effects) in _tileEffects)
             {
-                foreach ((string counterId, int amount) in counters.All)
+                foreach (EffectInstance effect in effects)
                 {
-                    if (amount > 0 && TryGetOwnedCondition(counterId, out string conditionId, out int ownerActorId))
+                    if (IsCondition(effect.EffectId))
                     {
-                        yield return new TileCondition(position, conditionId, ownerActorId);
+                        yield return new TileCondition(position, effect.EffectId, effect.OwnerActorId);
                     }
                 }
             }
+
         }
     }
 
@@ -179,12 +186,12 @@ public sealed class TacticalEncounter
 
     public bool HasActorCondition(int targetActorId, string conditionId, int ownerActorId)
     {
-        return GetActorCounter(targetActorId, GetOwnedConditionId(conditionId, ownerActorId)) > 0;
+        return HasActorEffect(targetActorId, conditionId, ownerActorId);
     }
 
     public bool HasTileCondition(GridPos position, string conditionId, int ownerActorId)
     {
-        return GetTileCounter(position, GetOwnedConditionId(conditionId, ownerActorId)) > 0;
+        return HasTileEffect(position, conditionId, ownerActorId);
     }
 
     public int GetActorCounter(int actorId, string counterId)
@@ -201,40 +208,81 @@ public sealed class TacticalEncounter
             : 0;
     }
 
-    public LingeringEffectInstance? AttachLingeringEffect(
+    public EffectInstance? AttachEffectToActor(
         int targetActorId,
         string effectId,
         int ownerActorId,
         int stacks)
     {
         if (!_actorsById.TryGetValue(targetActorId, out EncounterActor? target)
-            || !LingeringEffectDefinitionCatalog.TryGet(effectId, out LingeringEffectDefinition? definition))
+            || !EffectDefinitionCatalog.TryGet(effectId, out EffectDefinition? definition))
         {
             return null;
         }
 
-        LingeringEffectInstance instance = target.GetOrAddLingeringEffect(effectId, ownerActorId);
-
-        if (stacks > 0 && definition.AllowsCounter("counter.stack"))
-        {
-            instance.Counters.Add("counter.stack", stacks);
-        }
-
-        RunLingeringBehavior(target, instance, definition.OnApplyBehaviorId);
+        EffectInstance instance = target.GetOrAddEffect(effectId, ownerActorId);
+        AddStartingStacks(instance, definition, stacks);
+        RunEffectTrigger(target, instance, EffectTriggerIds.Apply);
         return instance;
     }
 
-    public bool DetachLingeringEffect(int targetActorId, int instanceId)
+    public EffectInstance? AttachEffectToTile(
+        GridPos position,
+        string effectId,
+        int ownerActorId,
+        int stacks)
     {
-        return _actorsById.TryGetValue(targetActorId, out EncounterActor? target)
-            && target.RemoveLingeringEffect(instanceId);
+        if (!Grid.IsInside(position)
+            || !EffectDefinitionCatalog.TryGet(effectId, out EffectDefinition? definition))
+        {
+            return null;
+        }
+
+        EffectInstance instance = GetOrAddTileEffect(position, effectId, ownerActorId);
+        AddStartingStacks(instance, definition, stacks);
+        return instance;
     }
 
-    public LingeringEffectInstance? GetLingeringEffect(int targetActorId, int instanceId)
+    public bool DetachEffectFromActor(int targetActorId, int instanceId)
     {
         return _actorsById.TryGetValue(targetActorId, out EncounterActor? target)
-            ? target.LingeringEffects.FirstOrDefault(effect => effect.InstanceId == instanceId)
+            && target.RemoveEffect(instanceId);
+    }
+
+    public bool DetachEffectFromTile(GridPos position, int instanceId)
+    {
+        if (!_tileEffects.TryGetValue(position, out List<EffectInstance>? effects))
+        {
+            return false;
+        }
+
+        bool removed = effects.RemoveAll(effect => effect.InstanceId == instanceId) > 0;
+
+        if (effects.Count == 0)
+        {
+            _tileEffects.Remove(position);
+        }
+
+        return removed;
+    }
+
+    public EffectInstance? GetEffect(int targetActorId, int instanceId)
+    {
+        return _actorsById.TryGetValue(targetActorId, out EncounterActor? target)
+            ? target.Effects.FirstOrDefault(effect => effect.InstanceId == instanceId)
             : null;
+    }
+
+    public bool HasActorEffect(int targetActorId, string effectId, int ownerActorId)
+    {
+        return _actorsById.TryGetValue(targetActorId, out EncounterActor? target)
+            && target.FindEffect(effectId, ownerActorId) != null;
+    }
+
+    public bool HasTileEffect(GridPos position, string effectId, int ownerActorId)
+    {
+        return _tileEffects.TryGetValue(position, out List<EffectInstance>? effects)
+            && effects.Any(effect => effect.EffectId == effectId && effect.OwnerActorId == ownerActorId);
     }
 
     public int GetTileCounter(GridPos position, string counterId)
@@ -269,20 +317,30 @@ public sealed class TacticalEncounter
 
     public void AddActorCondition(int targetActorId, string conditionId, int ownerActorId)
     {
-        AddActorCounter(targetActorId, GetOwnedConditionId(conditionId, ownerActorId), 1);
+        AttachEffectToActor(targetActorId, conditionId, ownerActorId, stacks: 0);
     }
 
     public void AddTileCondition(GridPos position, string conditionId, int ownerActorId)
     {
         if (Grid.IsInside(position))
         {
-            AddTileCounter(position, GetOwnedConditionId(conditionId, ownerActorId), 1);
+            AttachEffectToTile(position, conditionId, ownerActorId, stacks: 0);
         }
     }
 
     public void RemoveTileCondition(GridPos position, string conditionId, int ownerActorId)
     {
-        AddTileCounter(position, GetOwnedConditionId(conditionId, ownerActorId), -1);
+        if (!_tileEffects.TryGetValue(position, out List<EffectInstance>? effects))
+        {
+            return;
+        }
+
+        effects.RemoveAll(effect => effect.EffectId == conditionId && effect.OwnerActorId == ownerActorId);
+
+        if (effects.Count == 0)
+        {
+            _tileEffects.Remove(position);
+        }
     }
 
     public WorkingResult PreviewWorking(Working working, GridPos selectedTarget)
@@ -377,7 +435,7 @@ public sealed class TacticalEncounter
 
         foreach (EncounterActor enemy in Enemies.ToArray())
         {
-            RunLingeringHook(enemy, LingeringEffectHook.TurnStart);
+            RunEffectTrigger(enemy, EffectTriggerIds.TurnStart);
 
             if (!enemy.IsAlive)
             {
@@ -395,7 +453,7 @@ public sealed class TacticalEncounter
 
         if (Result == GameResult.InProgress)
         {
-            RunLingeringHook(Player, LingeringEffectHook.TurnStart);
+            RunEffectTrigger(Player, EffectTriggerIds.TurnStart);
         }
 
         if (Result == GameResult.InProgress)
@@ -422,7 +480,7 @@ public sealed class TacticalEncounter
 
         if (!actor.IsAlive)
         {
-            RunLingeringHook(actor, LingeringEffectHook.Death);
+            RunEffectTrigger(actor, EffectTriggerIds.Death);
             Grid.RemoveActor(actor.Id);
         }
 
@@ -496,6 +554,62 @@ public sealed class TacticalEncounter
         return moved;
     }
 
+    public EffectCommandResult ResolveEffectCommand(EffectCommand command)
+    {
+        switch (command)
+        {
+            case DamageActorCommand damage:
+                return new EffectCommandResult(TryDamageActor(damage.ActorId, damage.Amount));
+
+            case PushActorCommand push:
+                return new EffectCommandResult(TryPushActor(push.ActorId, push.Direction, push.Distance));
+
+            case SetTileStateCommand setTile:
+                return new EffectCommandResult(TrySetTileState(setTile.Position, setTile.State));
+
+            case ModifyActorCounterCommand counter:
+                int actorCounter = AddActorCounter(counter.ActorId, counter.CounterId, counter.Amount);
+                return EffectCommandResult.Changed(actorCounter);
+
+            case ModifyTileCounterCommand counter:
+                int tileCounter = AddTileCounter(counter.Position, counter.CounterId, counter.Amount);
+                return EffectCommandResult.Changed(tileCounter);
+
+            case ModifyEffectCounterCommand counter:
+                int effectCounter = counter.Effect.Counters.Add(counter.CounterId, counter.Amount);
+                return EffectCommandResult.Changed(effectCounter);
+
+            case AttachActorEffectCommand attach:
+                EffectInstance? actorEffect = AttachEffectToActor(
+                    attach.TargetActorId,
+                    attach.EffectId,
+                    attach.OwnerActorId,
+                    attach.Stacks);
+                return actorEffect == null
+                    ? EffectCommandResult.NoChange
+                    : EffectCommandResult.Changed(effect: actorEffect);
+
+            case AttachTileEffectCommand attach:
+                EffectInstance? tileEffect = AttachEffectToTile(
+                    attach.Position,
+                    attach.EffectId,
+                    attach.OwnerActorId,
+                    attach.Stacks);
+                return tileEffect == null
+                    ? EffectCommandResult.NoChange
+                    : EffectCommandResult.Changed(effect: tileEffect);
+
+            case DetachActorEffectCommand detach:
+                return new EffectCommandResult(DetachEffectFromActor(detach.TargetActorId, detach.InstanceId));
+
+            case RemoveTileEffectCommand detach:
+                return new EffectCommandResult(DetachEffectFromTile(detach.Position, detach.InstanceId));
+
+            default:
+                return EffectCommandResult.NoChange;
+        }
+    }
+
     public TacticalEncounter Clone()
     {
         var actorClones = _actorsById.ToDictionary(
@@ -504,6 +618,9 @@ public sealed class TacticalEncounter
         var tileCounterClones = _tileCounters.ToDictionary(
             pair => pair.Key,
             pair => pair.Value.Clone());
+        var tileEffectClones = _tileEffects.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value.Select(effect => effect.Clone()).ToList());
 
         return new TacticalEncounter(
             Grid.Clone(),
@@ -511,7 +628,9 @@ public sealed class TacticalEncounter
             FloorRules,
             actorClones,
             tileCounterClones,
+            tileEffectClones,
             _nextActorId,
+            _nextTileEffectInstanceId,
             Player.Id);
     }
 
@@ -577,7 +696,7 @@ public sealed class TacticalEncounter
         }
 
         actor.Position = destination;
-        RunLingeringHook(actor, LingeringEffectHook.Move);
+        RunEffectTrigger(actor, EffectTriggerIds.Move);
         RunBecameAdjacentHooks(actor, origin);
         return true;
     }
@@ -599,26 +718,11 @@ public sealed class TacticalEncounter
             });
     }
 
-    private void RunLingeringHook(EncounterActor target, LingeringEffectHook hook)
+    private void RunEffectTrigger(EncounterActor target, string triggerId)
     {
-        foreach (LingeringEffectInstance instance in target.LingeringEffects.ToArray())
+        foreach (EffectInstance instance in target.Effects.ToArray())
         {
-            if (!LingeringEffectDefinitionCatalog.TryGet(instance.EffectId, out LingeringEffectDefinition? definition))
-            {
-                continue;
-            }
-
-            string behaviorId = hook switch
-            {
-                LingeringEffectHook.TurnStart => definition.OnTurnStartBehaviorId,
-                LingeringEffectHook.Move => definition.OnMoveBehaviorId,
-                LingeringEffectHook.Death => definition.OnDeathBehaviorId,
-                LingeringEffectHook.ActorBecameAdjacent => definition.OnActorBecameAdjacentBehaviorId,
-                LingeringEffectHook.BeforeDamage => definition.OnBeforeDamageBehaviorId,
-                _ => ""
-            };
-
-            RunLingeringBehavior(target, instance, behaviorId);
+            RunEffectTrigger(target, instance, triggerId);
 
             if (!target.IsAlive)
             {
@@ -631,18 +735,12 @@ public sealed class TacticalEncounter
     {
         int nextAmount = amount;
 
-        foreach (LingeringEffectInstance instance in target.LingeringEffects.ToArray())
+        foreach (EffectInstance instance in target.Effects.ToArray())
         {
-            if (!LingeringEffectDefinitionCatalog.TryGet(instance.EffectId, out LingeringEffectDefinition? definition)
-                || string.IsNullOrWhiteSpace(definition.OnBeforeDamageBehaviorId))
-            {
-                continue;
-            }
-
-            nextAmount = RunLingeringBehavior(
+            nextAmount = RunEffectTrigger(
                 target,
                 instance,
-                definition.OnBeforeDamageBehaviorId,
+                EffectTriggerIds.BeforeDamage,
                 eventActor: target,
                 eventDamage: nextAmount).EventDamage;
 
@@ -667,18 +765,9 @@ public sealed class TacticalEncounter
                 continue;
             }
 
-            foreach (LingeringEffectInstance instance in target.LingeringEffects.ToArray())
+            foreach (EffectInstance instance in target.Effects.ToArray())
             {
-                if (!LingeringEffectDefinitionCatalog.TryGet(instance.EffectId, out LingeringEffectDefinition? definition))
-                {
-                    continue;
-                }
-
-                RunLingeringBehavior(
-                    target,
-                    instance,
-                    definition.OnActorBecameAdjacentBehaviorId,
-                    eventActor: movedActor);
+                RunEffectTrigger(target, instance, EffectTriggerIds.ActorBecameAdjacent, movedActor);
 
                 if (!movedActor.IsAlive || !target.IsAlive)
                 {
@@ -688,9 +777,9 @@ public sealed class TacticalEncounter
         }
     }
 
-    private BehaviorExecutionContext RunLingeringBehavior(
+    private BehaviorExecutionContext RunEffectBehavior(
         EncounterActor target,
-        LingeringEffectInstance instance,
+        EffectInstance instance,
         string behaviorId,
         EncounterActor? eventActor = null,
         int eventDamage = 0)
@@ -702,8 +791,8 @@ public sealed class TacticalEncounter
                 Encounter = this,
                 EventActor = eventActor ?? target,
                 EventDamage = eventDamage,
-                LingeringTarget = target,
-                LingeringEffect = instance,
+                EffectTarget = target,
+                Effect = instance,
                 Trace = new OmenTrace()
             };
         }
@@ -713,8 +802,8 @@ public sealed class TacticalEncounter
             Encounter = this,
             EventActor = eventActor ?? target,
             EventDamage = eventDamage,
-            LingeringTarget = target,
-            LingeringEffect = instance,
+            EffectTarget = target,
+            Effect = instance,
             Trace = new OmenTrace()
         };
 
@@ -723,6 +812,62 @@ public sealed class TacticalEncounter
             context);
 
         return context;
+    }
+
+    private BehaviorExecutionContext RunEffectTrigger(
+        EncounterActor target,
+        EffectInstance instance,
+        string triggerId,
+        EncounterActor? eventActor = null,
+        int eventDamage = 0)
+    {
+        if (!EffectDefinitionCatalog.TryGet(instance.EffectId, out EffectDefinition? definition))
+        {
+            return RunEffectBehavior(target, instance, "", eventActor, eventDamage);
+        }
+
+        BehaviorExecutionContext context = RunEffectBehavior(target, instance, "", eventActor, eventDamage);
+
+        foreach (string behaviorId in definition.GetBehaviorIds(triggerId))
+        {
+            context = RunEffectBehavior(target, instance, behaviorId, eventActor, context.EventDamage);
+
+            if (!target.IsAlive || eventActor?.IsAlive == false)
+            {
+                break;
+            }
+        }
+
+        return context;
+    }
+
+    private EffectInstance GetOrAddTileEffect(GridPos position, string effectId, int ownerActorId)
+    {
+        if (!_tileEffects.TryGetValue(position, out List<EffectInstance>? effects))
+        {
+            effects = new List<EffectInstance>();
+            _tileEffects[position] = effects;
+        }
+
+        EffectInstance? existing = effects.FirstOrDefault(effect =>
+            effect.EffectId == effectId && effect.OwnerActorId == ownerActorId);
+
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        var instance = new EffectInstance(_nextTileEffectInstanceId++, effectId, ownerActorId);
+        effects.Add(instance);
+        return instance;
+    }
+
+    private static void AddStartingStacks(EffectInstance instance, EffectDefinition definition, int stacks)
+    {
+        if (stacks > 0 && definition.AllowsCounter("counter.stack"))
+        {
+            instance.Counters.Add("counter.stack", stacks);
+        }
     }
 
     public bool IsAdjacentToBlockingTile(GridPos position)
@@ -738,28 +883,9 @@ public sealed class TacticalEncounter
         yield return position.Offset(Direction.West);
     }
 
-    private static string GetOwnedConditionId(string conditionId, int ownerActorId)
+    private static bool IsCondition(string effectId)
     {
-        return $"{conditionId}.owner.{ownerActorId}";
-    }
-
-    private static bool TryGetOwnedCondition(string counterId, out string conditionId, out int ownerActorId)
-    {
-        const string OwnerToken = ".owner.";
-
-        int ownerTokenIndex = counterId.LastIndexOf(OwnerToken, StringComparison.Ordinal);
-
-        if (counterId.StartsWith("condition.")
-            && ownerTokenIndex > 0
-            && int.TryParse(counterId[(ownerTokenIndex + OwnerToken.Length)..], out ownerActorId))
-        {
-            conditionId = counterId[..ownerTokenIndex];
-            return true;
-        }
-
-        conditionId = "";
-        ownerActorId = 0;
-        return false;
+        return effectId.StartsWith("condition.", StringComparison.Ordinal);
     }
 
     private bool DoesRelationMatch(EncounterActor source, EncounterActor target, string relation)
@@ -796,11 +922,11 @@ public sealed class EncounterActor
     public int MaxHealth { get; }
     public int Health { get; private set; }
     public CounterSet Counters { get; } = new();
-    public IReadOnlyList<LingeringEffectInstance> LingeringEffects => _lingeringEffects;
+    public IReadOnlyList<EffectInstance> Effects => _effects;
     public bool IsAlive => Health > 0;
 
-    private readonly List<LingeringEffectInstance> _lingeringEffects = new();
-    private int _nextLingeringEffectInstanceId = 1;
+    private readonly List<EffectInstance> _effects = new();
+    private int _nextEffectInstanceId = 1;
 
     public void ApplyDamage(int amount)
     {
@@ -824,19 +950,19 @@ public sealed class EncounterActor
             clone.Counters.Add(counterId, amount);
         }
 
-        clone._nextLingeringEffectInstanceId = _nextLingeringEffectInstanceId;
+        clone._nextEffectInstanceId = _nextEffectInstanceId;
 
-        foreach (LingeringEffectInstance effect in _lingeringEffects)
+        foreach (EffectInstance effect in _effects)
         {
-            clone._lingeringEffects.Add(effect.Clone());
+            clone._effects.Add(effect.Clone());
         }
 
         return clone;
     }
 
-    public LingeringEffectInstance GetOrAddLingeringEffect(string effectId, int ownerActorId)
+    public EffectInstance GetOrAddEffect(string effectId, int ownerActorId)
     {
-        LingeringEffectInstance? existing = _lingeringEffects.FirstOrDefault(effect =>
+        EffectInstance? existing = _effects.FirstOrDefault(effect =>
             effect.EffectId == effectId && effect.OwnerActorId == ownerActorId);
 
         if (existing != null)
@@ -844,36 +970,32 @@ public sealed class EncounterActor
             return existing;
         }
 
-        var instance = new LingeringEffectInstance(_nextLingeringEffectInstanceId++, effectId, ownerActorId);
-        _lingeringEffects.Add(instance);
+        var instance = new EffectInstance(_nextEffectInstanceId++, effectId, ownerActorId);
+        _effects.Add(instance);
         return instance;
     }
 
-    public LingeringEffectInstance? FindLingeringEffect(string effectId)
+    public EffectInstance? FindEffect(string effectId)
     {
-        return _lingeringEffects.FirstOrDefault(effect => effect.EffectId == effectId);
+        return _effects.FirstOrDefault(effect => effect.EffectId == effectId);
     }
 
-    public bool RemoveLingeringEffect(int instanceId)
+    public EffectInstance? FindEffect(string effectId, int ownerActorId)
     {
-        return _lingeringEffects.RemoveAll(effect => effect.InstanceId == instanceId) > 0;
+        return _effects.FirstOrDefault(effect => effect.EffectId == effectId && effect.OwnerActorId == ownerActorId);
+    }
+
+    public bool RemoveEffect(int instanceId)
+    {
+        return _effects.RemoveAll(effect => effect.InstanceId == instanceId) > 0;
     }
 }
 
 public readonly record struct TileCondition(GridPos Position, string ConditionId, int OwnerActorId);
 
-public enum LingeringEffectHook
+public sealed class EffectInstance
 {
-    TurnStart,
-    Move,
-    Death,
-    ActorBecameAdjacent,
-    BeforeDamage
-}
-
-public sealed class LingeringEffectInstance
-{
-    public LingeringEffectInstance(int instanceId, string effectId, int ownerActorId)
+    public EffectInstance(int instanceId, string effectId, int ownerActorId)
     {
         InstanceId = instanceId;
         EffectId = effectId;
@@ -885,9 +1007,9 @@ public sealed class LingeringEffectInstance
     public int OwnerActorId { get; }
     public CounterSet Counters { get; } = new();
 
-    public LingeringEffectInstance Clone()
+    public EffectInstance Clone()
     {
-        var clone = new LingeringEffectInstance(InstanceId, EffectId, OwnerActorId);
+        var clone = new EffectInstance(InstanceId, EffectId, OwnerActorId);
 
         foreach ((string counterId, int amount) in Counters.All)
         {

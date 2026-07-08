@@ -115,54 +115,33 @@ public sealed class BehaviorMachine
     {
         return new BehaviorAtomRegistry(new Dictionary<string, BehaviorAtomExecutor>(StringComparer.Ordinal)
         {
-            ["stop"] = (_, _) => BehaviorAtomResult.Stop(),
-            ["focus_selected_target"] = (_, context) => FocusSelectedTarget(context),
-            ["focus_nearest_actor"] = (step, context) => FocusNearestActor(step.Relation, context),
-            ["focus_self"] = (_, context) => FocusSelf(context),
-            ["branch_focus_occupied"] = (_, context) => Branch(IsFocusOccupied(context), "if occupied", context),
-            ["branch_focus_clear"] = (_, context) => Branch(IsFocusClear(context), "if clear", context),
-            ["apply_focus_condition"] = (step, context) => ApplyFocusCondition(step.Counter, context),
-            ["branch_focus_condition"] = (step, context) => BranchFocusCondition(step.Counter, context),
-            ["damage_focus_actor"] = (step, context) => DamageFocusActor(step.Amount ?? 1, context),
-            ["set_focus_tile_state"] = (step, context) => SetFocusTileState(step.State, context),
-            ["push_focus_away_from_self"] = (step, context) => PushFocusAwayFromSelf(step.Amount ?? 1, context),
-            ["pull_focus_toward_self"] = (step, context) => PullFocusTowardSelf(step.Amount ?? 1, context),
-            ["store_focus_ref"] = (step, context) => StoreFocusRef(step.Ref, context),
-            ["focus_ref"] = (step, context) => FocusRef(step.Ref, context),
-            ["add_focus_actor_counter"] = (step, context) => AddFocusActorCounter(step.Counter, step.Amount ?? 1, context),
-            ["add_focus_tile_counter"] = (step, context) => AddFocusTileCounter(step.Counter, step.Amount ?? 1, context),
-            ["add_caster_counter"] = (step, context) => AddCasterCounter(step.Counter, step.Amount ?? 1, context),
-            ["add_self_counter"] = (step, context) => AddSelfCounter(step.Counter, step.Amount ?? 1, context),
-            ["attach_lingering_to_focus"] = (step, context) => AttachLingeringToFocus(step.Effect, step.Amount ?? 1, context),
-            ["add_focus_lingering_counter"] = (step, context) => AddFocusLingeringCounter(step.Effect, step.Counter, step.Amount ?? 1, context),
-            ["consume_focus_lingering_counter"] = (step, context) => ConsumeFocusLingeringCounter(step.Effect, step.Counter, step.Amount ?? 1, context),
-            ["add_lingering_counter"] = (step, context) => AddLingeringCounter(step.Counter, step.Amount ?? 1, context),
-            ["consume_lingering_counter"] = (step, context) => ConsumeLingeringCounter(step.Counter, step.Amount ?? 1, context),
-            ["consume_focus_actor_counter"] = (step, context) => ConsumeFocusActorCounter(step.Counter, step.Amount ?? 1, context),
-            ["consume_caster_counter"] = (step, context) => ConsumeCasterCounter(step.Counter, step.Amount ?? 1, context),
-            ["consume_self_counter"] = (step, context) => ConsumeSelfCounter(step.Counter, step.Amount ?? 1, context),
-            ["branch_focus_actor_counter_at_least"] = (step, context) => BranchFocusActorCounterAtLeast(step.Counter, step.Amount ?? 1, context),
-            ["branch_focus_tile_counter_at_least"] = (step, context) => BranchFocusTileCounterAtLeast(step.Counter, step.Amount ?? 1, context),
-            ["branch_self_counter_at_least"] = (step, context) => BranchSelfCounterAtLeast(step.Counter, step.Amount ?? 1, context),
-            ["branch_lingering_counter_at_least"] = (step, context) => BranchLingeringCounterAtLeast(step.Counter, step.Amount ?? 1, context),
-            ["branch_lingering_target_counter_at_least"] = (step, context) => BranchLingeringTargetCounterAtLeast(step.Counter, step.Amount ?? 1, context),
-            ["branch_focus_adjacent_to_self"] = (_, context) => BranchFocusAdjacentToSelf(context),
-            ["step_self_toward_focus"] = (_, context) => StepSelfTowardFocus(context),
-            ["damage_actors_on_owned_tile_condition"] = (step, context) => DamageActorsOnOwnedTileCondition(step.Counter, step.Amount ?? 1, context),
-            ["clear_owned_tile_condition"] = (step, context) => ClearOwnedTileCondition(step.Counter, context),
-            ["apply_focus_tile_condition"] = (step, context) => ApplyFocusTileCondition(step.Counter, context),
-            ["heal_self"] = (step, context) => HealSelf(step.Amount ?? 1, context),
-            ["branch_self_adjacent_blocking"] = (_, context) => BranchSelfAdjacentBlocking(context),
-            ["set_first_adjacent_clear_tile_state"] = (step, context) => SetFirstAdjacentClearTileState(step.State, context),
-            ["branch_event_tile_state"] = (step, context) => BranchEventTileState(step.State, context),
-            ["set_event_tile_state"] = (step, context) => SetEventTileState(step.State, context),
-            ["branch_event_actor_hostile_to_lingering_target"] = (_, context) => BranchEventActorHostileToLingeringTarget(context),
-            ["damage_event_actor"] = (step, context) => DamageEventActor(step.Amount ?? 1, context),
-            ["damage_event_actor_by_lingering_counter"] = (step, context) => DamageEventActorByLingeringCounter(step.Counter, context),
-            ["damage_event_actor_by_lingering_target_counter"] = (step, context) => DamageEventActorByLingeringTargetCounter(step.Counter, context),
-            ["prevent_event_damage"] = (_, context) => PreventEventDamage(context),
-            ["consume_lingering_target_counter"] = (step, context) => ConsumeLingeringTargetCounter(step.Counter, step.Amount ?? 1, context),
-            ["detach_lingering"] = (_, context) => DetachLingering(context)
+            ["flow.stop"] = (_, _) => BehaviorAtomResult.Stop(),
+            ["focus.selected_target"] = (_, context) => FocusSelectedTarget(context),
+            ["focus.nearest_actor"] = (step, context) => FocusNearestActor(step.Relation, context),
+            ["focus.self"] = (_, context) => FocusSelf(context),
+            ["focus.store_ref"] = (step, context) => StoreFocusRef(step.Ref, context),
+            ["focus.ref"] = (step, context) => FocusRef(step.Ref, context),
+            ["branch.occupied"] = (step, context) => Branch(IsOccupied(step.Target, context), "if occupied", context),
+            ["branch.clear"] = (step, context) => Branch(IsClear(step.Target, context), "if clear", context),
+            ["branch.adjacent"] = (step, context) => BranchAdjacent(step, context),
+            ["branch.relation"] = (step, context) => BranchRelation(step, context),
+            ["branch.tile_state"] = (step, context) => BranchTileState(step, context),
+            ["branch.adjacent_blocking"] = (step, context) => BranchAdjacentBlocking(step, context),
+            ["counter.add"] = (step, context) => AddCounter(step, context),
+            ["counter.consume"] = (step, context) => ConsumeCounter(step, context),
+            ["counter.at_least"] = (step, context) => BranchCounterAtLeast(step, context),
+            ["damage.apply"] = (step, context) => Damage(step, context),
+            ["damage.prevent_event"] = (_, context) => PreventEventDamage(context),
+            ["effect.attach"] = (step, context) => AttachEffect(step, context),
+            ["effect.detach"] = (step, context) => DetachEffect(step, context),
+            ["effect.has"] = (step, context) => BranchEffectAttached(step, context),
+            ["effect.damage_actors_on_owned_tiles"] = (step, context) => DamageActorsOnOwnedTiles(step.Effect, step.Amount ?? 1, context),
+            ["effect.clear_owned_tiles"] = (step, context) => ClearOwnedTileEffects(step.Effect, context),
+            ["move.relative"] = (step, context) => MoveRelative(step, context),
+            ["move.step_toward"] = (step, context) => StepToward(step, context),
+            ["tile.set_state"] = (step, context) => SetTileState(step, context),
+            ["tile.set_first_adjacent_clear_state"] = (step, context) => SetFirstAdjacentClearTileState(step, context),
+            ["heal.apply"] = (step, context) => Heal(step, context)
         });
     }
 
@@ -232,126 +211,482 @@ public sealed class BehaviorMachine
         return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
     }
 
-    private static BehaviorAtomResult ApplyFocusCondition(string conditionId, BehaviorExecutionContext context)
+    private static BehaviorAtomResult AddCounter(BehaviorStepDefinition step, BehaviorExecutionContext context)
     {
-        if (context.Working == null || context.SpellWorld == null || context.Caster == null)
+        return ModifyCounter(step, context, step.Amount ?? 1, requireAvailable: false);
+    }
+
+    private static BehaviorAtomResult ConsumeCounter(BehaviorStepDefinition step, BehaviorExecutionContext context)
+    {
+        return ModifyCounter(step, context, -(step.Amount ?? 1), requireAvailable: true);
+    }
+
+    private static BehaviorAtomResult ModifyCounter(
+        BehaviorStepDefinition step,
+        BehaviorExecutionContext context,
+        int amount,
+        bool requireAvailable)
+    {
+        if (string.IsNullOrWhiteSpace(step.Counter) || !TrySelectCounterTarget(step, context, out CounterTarget target))
+        {
+            return requireAvailable ? new BehaviorAtomResult(BehaviorFlow.False, false) : BehaviorAtomResult.Next();
+        }
+
+        int before = target.Get(step.Counter, context);
+
+        if (requireAvailable && before < -amount)
+        {
+            context.Trace.Add($"Tried to consume {step.Counter}, but {step.Target} did not have enough.");
+            return new BehaviorAtomResult(BehaviorFlow.False, false);
+        }
+
+        EffectCommandResult result = target.Modify(step.Counter, amount, context);
+
+        if (target.Actor != null && context.Working != null)
+        {
+            EncounterActor caster = context.Caster ?? target.Actor;
+            context.Working.RecordCounterMutation(caster, target.Actor, step.Counter, amount);
+        }
+
+        context.Trace.Add($"Set {step.Counter} on {target.Label} to {result.CounterValue}.");
+        return new BehaviorAtomResult(requireAvailable ? BehaviorFlow.True : BehaviorFlow.Next, amount != 0);
+    }
+
+    private static BehaviorAtomResult BranchCounterAtLeast(BehaviorStepDefinition step, BehaviorExecutionContext context)
+    {
+        bool passed = !string.IsNullOrWhiteSpace(step.Counter)
+            && TrySelectCounterTarget(step, context, out CounterTarget target)
+            && target.Get(step.Counter, context) >= (step.Amount ?? 1);
+
+        return Branch(passed, $"{step.Counter} at least {step.Amount ?? 1}", context);
+    }
+
+    private static BehaviorAtomResult Damage(BehaviorStepDefinition step, BehaviorExecutionContext context)
+    {
+        EncounterActor? target = SelectActor(step.Target, context);
+
+        if (target == null)
+        {
+            context.Trace.Add("Damage found no target actor.");
+            return BehaviorAtomResult.Next();
+        }
+
+        int amount = ResolveAmount(step, context);
+
+        if (amount <= 0)
         {
             return BehaviorAtomResult.Next();
         }
 
-        string ownedConditionId = GetOwnedConditionId(conditionId, context.Caster.Id);
+        EncounterActor? source = SelectActor(step.Source, context);
+        EffectCommandResult result = context.Resolve(new DamageActorCommand(target.Id, amount, source?.Id));
+        context.Trace.Add($"Damaged actor {target.Id} for {amount}.");
+        return BehaviorAtomResult.Next(result.ChangedWorld);
+    }
 
-        EncounterActor? target = GetFocusActor(context);
-
-        if (target != null)
+    private static BehaviorAtomResult AttachEffect(BehaviorStepDefinition step, BehaviorExecutionContext context)
+    {
+        if (string.IsNullOrWhiteSpace(step.Effect))
         {
-            context.SpellWorld.AddCounter(target, ownedConditionId, 1);
-            context.Working.RecordCounterMutation(context.Caster, target, ownedConditionId, 1);
-            context.Trace.Add($"Applied {conditionId} to actor {target.Id}.");
-            return BehaviorAtomResult.Next(changedWorld: true);
+            return BehaviorAtomResult.Next();
         }
 
-        if (context.Working.FocusTile.HasValue && context.SpellWorld.IsInside(context.Working.FocusTile.Value))
+        EncounterActor? owner = SelectActor(DefaultIfBlank(step.Source, "self"), context);
+
+        if (owner == null)
         {
-            context.SpellWorld.AddCounter(context.Working.FocusTile.Value, ownedConditionId, 1);
-            context.Trace.Add($"Applied {conditionId} to tile {context.Working.FocusTile.Value}.");
-            return BehaviorAtomResult.Next(changedWorld: true);
+            return BehaviorAtomResult.Next();
         }
 
-        context.Trace.Add($"Tried to apply {conditionId}, but nothing was focused.");
+        EncounterActor? actor = SelectActor(step.Target, context);
+
+        if (actor != null)
+        {
+            EffectCommandResult result = context.Resolve(new AttachActorEffectCommand(
+                actor.Id,
+                step.Effect,
+                owner.Id,
+                step.Amount ?? 0));
+            context.Trace.Add($"Attached {step.Effect} to actor {actor.Id}.");
+            return BehaviorAtomResult.Next(result.ChangedWorld);
+        }
+
+        GridPos? tile = SelectTile(step.Target, context);
+
+        if (tile.HasValue)
+        {
+            EffectCommandResult result = context.Resolve(new AttachTileEffectCommand(
+                tile.Value,
+                step.Effect,
+                owner.Id,
+                step.Amount ?? 0));
+            context.Trace.Add($"Attached {step.Effect} to tile {tile.Value}.");
+            return BehaviorAtomResult.Next(result.ChangedWorld);
+        }
+
+        context.Trace.Add($"Tried to attach {step.Effect}, but no target was selected.");
         return BehaviorAtomResult.Next();
     }
 
-    private static BehaviorAtomResult BranchFocusCondition(string conditionId, BehaviorExecutionContext context)
+    private static BehaviorAtomResult DetachEffect(BehaviorStepDefinition step, BehaviorExecutionContext context)
     {
-        return Branch(IsFocusConditionApplied(conditionId, context), $"if {conditionId}", context);
+        EffectInstance? effect = SelectEffect(step.Target, step.Effect, context);
+
+        if (effect == null)
+        {
+            return BehaviorAtomResult.Next();
+        }
+
+        EncounterActor? actor = SelectActor(DefaultIfBlank(step.Source, "effect.target"), context);
+
+        if (actor != null)
+        {
+            return BehaviorAtomResult.Next(context.Resolve(new DetachActorEffectCommand(actor.Id, effect.InstanceId)).ChangedWorld);
+        }
+
+        GridPos? tile = SelectTile(step.Source, context);
+        return tile.HasValue
+            ? BehaviorAtomResult.Next(context.Resolve(new RemoveTileEffectCommand(tile.Value, effect.InstanceId)).ChangedWorld)
+            : BehaviorAtomResult.Next();
     }
 
-    private static BehaviorAtomResult DamageFocusActor(int amount, BehaviorExecutionContext context)
+    private static BehaviorAtomResult BranchEffectAttached(BehaviorStepDefinition step, BehaviorExecutionContext context)
     {
-        if (context.SpellWorld == null)
+        EncounterActor? owner = SelectActor(DefaultIfBlank(step.Source, "self"), context);
+
+        if (owner == null || string.IsNullOrWhiteSpace(step.Effect))
         {
-            return BehaviorAtomResult.Next();
+            return new BehaviorAtomResult(BehaviorFlow.False, false);
         }
 
-        EncounterActor? target = GetFocusActor(context);
+        EncounterActor? actor = SelectActor(step.Target, context);
 
-        if (target == null)
+        if (actor != null)
         {
-            context.Trace.Add("Damage found no focused actor.");
-            return BehaviorAtomResult.Next();
+            bool passed = context.SpellWorld?.HasEffect(actor, step.Effect, owner)
+                ?? actor.FindEffect(step.Effect, owner.Id) != null;
+            return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
         }
 
-        context.SpellWorld.ApplyDamage(target, amount, context.Caster);
-        context.Trace.Add($"Damaged enemy {target.Id} for {amount}.");
-        return BehaviorAtomResult.Next(changedWorld: true);
+        GridPos? tile = SelectTile(step.Target, context);
+        bool tilePassed = tile.HasValue && context.SpellWorld?.HasEffect(tile.Value, step.Effect, owner) == true;
+        return new BehaviorAtomResult(tilePassed ? BehaviorFlow.True : BehaviorFlow.False, false);
     }
 
-    private static BehaviorAtomResult SetFocusTileState(string stateName, BehaviorExecutionContext context)
+    private static BehaviorAtomResult SetTileState(BehaviorStepDefinition step, BehaviorExecutionContext context)
     {
-        if (context.Working == null || context.SpellWorld == null)
+        GridPos? tile = SelectTile(step.Target, context);
+
+        if (!tile.HasValue || !TryParseTileState(step.State, out TileState state))
         {
             return BehaviorAtomResult.Next();
         }
 
-        if (!context.Working.FocusTile.HasValue)
-        {
-            context.Trace.Add("Raise stone failed because no tile was focused.");
-            return BehaviorAtomResult.Next();
-        }
-
-        if (!TryParseTileState(stateName, out TileState state))
-        {
-            context.Trace.Add($"Set tile state failed because '{stateName}' is not a tile state.");
-            return BehaviorAtomResult.Next();
-        }
-
-        if (!context.SpellWorld.CanSetTileState(context.Working.FocusTile.Value, state))
-        {
-            context.Trace.Add($"Set tile state failed at {context.Working.FocusTile.Value}.");
-            return BehaviorAtomResult.Next();
-        }
-
-        context.SpellWorld.SetTileState(context.Working.FocusTile.Value, state);
-        context.Trace.Add($"Set tile {context.Working.FocusTile.Value} to {state}.");
-        return BehaviorAtomResult.Next(changedWorld: true);
+        EffectCommandResult result = context.Resolve(new SetTileStateCommand(tile.Value, state));
+        context.Trace.Add($"Set tile {tile.Value} to {state}.");
+        return BehaviorAtomResult.Next(result.ChangedWorld);
     }
 
-    private static BehaviorAtomResult PushFocusAwayFromSelf(int distance, BehaviorExecutionContext context)
+    private static BehaviorAtomResult MoveRelative(BehaviorStepDefinition step, BehaviorExecutionContext context)
     {
-        return MoveFocusRelativeToSelf(distance, awayFromSelf: true, context);
-    }
+        EncounterActor? target = SelectActor(step.Target, context);
+        EncounterActor? source = SelectActor(DefaultIfBlank(step.Source, "self"), context);
 
-    private static BehaviorAtomResult PullFocusTowardSelf(int distance, BehaviorExecutionContext context)
-    {
-        return MoveFocusRelativeToSelf(distance, awayFromSelf: false, context);
-    }
-
-    private static BehaviorAtomResult MoveFocusRelativeToSelf(int distance, bool awayFromSelf, BehaviorExecutionContext context)
-    {
-        EncounterActor? self = GetSelf(context);
-
-        if (context.SpellWorld == null || self == null)
+        if (target == null || source == null)
         {
             return BehaviorAtomResult.Next();
         }
 
-        EncounterActor? target = GetFocusActor(context);
-
-        if (target == null)
-        {
-            context.Trace.Add("Push found no focused actor.");
-            return BehaviorAtomResult.Next();
-        }
-
-        Direction direction = awayFromSelf
-            ? GetDirectionAwayFrom(self.Position, target.Position)
-            : GetDirectionAwayFrom(target.Position, self.Position);
-        bool pushed = context.SpellWorld.TryPushActor(target, direction, distance, self);
-        context.Trace.Add(pushed
+        bool toward = step.Mode == "toward";
+        Direction direction = toward
+            ? GetDirectionAwayFrom(target.Position, source.Position)
+            : GetDirectionAwayFrom(source.Position, target.Position);
+        EffectCommandResult result = context.Resolve(new PushActorCommand(target.Id, direction, step.Amount ?? 1, source.Id));
+        context.Trace.Add(result.ChangedWorld
             ? $"Moved actor {target.Id} {direction.ToString().ToLowerInvariant()}."
             : $"Forced movement against actor {target.Id} failed.");
-        return BehaviorAtomResult.Next(pushed);
+        return BehaviorAtomResult.Next(result.ChangedWorld);
+    }
+
+    private static BehaviorAtomResult StepToward(BehaviorStepDefinition step, BehaviorExecutionContext context)
+    {
+        if (context.Encounter == null)
+        {
+            return BehaviorAtomResult.Next();
+        }
+
+        EncounterActor? actor = SelectActor(DefaultIfBlank(step.Target, "self"), context);
+        GridPos? destination = SelectTile(DefaultIfBlank(step.Source, "focus.tile"), context);
+
+        if (actor == null || !destination.HasValue)
+        {
+            return BehaviorAtomResult.Next();
+        }
+
+        foreach (Direction direction in GetDirectionsToward(actor.Position, destination.Value))
+        {
+            if (context.Encounter.TryMoveActor(actor, direction))
+            {
+                return BehaviorAtomResult.Next(changedWorld: true);
+            }
+        }
+
+        return BehaviorAtomResult.Next();
+    }
+
+    private static BehaviorAtomResult BranchAdjacent(BehaviorStepDefinition step, BehaviorExecutionContext context)
+    {
+        EncounterActor? source = SelectActor(DefaultIfBlank(step.Source, "self"), context);
+        EncounterActor? target = SelectActor(step.Target, context);
+        bool adjacent = source != null && target != null && source.Position.ManhattanDistanceTo(target.Position) == 1;
+        return new BehaviorAtomResult(adjacent ? BehaviorFlow.True : BehaviorFlow.False, false);
+    }
+
+    private static BehaviorAtomResult BranchRelation(BehaviorStepDefinition step, BehaviorExecutionContext context)
+    {
+        EncounterActor? source = SelectActor(DefaultIfBlank(step.Source, "self"), context);
+        EncounterActor? target = SelectActor(step.Target, context);
+        bool passed = source != null
+            && target != null
+            && (step.Relation switch
+            {
+                "hostile" or "enemy" => context.Encounter?.IsHostile(source, target) == true,
+                "ally" => context.Encounter?.IsAlly(source, target) == true,
+                "self" => source.Id == target.Id,
+                "any" or "" => source.Id != target.Id,
+                _ => false
+            });
+        return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
+    }
+
+    private static BehaviorAtomResult BranchTileState(BehaviorStepDefinition step, BehaviorExecutionContext context)
+    {
+        GridPos? tile = SelectTile(step.Target, context);
+        TryParseTileState(step.State, out TileState state);
+        bool passed = tile.HasValue
+            && context.Encounter != null
+            && context.Encounter.Grid.IsInside(tile.Value)
+            && context.Encounter.Grid.GetTile(tile.Value) == state;
+        return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
+    }
+
+    private static BehaviorAtomResult BranchAdjacentBlocking(BehaviorStepDefinition step, BehaviorExecutionContext context)
+    {
+        EncounterActor? actor = SelectActor(DefaultIfBlank(step.Target, "self"), context);
+        bool passed = actor != null && context.Encounter?.IsAdjacentToBlockingTile(actor.Position) == true;
+        return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
+    }
+
+    private static BehaviorAtomResult Heal(BehaviorStepDefinition step, BehaviorExecutionContext context)
+    {
+        EncounterActor? actor = SelectActor(DefaultIfBlank(step.Target, "self"), context);
+
+        if (actor == null)
+        {
+            return BehaviorAtomResult.Next();
+        }
+
+        int before = actor.Health;
+        actor.Heal(step.Amount ?? 1);
+        return BehaviorAtomResult.Next(actor.Health != before);
+    }
+
+    private static BehaviorAtomResult SetFirstAdjacentClearTileState(
+        BehaviorStepDefinition step,
+        BehaviorExecutionContext context)
+    {
+        if (context.Encounter == null || !TryParseTileState(step.State, out TileState state))
+        {
+            return BehaviorAtomResult.Next();
+        }
+
+        EncounterActor? actor = SelectActor(DefaultIfBlank(step.Target, "self"), context);
+
+        if (actor == null)
+        {
+            return BehaviorAtomResult.Next();
+        }
+
+        foreach (GridPos adjacent in TacticalEncounter.GetAdjacentPositions(actor.Position))
+        {
+            if (context.Encounter.Grid.IsEmpty(adjacent))
+            {
+                context.Encounter.Grid.SetTile(adjacent, state);
+                return BehaviorAtomResult.Next(changedWorld: true);
+            }
+        }
+
+        return BehaviorAtomResult.Next();
+    }
+
+    private static bool IsOccupied(string targetId, BehaviorExecutionContext context)
+    {
+        EncounterActor? actor = SelectActor(targetId, context);
+
+        if (actor != null)
+        {
+            return true;
+        }
+
+        GridPos? tile = SelectTile(targetId, context);
+        return tile.HasValue && context.SpellWorld?.IsOccupied(tile.Value) == true;
+    }
+
+    private static bool IsClear(string targetId, BehaviorExecutionContext context)
+    {
+        GridPos? tile = SelectTile(targetId, context);
+        return tile.HasValue && context.SpellWorld?.IsClear(tile.Value) == true;
+    }
+
+    private static EncounterActor? SelectActor(string targetId, BehaviorExecutionContext context)
+    {
+        return DefaultIfBlank(targetId, "focus.actor") switch
+        {
+            "focus" or "focus.actor" => GetFocusActor(context),
+            "caster" => context.Caster,
+            "self" => GetSelf(context),
+            "enemy" => context.Enemy,
+            "event.actor" => context.EventActor,
+            "effect.target" => context.EffectTarget,
+            _ => null
+        };
+    }
+
+    private static GridPos? SelectTile(string targetId, BehaviorExecutionContext context)
+    {
+        return DefaultIfBlank(targetId, "focus.tile") switch
+        {
+            "focus" or "focus.tile" => context.Working?.FocusTile,
+            "selected.target" => context.Working?.SelectedTarget,
+            "event.tile" => context.EventTile,
+            "self.tile" => SelectActor("self", context)?.Position,
+            "caster.tile" => context.Caster?.Position,
+            "effect.target.tile" => context.EffectTarget?.Position,
+            _ => null
+        };
+    }
+
+    private static EffectInstance? SelectEffect(
+        string targetId,
+        string effectId,
+        BehaviorExecutionContext context)
+    {
+        return DefaultIfBlank(targetId, "effect") switch
+        {
+            "effect" or "current.effect" => context.Effect,
+            "focus.effect" => SelectActor("focus.actor", context)?.FindEffect(effectId),
+            _ => null
+        };
+    }
+
+    private static bool TrySelectCounterTarget(
+        BehaviorStepDefinition step,
+        BehaviorExecutionContext context,
+        out CounterTarget target)
+    {
+        string targetId = DefaultIfBlank(step.Target, "focus.actor");
+
+        if (targetId is "effect" or "current.effect" or "focus.effect")
+        {
+            EffectInstance? effect = SelectEffect(targetId, step.Effect, context);
+
+            if (effect != null && DoesEffectAllowCounter(effect, step.Counter))
+            {
+                target = CounterTarget.ForEffect(effect);
+                return true;
+            }
+        }
+
+        GridPos? tile = SelectTile(targetId, context);
+
+        if (tile.HasValue)
+        {
+            target = CounterTarget.ForTile(tile.Value);
+            return true;
+        }
+
+        EncounterActor? actor = SelectActor(targetId, context);
+
+        if (actor != null)
+        {
+            target = CounterTarget.ForActor(actor);
+            return true;
+        }
+
+        target = default;
+        return false;
+    }
+
+    private static int ResolveAmount(BehaviorStepDefinition step, BehaviorExecutionContext context)
+    {
+        if (!string.IsNullOrWhiteSpace(step.Counter))
+        {
+            var counterStep = step with { Target = DefaultIfBlank(step.Source, "effect") };
+
+            if (TrySelectCounterTarget(counterStep, context, out CounterTarget target))
+            {
+                return target.Get(step.Counter, context);
+            }
+        }
+
+        return step.Amount ?? 1;
+    }
+
+    private static string DefaultIfBlank(string value, string fallback)
+    {
+        return string.IsNullOrWhiteSpace(value) ? fallback : value;
+    }
+
+    private readonly record struct CounterTarget(EncounterActor? Actor, GridPos? Tile, EffectInstance? Effect, string Label)
+    {
+        public static CounterTarget ForActor(EncounterActor actor)
+        {
+            return new CounterTarget(actor, null, null, $"actor {actor.Id}");
+        }
+
+        public static CounterTarget ForTile(GridPos tile)
+        {
+            return new CounterTarget(null, tile, null, $"tile {tile}");
+        }
+
+        public static CounterTarget ForEffect(EffectInstance effect)
+        {
+            return new CounterTarget(null, null, effect, $"effect {effect.EffectId}");
+        }
+
+        public int Get(string counterId, BehaviorExecutionContext context)
+        {
+            if (Actor != null)
+            {
+                return context.SpellWorld?.GetCounter(Actor, counterId) ?? Actor.Counters.Get(counterId);
+            }
+
+            if (Tile.HasValue)
+            {
+                return context.SpellWorld?.GetCounter(Tile.Value, counterId)
+                    ?? context.Encounter?.GetTileCounter(Tile.Value, counterId)
+                    ?? 0;
+            }
+
+            return Effect?.Counters.Get(counterId) ?? 0;
+        }
+
+        public EffectCommandResult Modify(string counterId, int amount, BehaviorExecutionContext context)
+        {
+            if (Actor != null)
+            {
+                return context.Resolve(new ModifyActorCounterCommand(Actor.Id, counterId, amount, context.Caster?.Id));
+            }
+
+            if (Tile.HasValue)
+            {
+                return context.Resolve(new ModifyTileCounterCommand(Tile.Value, counterId, amount));
+            }
+
+            return Effect != null
+                ? context.Resolve(new ModifyEffectCounterCommand(Effect, counterId, amount))
+                : EffectCommandResult.NoChange;
+        }
     }
 
     private static BehaviorAtomResult StoreFocusRef(string refId, BehaviorExecutionContext context)
@@ -403,322 +738,7 @@ public sealed class BehaviorMachine
         return BehaviorAtomResult.Next();
     }
 
-    private static BehaviorAtomResult AddFocusActorCounter(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        if (string.IsNullOrWhiteSpace(counterId) || context.SpellWorld == null)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        EncounterActor? target = GetFocusActor(context);
-
-        if (target == null)
-        {
-            context.Trace.Add($"Tried to add {counterId}, but no actor was focused.");
-            return BehaviorAtomResult.Next();
-        }
-
-        int next = context.SpellWorld.AddCounter(target, counterId, amount);
-        context.Working?.RecordCounterMutation(context.Caster ?? target, target, counterId, amount);
-        context.Trace.Add($"Set {counterId} on actor {target.Id} to {next}.");
-        return BehaviorAtomResult.Next(changedWorld: amount != 0);
-    }
-
-    private static BehaviorAtomResult AddFocusTileCounter(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        if (string.IsNullOrWhiteSpace(counterId) || context.SpellWorld == null || context.Working?.FocusTile == null)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        GridPos position = context.Working.FocusTile.Value;
-        int next = context.SpellWorld.AddCounter(position, counterId, amount);
-        context.Trace.Add($"Set {counterId} on tile {position} to {next}.");
-        return BehaviorAtomResult.Next(changedWorld: amount != 0);
-    }
-
-    private static BehaviorAtomResult AddCasterCounter(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        if (string.IsNullOrWhiteSpace(counterId) || context.SpellWorld == null || context.Caster == null)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        int next = context.SpellWorld.AddCounter(context.Caster, counterId, amount);
-        context.Working?.RecordCounterMutation(context.Caster, context.Caster, counterId, amount);
-        context.Trace.Add($"Set {counterId} on caster to {next}.");
-        return BehaviorAtomResult.Next(changedWorld: amount != 0);
-    }
-
-    private static BehaviorAtomResult AddSelfCounter(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        EncounterActor? self = GetSelf(context);
-
-        if (string.IsNullOrWhiteSpace(counterId) || self == null)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        int next = self.Counters.Add(counterId, amount);
-        context.Trace.Add($"Set {counterId} on self to {next}.");
-        return BehaviorAtomResult.Next(changedWorld: amount != 0);
-    }
-
-    private static BehaviorAtomResult AttachLingeringToFocus(string effectId, int stacks, BehaviorExecutionContext context)
-    {
-        if (string.IsNullOrWhiteSpace(effectId) || context.SpellWorld == null)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        EncounterActor? owner = GetSelf(context);
-        EncounterActor? target = GetFocusActor(context);
-
-        if (owner == null || target == null)
-        {
-            context.Trace.Add($"Tried to attach {effectId}, but no actor was focused.");
-            return BehaviorAtomResult.Next();
-        }
-
-        LingeringEffectInstance? instance = context.SpellWorld.AttachLingeringEffect(target, effectId, owner, stacks);
-
-        if (instance == null)
-        {
-            context.Trace.Add($"Tried to attach unknown lingering effect {effectId}.");
-            return BehaviorAtomResult.Next();
-        }
-
-        context.Trace.Add($"Attached {effectId} to actor {target.Id} with {stacks} stack(s).");
-        return BehaviorAtomResult.Next(changedWorld: true);
-    }
-
-    private static BehaviorAtomResult AddFocusLingeringCounter(
-        string effectId,
-        string counterId,
-        int amount,
-        BehaviorExecutionContext context)
-    {
-        if (string.IsNullOrWhiteSpace(effectId)
-            || string.IsNullOrWhiteSpace(counterId)
-            || !LingeringEffectDefinitionCatalog.TryGet(effectId, out LingeringEffectDefinition? definition)
-            || !definition.AllowsCounter(counterId))
-        {
-            context.Trace.Add($"Tried to add {counterId} to {effectId}, but that counter is not part of the effect type.");
-            return BehaviorAtomResult.Next();
-        }
-
-        EncounterActor? target = GetFocusActor(context);
-        LingeringEffectInstance? instance = target?.FindLingeringEffect(effectId);
-
-        if (target == null || instance == null)
-        {
-            context.Trace.Add($"Tried to add {counterId} to {effectId}, but the focused actor did not have that effect.");
-            return BehaviorAtomResult.Next();
-        }
-
-        int next = instance.Counters.Add(counterId, amount);
-        context.Trace.Add($"Set {counterId} on {effectId} attached to actor {target.Id} to {next}.");
-        return BehaviorAtomResult.Next(changedWorld: amount != 0);
-    }
-
-    private static BehaviorAtomResult ConsumeFocusLingeringCounter(
-        string effectId,
-        string counterId,
-        int amount,
-        BehaviorExecutionContext context)
-    {
-        if (string.IsNullOrWhiteSpace(effectId)
-            || string.IsNullOrWhiteSpace(counterId)
-            || amount <= 0
-            || !LingeringEffectDefinitionCatalog.TryGet(effectId, out LingeringEffectDefinition? definition)
-            || !definition.AllowsCounter(counterId))
-        {
-            return new BehaviorAtomResult(BehaviorFlow.False, false);
-        }
-
-        EncounterActor? target = GetFocusActor(context);
-        LingeringEffectInstance? instance = target?.FindLingeringEffect(effectId);
-
-        if (instance == null || instance.Counters.Get(counterId) < amount)
-        {
-            context.Trace.Add($"Tried to consume {counterId} from {effectId}, but the focused actor did not have enough.");
-            return new BehaviorAtomResult(BehaviorFlow.False, false);
-        }
-
-        int next = instance.Counters.Add(counterId, -amount);
-        context.Trace.Add($"Consumed {amount} {counterId} from {effectId}; now {next}.");
-        return new BehaviorAtomResult(BehaviorFlow.True, true);
-    }
-
-    private static BehaviorAtomResult AddLingeringCounter(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        if (string.IsNullOrWhiteSpace(counterId)
-            || context.LingeringEffect == null
-            || !DoesLingeringEffectAllowCounter(context.LingeringEffect, counterId))
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        int next = context.LingeringEffect.Counters.Add(counterId, amount);
-        context.Trace.Add($"Set {counterId} on lingering effect to {next}.");
-        return BehaviorAtomResult.Next(changedWorld: amount != 0);
-    }
-
-    private static BehaviorAtomResult ConsumeLingeringCounter(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        if (string.IsNullOrWhiteSpace(counterId)
-            || context.LingeringEffect == null
-            || !DoesLingeringEffectAllowCounter(context.LingeringEffect, counterId)
-            || amount <= 0
-            || context.LingeringEffect.Counters.Get(counterId) < amount)
-        {
-            context.Trace.Add($"Tried to consume {counterId}, but the lingering effect did not have enough.");
-            return new BehaviorAtomResult(BehaviorFlow.False, false);
-        }
-
-        int next = context.LingeringEffect.Counters.Add(counterId, -amount);
-        context.Trace.Add($"Consumed {amount} {counterId} from lingering effect; now {next}.");
-        return new BehaviorAtomResult(BehaviorFlow.True, true);
-    }
-
-    private static BehaviorAtomResult ConsumeFocusActorCounter(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        if (string.IsNullOrWhiteSpace(counterId) || context.SpellWorld == null)
-        {
-            return new BehaviorAtomResult(BehaviorFlow.False, false);
-        }
-
-        EncounterActor? target = GetFocusActor(context);
-
-        if (target == null || context.SpellWorld.GetCounter(target, counterId) < amount)
-        {
-            context.Trace.Add($"Tried to consume {counterId}, but the focused actor did not have enough.");
-            return new BehaviorAtomResult(BehaviorFlow.False, false);
-        }
-
-        int next = context.SpellWorld.AddCounter(target, counterId, -amount);
-        context.Working?.RecordCounterMutation(context.Caster ?? target, target, counterId, -amount);
-        context.Trace.Add($"Consumed {amount} {counterId} from actor {target.Id}; now {next}.");
-        return new BehaviorAtomResult(BehaviorFlow.True, true);
-    }
-
-    private static BehaviorAtomResult ConsumeCasterCounter(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        if (string.IsNullOrWhiteSpace(counterId)
-            || context.SpellWorld == null
-            || context.Caster == null
-            || context.SpellWorld.GetCounter(context.Caster, counterId) < amount)
-        {
-            context.Trace.Add($"Tried to consume {counterId}, but the caster did not have enough.");
-            return new BehaviorAtomResult(BehaviorFlow.False, false);
-        }
-
-        int next = context.SpellWorld.AddCounter(context.Caster, counterId, -amount);
-        context.Working?.RecordCounterMutation(context.Caster, context.Caster, counterId, -amount);
-        context.Trace.Add($"Consumed {amount} {counterId} from caster; now {next}.");
-        return new BehaviorAtomResult(BehaviorFlow.True, true);
-    }
-
-    private static BehaviorAtomResult ConsumeSelfCounter(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        EncounterActor? self = GetSelf(context);
-
-        if (string.IsNullOrWhiteSpace(counterId) || self == null || self.Counters.Get(counterId) < amount)
-        {
-            context.Trace.Add($"Tried to consume {counterId}, but self did not have enough.");
-            return new BehaviorAtomResult(BehaviorFlow.False, false);
-        }
-
-        int next = self.Counters.Add(counterId, -amount);
-        context.Trace.Add($"Consumed {amount} {counterId} from self; now {next}.");
-        return new BehaviorAtomResult(BehaviorFlow.True, true);
-    }
-
-    private static BehaviorAtomResult BranchFocusActorCounterAtLeast(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        bool passed = false;
-
-        if (!string.IsNullOrWhiteSpace(counterId) && context.SpellWorld != null)
-        {
-            EncounterActor? target = GetFocusActor(context);
-            passed = target != null && context.SpellWorld.GetCounter(target, counterId) >= amount;
-        }
-
-        return Branch(passed, $"{counterId} at least {amount}", context);
-    }
-
-    private static BehaviorAtomResult BranchFocusTileCounterAtLeast(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        bool passed = !string.IsNullOrWhiteSpace(counterId)
-            && context.SpellWorld != null
-            && context.Working?.FocusTile != null
-            && context.SpellWorld.GetCounter(context.Working.FocusTile.Value, counterId) >= amount;
-
-        return Branch(passed, $"{counterId} at least {amount}", context);
-    }
-
-    private static BehaviorAtomResult BranchSelfCounterAtLeast(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        EncounterActor? self = GetSelf(context);
-        bool passed = !string.IsNullOrWhiteSpace(counterId) && self != null && self.Counters.Get(counterId) >= amount;
-        return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
-    }
-
-    private static BehaviorAtomResult BranchLingeringCounterAtLeast(string counterId, int amount, BehaviorExecutionContext context)
-    {
-        bool passed = !string.IsNullOrWhiteSpace(counterId)
-            && context.LingeringEffect != null
-            && DoesLingeringEffectAllowCounter(context.LingeringEffect, counterId)
-            && context.LingeringEffect.Counters.Get(counterId) >= amount;
-        return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
-    }
-
-    private static BehaviorAtomResult BranchLingeringTargetCounterAtLeast(
-        string counterId,
-        int amount,
-        BehaviorExecutionContext context)
-    {
-        bool passed = !string.IsNullOrWhiteSpace(counterId)
-            && context.LingeringTarget != null
-            && context.LingeringTarget.Counters.Get(counterId) >= amount;
-        return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
-    }
-
-    private static BehaviorAtomResult BranchFocusAdjacentToSelf(BehaviorExecutionContext context)
-    {
-        EncounterActor? self = GetSelf(context);
-        EncounterActor? focus = GetFocusActor(context);
-        bool adjacent = self != null && focus != null && self.Position.ManhattanDistanceTo(focus.Position) == 1;
-        return new BehaviorAtomResult(adjacent ? BehaviorFlow.True : BehaviorFlow.False, false);
-    }
-
-    private static BehaviorAtomResult StepSelfTowardFocus(BehaviorExecutionContext context)
-    {
-        if (context.Encounter == null)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        EncounterActor? self = GetSelf(context);
-        GridPos? destination = context.Working?.FocusTile;
-
-        if (self == null || !destination.HasValue)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        foreach (Direction direction in GetDirectionsToward(self.Position, destination.Value))
-        {
-            if (context.Encounter.TryMoveActor(self, direction))
-            {
-                return BehaviorAtomResult.Next(changedWorld: true);
-            }
-        }
-
-        return BehaviorAtomResult.Next();
-    }
-
-    private static BehaviorAtomResult DamageActorsOnOwnedTileCondition(string conditionId, int amount, BehaviorExecutionContext context)
+    private static BehaviorAtomResult DamageActorsOnOwnedTiles(string effectId, int amount, BehaviorExecutionContext context)
     {
         if (context.Encounter == null || context.Enemy == null)
         {
@@ -728,7 +748,7 @@ public sealed class BehaviorMachine
         bool changed = false;
 
         foreach (TileCondition condition in context.Encounter.TileConditions
-                     .Where(condition => condition.ConditionId == conditionId && condition.OwnerActorId == context.Enemy.Id)
+                     .Where(condition => condition.ConditionId == effectId && condition.OwnerActorId == context.Enemy.Id)
                      .ToArray())
         {
             EncounterActor? actor = context.Encounter.GetActorAt(condition.Position);
@@ -743,7 +763,7 @@ public sealed class BehaviorMachine
         return BehaviorAtomResult.Next(changed);
     }
 
-    private static BehaviorAtomResult ClearOwnedTileCondition(string conditionId, BehaviorExecutionContext context)
+    private static BehaviorAtomResult ClearOwnedTileEffects(string effectId, BehaviorExecutionContext context)
     {
         if (context.Encounter == null || context.Enemy == null)
         {
@@ -753,7 +773,7 @@ public sealed class BehaviorMachine
         bool changed = false;
 
         foreach (TileCondition condition in context.Encounter.TileConditions
-                     .Where(condition => condition.ConditionId == conditionId && condition.OwnerActorId == context.Enemy.Id)
+                     .Where(condition => condition.ConditionId == effectId && condition.OwnerActorId == context.Enemy.Id)
                      .ToArray())
         {
             context.Encounter.RemoveTileCondition(condition.Position, condition.ConditionId, context.Enemy.Id);
@@ -763,192 +783,11 @@ public sealed class BehaviorMachine
         return BehaviorAtomResult.Next(changed);
     }
 
-    private static BehaviorAtomResult ApplyFocusTileCondition(string conditionId, BehaviorExecutionContext context)
-    {
-        if (context.Encounter == null || context.Enemy == null || context.Working?.FocusTile == null)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        context.Encounter.AddTileCondition(context.Working.FocusTile.Value, conditionId, context.Enemy.Id);
-        return BehaviorAtomResult.Next(changedWorld: true);
-    }
-
-    private static BehaviorAtomResult HealSelf(int amount, BehaviorExecutionContext context)
-    {
-        EncounterActor? self = GetSelf(context);
-
-        if (self == null)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        int before = self.Health;
-        self.Heal(amount);
-        return BehaviorAtomResult.Next(self.Health != before);
-    }
-
-    private static BehaviorAtomResult BranchSelfAdjacentBlocking(BehaviorExecutionContext context)
-    {
-        EncounterActor? self = GetSelf(context);
-        bool passed = self != null && context.Encounter?.IsAdjacentToBlockingTile(self.Position) == true;
-        return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
-    }
-
-    private static BehaviorAtomResult SetFirstAdjacentClearTileState(string stateName, BehaviorExecutionContext context)
-    {
-        if (context.Encounter == null || !TryParseTileState(stateName, out TileState state))
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        EncounterActor? self = GetSelf(context);
-
-        if (self == null)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        foreach (GridPos adjacent in TacticalEncounter.GetAdjacentPositions(self.Position))
-        {
-            if (context.Encounter.Grid.IsEmpty(adjacent))
-            {
-                context.Encounter.Grid.SetTile(adjacent, state);
-                return BehaviorAtomResult.Next(changedWorld: true);
-            }
-        }
-
-        return BehaviorAtomResult.Next();
-    }
-
-    private static BehaviorAtomResult BranchEventTileState(string stateName, BehaviorExecutionContext context)
-    {
-        TryParseTileState(stateName, out TileState state);
-        bool passed = context.Encounter != null
-            && context.EventTile.HasValue
-            && context.Encounter.Grid.IsInside(context.EventTile.Value)
-            && context.Encounter.Grid.GetTile(context.EventTile.Value) == state;
-        return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
-    }
-
-    private static BehaviorAtomResult SetEventTileState(string stateName, BehaviorExecutionContext context)
-    {
-        if (context.Encounter == null
-            || !context.EventTile.HasValue
-            || !context.Encounter.Grid.IsInside(context.EventTile.Value)
-            || !TryParseTileState(stateName, out TileState state))
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        context.Encounter.Grid.SetTile(context.EventTile.Value, state);
-        return BehaviorAtomResult.Next(changedWorld: true);
-    }
-
-    private static BehaviorAtomResult DamageEventActor(int amount, BehaviorExecutionContext context)
-    {
-        if (context.Encounter == null || context.EventActor == null)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        return BehaviorAtomResult.Next(context.Encounter.TryDamageActor(context.EventActor.Id, amount));
-    }
-
-    private static BehaviorAtomResult BranchEventActorHostileToLingeringTarget(BehaviorExecutionContext context)
-    {
-        bool passed = context.Encounter != null
-            && context.EventActor != null
-            && context.LingeringTarget != null
-            && context.Encounter.IsHostile(context.LingeringTarget, context.EventActor);
-
-        return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
-    }
-
-    private static BehaviorAtomResult DamageEventActorByLingeringCounter(string counterId, BehaviorExecutionContext context)
-    {
-        if (context.Encounter == null
-            || context.EventActor == null
-            || context.LingeringEffect == null
-            || string.IsNullOrWhiteSpace(counterId)
-            || !DoesLingeringEffectAllowCounter(context.LingeringEffect, counterId))
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        int amount = context.LingeringEffect.Counters.Get(counterId);
-
-        if (amount <= 0)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        return BehaviorAtomResult.Next(context.Encounter.TryDamageActor(context.EventActor.Id, amount));
-    }
-
-    private static BehaviorAtomResult DamageEventActorByLingeringTargetCounter(
-        string counterId,
-        BehaviorExecutionContext context)
-    {
-        if (context.Encounter == null
-            || context.EventActor == null
-            || context.LingeringTarget == null
-            || string.IsNullOrWhiteSpace(counterId))
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        int amount = context.LingeringTarget.Counters.Get(counterId);
-
-        if (amount <= 0)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        return BehaviorAtomResult.Next(context.Encounter.TryDamageActor(context.EventActor.Id, amount));
-    }
-
     private static BehaviorAtomResult PreventEventDamage(BehaviorExecutionContext context)
     {
-        if (context.EventDamage <= 0)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        context.EventDamage = 0;
+        EffectCommandResult result = context.Resolve(new PreventEventDamageCommand());
         context.Trace.Add("Prevented the current damage event.");
-        return BehaviorAtomResult.Next(changedWorld: true);
-    }
-
-    private static BehaviorAtomResult ConsumeLingeringTargetCounter(
-        string counterId,
-        int amount,
-        BehaviorExecutionContext context)
-    {
-        if (context.LingeringTarget == null
-            || string.IsNullOrWhiteSpace(counterId)
-            || amount <= 0
-            || context.LingeringTarget.Counters.Get(counterId) < amount)
-        {
-            context.Trace.Add($"Tried to consume {counterId}, but the lingering target did not have enough.");
-            return new BehaviorAtomResult(BehaviorFlow.False, false);
-        }
-
-        int next = context.LingeringTarget.Counters.Add(counterId, -amount);
-        context.Trace.Add($"Consumed {amount} {counterId} from lingering target; now {next}.");
-        return new BehaviorAtomResult(BehaviorFlow.True, true);
-    }
-
-    private static BehaviorAtomResult DetachLingering(BehaviorExecutionContext context)
-    {
-        if (context.Encounter == null || context.LingeringTarget == null || context.LingeringEffect == null)
-        {
-            return BehaviorAtomResult.Next();
-        }
-
-        return BehaviorAtomResult.Next(context.Encounter.DetachLingeringEffect(
-            context.LingeringTarget.Id,
-            context.LingeringEffect.InstanceId));
+        return BehaviorAtomResult.Next(result.ChangedWorld);
     }
 
     private BehaviorAtomResult UnknownAtom(string op, BehaviorExecutionContext context, int depth)
@@ -962,45 +801,6 @@ public sealed class BehaviorMachine
 
         context.Trace.Add($"Unknown behavior atom '{op}'.");
         return BehaviorAtomResult.Next();
-    }
-
-    private static bool IsFocusConditionApplied(string conditionId, BehaviorExecutionContext context)
-    {
-        if (context.SpellWorld == null || context.Working == null || context.Caster == null)
-        {
-            return false;
-        }
-
-        string ownedConditionId = GetOwnedConditionId(conditionId, context.Caster.Id);
-
-        EncounterActor? focusActor = GetFocusActor(context);
-
-        if (focusActor != null)
-        {
-            return context.SpellWorld.GetCounter(focusActor, ownedConditionId) > 0;
-        }
-
-        return context.Working.FocusTile.HasValue
-            && context.SpellWorld.GetCounter(context.Working.FocusTile.Value, ownedConditionId) > 0;
-    }
-
-    private static string GetOwnedConditionId(string conditionId, int ownerActorId)
-    {
-        return conditionId.Contains(".owner.")
-            ? conditionId
-            : $"{conditionId}.owner.{ownerActorId}";
-    }
-
-    private static bool IsFocusOccupied(BehaviorExecutionContext context)
-    {
-        return GetFocusActor(context) != null
-            || (context.Working?.FocusTile.HasValue == true && context.SpellWorld?.IsOccupied(context.Working.FocusTile.Value) == true);
-    }
-
-    private static bool IsFocusClear(BehaviorExecutionContext context)
-    {
-        return context.Working?.FocusTile.HasValue == true
-            && context.SpellWorld?.IsClear(context.Working.FocusTile.Value) == true;
     }
 
     private static EncounterActor? GetFocusActor(BehaviorExecutionContext context)
@@ -1028,9 +828,9 @@ public sealed class BehaviorMachine
         return context.Caster ?? context.Enemy ?? context.EventActor;
     }
 
-    private static bool DoesLingeringEffectAllowCounter(LingeringEffectInstance instance, string counterId)
+    private static bool DoesEffectAllowCounter(EffectInstance instance, string counterId)
     {
-        return LingeringEffectDefinitionCatalog.TryGet(instance.EffectId, out LingeringEffectDefinition? definition)
+        return EffectDefinitionCatalog.TryGet(instance.EffectId, out EffectDefinition? definition)
             && definition.AllowsCounter(counterId);
     }
 

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "effects": [
+    {
+      "id": "condition.marked",
+      "displayNameKey": "effects.marked.name",
+      "triggers": [],
+      "counters": []
+    },
+    {
+      "id": "effect.poison",
+      "displayNameKey": "effects.poison.name",
+      "triggers": [
+        { "triggerId": "turn_start", "behaviorId": "behavior.effect.poison_turn_start" }
+      ],
+      "counters": [ "counter.stack" ]
+    },
+    {
+      "id": "effect.bleed",
+      "displayNameKey": "effects.bleed.name",
+      "triggers": [
+        { "triggerId": "move", "behaviorId": "behavior.effect.bleed_move" }
+      ],
+      "counters": [ "counter.stack" ]
+    },
+    {
+      "id": "effect.lightning_shield",
+      "displayNameKey": "effects.lightning_shield.name",
+      "triggers": [
+        { "triggerId": "actor_became_adjacent", "behaviorId": "behavior.effect.lightning_shield_adjacent" }
+      ],
+      "counters": []
+    },
+    {
+      "id": "effect.ward",
+      "displayNameKey": "effects.ward.name",
+      "triggers": [
+        { "triggerId": "before_damage", "behaviorId": "behavior.effect.ward_before_damage" }
+      ],
+      "counters": [ "counter.stack" ]
+    }
+  ]
+}

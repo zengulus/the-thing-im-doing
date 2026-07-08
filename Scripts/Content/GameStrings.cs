@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
-using Godot;
 
 namespace TheThingImDoing.Content;
 
@@ -43,53 +44,35 @@ public static class GameStrings
 
     private static void LoadMods(string modsRoot)
     {
-        DirAccess? dir = DirAccess.Open(modsRoot);
+        string hostModsRoot = ContentJsonLoader.ResolvePath(modsRoot);
 
-        if (dir == null)
+        if (!Directory.Exists(hostModsRoot))
         {
             return;
         }
 
-        var modDirectories = new List<string>();
-        dir.ListDirBegin();
-
-        while (true)
+        foreach (string modDirectory in Directory
+                     .GetDirectories(hostModsRoot)
+                     .Select(Path.GetFileName)
+                     .OfType<string>()
+                     .Where(name => !string.IsNullOrWhiteSpace(name) && !name.StartsWith('.'))
+                     .OrderBy(name => name, StringComparer.Ordinal))
         {
-            string entry = dir.GetNext();
-
-            if (string.IsNullOrEmpty(entry))
-            {
-                break;
-            }
-
-            if (entry.StartsWith('.') || !dir.CurrentIsDir())
-            {
-                continue;
-            }
-
-            modDirectories.Add(entry);
-        }
-
-        dir.ListDirEnd();
-        modDirectories.Sort(StringComparer.Ordinal);
-
-        foreach (string modDirectory in modDirectories)
-        {
-            LoadStringFile($"{modsRoot}/{modDirectory}/{ModStringsFileName}");
+            LoadStringFile(Path.Combine(hostModsRoot, modDirectory, ModStringsFileName));
         }
     }
 
     private static void LoadStringFile(string path)
     {
-        if (!FileAccess.FileExists(path))
+        string hostPath = ContentJsonLoader.ResolvePath(path);
+
+        if (!File.Exists(hostPath))
         {
             return;
         }
 
-        using FileAccess file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
-        string json = file.GetAsText();
-
-        Dictionary<string, string>? loadedStrings = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+        Dictionary<string, string>? loadedStrings = JsonSerializer.Deserialize<Dictionary<string, string>>(
+            File.ReadAllText(hostPath));
 
         if (loadedStrings == null)
         {
@@ -102,4 +85,3 @@ public static class GameStrings
         }
     }
 }
-

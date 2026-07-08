@@ -36,7 +36,15 @@ public static class BehaviorPrimitiveCatalog
                 contentDefinition.DescriptionKey,
                 string.IsNullOrWhiteSpace(contentDefinition.BehaviorId) ? null : contentDefinition.BehaviorId,
                 contentDefinition.Scopes,
-                contentDefinition.Tags);
+                contentDefinition.Tags,
+                contentDefinition.Parameters
+                    .Select(parameter => new BehaviorPrimitiveParameterDefinition(
+                        parameter.Name,
+                        parameter.Type,
+                        parameter.Required,
+                        parameter.Default,
+                        parameter.AllowedValues))
+                    .ToArray());
         }
 
         return definitions
@@ -58,5 +66,15 @@ public static class BehaviorPrimitiveCatalog
         public string? BehaviorId { get; set; }
         public List<string> Scopes { get; set; } = [];
         public List<string> Tags { get; set; } = [];
+        public List<BehaviorPrimitiveParameterContentDefinition> Parameters { get; set; } = [];
+    }
+
+    private sealed class BehaviorPrimitiveParameterContentDefinition
+    {
+        public string Name { get; set; } = "";
+        public string Type { get; set; } = "";
+        public bool Required { get; set; }
+        public string Default { get; set; } = "";
+        public List<string> AllowedValues { get; set; } = [];
     }
 }

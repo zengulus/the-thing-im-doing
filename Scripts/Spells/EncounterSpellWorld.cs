@@ -69,9 +69,29 @@ public sealed class EncounterSpellWorld : ISpellWorld
         return _encounter.AddTileCounter(pos, counterId, amount);
     }
 
-    public LingeringEffectInstance? AttachLingeringEffect(EncounterActor target, string effectId, EncounterActor owner, int stacks)
+    public EffectInstance? AttachEffect(EncounterActor target, string effectId, EncounterActor owner, int stacks)
     {
-        return _encounter.AttachLingeringEffect(target.Id, effectId, owner.Id, stacks);
+        return _encounter.AttachEffectToActor(target.Id, effectId, owner.Id, stacks);
+    }
+
+    public EffectInstance? AttachEffect(GridPos pos, string effectId, EncounterActor owner, int stacks)
+    {
+        return _encounter.AttachEffectToTile(pos, effectId, owner.Id, stacks);
+    }
+
+    public bool HasEffect(EncounterActor target, string effectId, EncounterActor owner)
+    {
+        return _encounter.HasActorEffect(target.Id, effectId, owner.Id);
+    }
+
+    public bool HasEffect(GridPos pos, string effectId, EncounterActor owner)
+    {
+        return _encounter.HasTileEffect(pos, effectId, owner.Id);
+    }
+
+    public EffectCommandResult Resolve(EffectCommand command)
+    {
+        return _encounter.ResolveEffectCommand(command);
     }
 
     public void ApplyDamage(EncounterActor target, int amount, EncounterActor? source)

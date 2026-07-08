@@ -20,7 +20,11 @@ public interface ISpellWorld
     int AddCounter(EncounterActor target, string counterId, int amount);
     int GetCounter(GridPos pos, string counterId);
     int AddCounter(GridPos pos, string counterId, int amount);
-    LingeringEffectInstance? AttachLingeringEffect(EncounterActor target, string effectId, EncounterActor owner, int stacks);
+    EffectInstance? AttachEffect(EncounterActor target, string effectId, EncounterActor owner, int stacks);
+    EffectInstance? AttachEffect(GridPos pos, string effectId, EncounterActor owner, int stacks);
+    bool HasEffect(EncounterActor target, string effectId, EncounterActor owner);
+    bool HasEffect(GridPos pos, string effectId, EncounterActor owner);
+    EffectCommandResult Resolve(EffectCommand command);
 
     void ApplyDamage(EncounterActor target, int amount, EncounterActor? source);
     bool TryPushActor(EncounterActor target, Direction direction, int distance, EncounterActor? source);

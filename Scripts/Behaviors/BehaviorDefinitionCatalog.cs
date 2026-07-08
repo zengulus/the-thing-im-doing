@@ -28,6 +28,11 @@ public static class BehaviorDefinitionCatalog
                      "behaviors.json",
                      file => file.Behaviors))
         {
+            foreach (BehaviorStepContentDefinition step in contentDefinition.Steps)
+            {
+                ValidateStep(contentDefinition.Id, step);
+            }
+
             definitions[contentDefinition.Id] = new BehaviorDefinition(
                 contentDefinition.Id,
                 contentDefinition.Steps
@@ -42,11 +47,58 @@ public static class BehaviorDefinitionCatalog
                         step.Effect,
                         step.Relation,
                         step.Ref,
-                        step.State))
+                        step.State,
+                        step.Target,
+                        step.Source,
+                        step.Mode))
                     .ToArray());
         }
 
         return definitions;
+    }
+
+    private static void ValidateStep(string behaviorId, BehaviorStepContentDefinition step)
+    {
+        if (!BehaviorPrimitiveCatalog.TryGet(step.Op, out BehaviorPrimitiveDefinition? primitive))
+        {
+            return;
+        }
+
+        foreach (BehaviorPrimitiveParameterDefinition parameter in primitive.Parameters ?? [])
+        {
+            string value = GetParameterValue(step, parameter.Name);
+
+            if (parameter.Required && string.IsNullOrWhiteSpace(value))
+            {
+                Console.Error.WriteLine(
+                    $"Behavior '{behaviorId}' step {step.Id} op '{step.Op}' is missing required parameter '{parameter.Name}'.");
+            }
+
+            if (parameter.AllowedValues is { Count: > 0 }
+                && !string.IsNullOrWhiteSpace(value)
+                && !parameter.AllowedValues.Contains(value, StringComparer.Ordinal))
+            {
+                Console.Error.WriteLine(
+                    $"Behavior '{behaviorId}' step {step.Id} op '{step.Op}' has invalid {parameter.Name} '{value}'.");
+            }
+        }
+    }
+
+    private static string GetParameterValue(BehaviorStepContentDefinition step, string name)
+    {
+        return name switch
+        {
+            "amount" => step.Amount?.ToString() ?? "",
+            "counter" => step.Counter,
+            "effect" => step.Effect,
+            "relation" => step.Relation,
+            "ref" => step.Ref,
+            "state" => step.State,
+            "target" => step.Target,
+            "source" => step.Source,
+            "mode" => step.Mode,
+            _ => ""
+        };
     }
 
     private sealed class BehaviorContentFile
@@ -74,5 +126,8 @@ public static class BehaviorDefinitionCatalog
         public string Relation { get; set; } = "";
         public string Ref { get; set; } = "";
         public string State { get; set; } = "";
+        public string Target { get; set; } = "";
+        public string Source { get; set; } = "";
+        public string Mode { get; set; } = "";
     }
 }

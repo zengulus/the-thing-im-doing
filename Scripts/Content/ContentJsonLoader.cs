@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
-using Godot;
 
 namespace TheThingImDoing.Content;
 
@@ -10,6 +11,7 @@ public static class ContentJsonLoader
     private const string BaseContentPath = "res://Content/Base";
     private const string ProjectModsPath = "res://Mods";
     private const string UserModsPath = "user://mods";
+    private static readonly Lazy<string> ProjectRoot = new(FindProjectRoot);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -61,39 +63,23 @@ public static class ContentJsonLoader
 
     private static IEnumerable<string> GetModPaths(string modsRoot, string fileName)
     {
-        DirAccess? dir = DirAccess.Open(modsRoot);
+        string hostModsRoot = ResolvePath(modsRoot);
 
-        if (dir == null)
+        if (!Directory.Exists(hostModsRoot))
         {
             yield break;
         }
 
-        var modDirectories = new List<string>();
-        dir.ListDirBegin();
-
-        while (true)
+        foreach (string modDirectory in Directory
+                     .GetDirectories(hostModsRoot)
+                     .Select(Path.GetFileName)
+                     .OfType<string>()
+                     .Where(name => !string.IsNullOrWhiteSpace(name) && !name.StartsWith('.'))
+                     .OrderBy(name => name, StringComparer.Ordinal))
         {
-            string entry = dir.GetNext();
+            string path = Path.Combine(hostModsRoot, modDirectory, fileName);
 
-            if (string.IsNullOrEmpty(entry))
-            {
-                break;
-            }
-
-            if (!entry.StartsWith('.') && dir.CurrentIsDir())
-            {
-                modDirectories.Add(entry);
-            }
-        }
-
-        dir.ListDirEnd();
-        modDirectories.Sort(StringComparer.Ordinal);
-
-        foreach (string modDirectory in modDirectories)
-        {
-            string path = $"{modsRoot}/{modDirectory}/{fileName}";
-
-            if (FileAccess.FileExists(path))
+            if (File.Exists(path))
             {
                 yield return path;
             }
@@ -103,21 +89,56 @@ public static class ContentJsonLoader
     private static TFile? LoadFile<TFile>(string path)
         where TFile : class
     {
-        if (!FileAccess.FileExists(path))
+        string hostPath = ResolvePath(path);
+
+        if (!File.Exists(hostPath))
         {
             return null;
         }
 
         try
         {
-            using FileAccess file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
-            return JsonSerializer.Deserialize<TFile>(file.GetAsText(), JsonOptions);
+            return JsonSerializer.Deserialize<TFile>(File.ReadAllText(hostPath), JsonOptions);
         }
         catch (Exception exception)
         {
-            GD.PushWarning($"Could not load content file {path}: {exception.Message}");
+            Console.Error.WriteLine($"Could not load content file {path}: {exception.Message}");
             return null;
         }
     }
-}
 
+    internal static string ResolvePath(string path)
+    {
+        if (path.StartsWith("res://", StringComparison.Ordinal))
+        {
+            return Path.Combine(ProjectRoot.Value, path["res://".Length..].Replace('/', Path.DirectorySeparatorChar));
+        }
+
+        if (path.StartsWith("user://", StringComparison.Ordinal))
+        {
+            string userRoot = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "the-thing-im-doing");
+            return Path.Combine(userRoot, path["user://".Length..].Replace('/', Path.DirectorySeparatorChar));
+        }
+
+        return path;
+    }
+
+    private static string FindProjectRoot()
+    {
+        DirectoryInfo? directory = new(Directory.GetCurrentDirectory());
+
+        while (directory != null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "project.godot")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        return Directory.GetCurrentDirectory();
+    }
+}
