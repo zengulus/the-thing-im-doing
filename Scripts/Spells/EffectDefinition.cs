@@ -7,7 +7,8 @@ public sealed record EffectDefinition(
     string Id,
     string DisplayNameKey,
     IReadOnlyList<EffectTriggerDefinition> Triggers,
-    IReadOnlySet<string> Counters)
+    IReadOnlySet<string> Counters,
+    int? MaxStacks)
 {
     public string DisplayName => Content.GameStrings.Get(DisplayNameKey);
 

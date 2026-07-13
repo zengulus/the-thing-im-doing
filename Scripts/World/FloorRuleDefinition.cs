@@ -91,15 +91,25 @@ public static class FloorRuleDefinitionCatalog
     private static ContentValidationResult<FloorRuleDefinition> Resolve(FloorRuleContentDefinition content)
     {
         var issues = new List<string>();
+        RuleHookContentDefinition[] hooks = (content.Hooks ?? [])
+            .OfType<RuleHookContentDefinition>()
+            .ToArray();
 
         RequireStringKey(content.DisplayNameKey, nameof(content.DisplayNameKey), issues);
         RequireStringKey(content.DescriptionKey, nameof(content.DescriptionKey), issues);
 
-        foreach (RuleHookContentDefinition hook in content.Hooks)
+        if ((content.Hooks ?? []).Any(hook => hook == null))
         {
-            if (!KnownTriggers.Contains(hook.Trigger))
+            issues.Add("hooks contains a null hook.");
+        }
+
+        foreach (RuleHookContentDefinition hook in hooks)
+        {
+            string trigger = hook.Trigger ?? "";
+
+            if (!KnownTriggers.Contains(trigger))
             {
-                issues.Add($"hook trigger '{hook.Trigger}' is invalid.");
+                issues.Add($"hook trigger '{trigger}' is invalid.");
             }
 
             ValidateBehaviorReference(hook.BehaviorId, issues);
@@ -111,30 +121,35 @@ public static class FloorRuleDefinitionCatalog
         }
 
         return ContentRegistry.Valid(new FloorRuleDefinition(
-            content.Id,
-            content.DisplayNameKey,
-            content.DescriptionKey,
-            content.Hooks
-                .Select(hook => new RuleHookDefinition(hook.Trigger, hook.BehaviorId, hook.Priority))
+            content.Id?.Trim() ?? "",
+            content.DisplayNameKey ?? "",
+            content.DescriptionKey ?? "",
+            hooks
+                .Select(hook => new RuleHookDefinition(
+                    hook.Trigger ?? "",
+                    hook.BehaviorId ?? "",
+                    hook.Priority))
                 .ToArray(),
-            content.Tags));
+            (content.Tags ?? []).Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag!).ToArray()));
     }
 
-    private static void RequireStringKey(string key, string field, List<string> issues)
+    private static void RequireStringKey(string? key, string field, List<string> issues)
     {
-        if (!ContentRegistry.HasString(key))
+        if (!ContentRegistry.HasString(key ?? ""))
         {
             issues.Add($"{field} references missing string key '{key}'.");
         }
     }
 
-    private static void ValidateBehaviorReference(string behaviorId, List<string> issues)
+    private static void ValidateBehaviorReference(string? behaviorId, List<string> issues)
     {
-        if (BehaviorDefinitionCatalog.IsDisabled(behaviorId))
+        string id = behaviorId ?? "";
+
+        if (BehaviorDefinitionCatalog.IsDisabled(id))
         {
             issues.Add($"behaviorId references disabled behavior '{behaviorId}'.");
         }
-        else if (!BehaviorDefinitionCatalog.TryGet(behaviorId, out _))
+        else if (!BehaviorDefinitionCatalog.TryGet(id, out _))
         {
             issues.Add($"behaviorId references missing behavior '{behaviorId}'.");
         }
@@ -150,16 +165,16 @@ public static class FloorRuleDefinitionCatalog
     {
         public string Id { get; set; } = "";
         public string Operation { get; set; } = "";
-        public string DisplayNameKey { get; set; } = "";
-        public string DescriptionKey { get; set; } = "";
-        public List<RuleHookContentDefinition> Hooks { get; set; } = [];
-        public List<string> Tags { get; set; } = [];
+        public string? DisplayNameKey { get; set; } = "";
+        public string? DescriptionKey { get; set; } = "";
+        public List<RuleHookContentDefinition?>? Hooks { get; set; } = [];
+        public List<string?>? Tags { get; set; } = [];
     }
 
     private sealed class RuleHookContentDefinition
     {
-        public string Trigger { get; set; } = "";
-        public string BehaviorId { get; set; } = "";
+        public string? Trigger { get; set; } = "";
+        public string? BehaviorId { get; set; } = "";
         public int Priority { get; set; }
     }
 }

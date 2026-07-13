@@ -46,7 +46,9 @@
     {
       "id": "behavior.clause.raise_stone",
       "steps": [
-        { "id": 1, "op": "tile.set_state", "target": "focus.tile", "state": "RaisedStone" }
+        { "id": 1, "op": "branch.clear", "target": "focus.tile", "true": 2, "false": 3 },
+        { "id": 2, "op": "tile.set_state", "target": "focus.tile", "state": "RaisedStone", "next": 3 },
+        { "id": 3, "op": "flow.stop" }
       ]
     },
     {
@@ -88,7 +90,7 @@
     {
       "id": "behavior.clause.add_lightning_charge",
       "steps": [
-        { "id": 1, "op": "counter.add", "target": "focus.actor", "counter": "counter.bonus.charge", "amount": 1 }
+        { "id": 1, "op": "counter.add", "target": "focus.actor", "counter": "counter.bonus.charge", "amount": 1, "maximum": 3 }
       ]
     },
     {
@@ -140,16 +142,78 @@
         { "id": 4, "op": "effect.clear_owned_tiles", "effect": "condition.marked", "next": 5 },
         { "id": 5, "op": "counter.consume", "target": "self", "counter": "counter.ai.charge", "amount": 3, "next": 8 },
         { "id": 6, "op": "focus.nearest_actor", "relation": "hostile", "next": 7 },
-        { "id": 7, "op": "effect.attach", "target": "focus.tile", "source": "self", "effect": "condition.marked", "next": 8 },
-        { "id": 8, "op": "flow.stop" }
+        { "id": 7, "op": "branch.line_of_sight", "source": "self", "target": "focus.actor", "true": 8, "false": 9 },
+        { "id": 8, "op": "effect.attach", "target": "focus.tile", "source": "self", "effect": "condition.marked", "next": 9 },
+        { "id": 9, "op": "flow.stop" }
       ]
     },
     {
       "id": "behavior.enemy.root_saint_turn",
       "steps": [
-        { "id": 1, "op": "branch.adjacent_blocking", "target": "self", "true": 2, "false": 3 },
-        { "id": 2, "op": "heal.apply", "target": "self", "amount": 1, "next": 3 },
-        { "id": 3, "op": "tile.set_first_adjacent_clear_state", "target": "self", "state": "RaisedStone" }
+        { "id": 1, "op": "counter.add", "target": "self", "counter": "counter.ai.root_mending", "amount": 1, "next": 2 },
+        { "id": 2, "op": "counter.at_least", "target": "self", "counter": "counter.ai.root_mending", "amount": 3, "true": 3, "false": 6 },
+        { "id": 3, "op": "counter.consume", "target": "self", "counter": "counter.ai.root_mending", "amount": 3, "true": 4, "false": 4 },
+        { "id": 4, "op": "branch.adjacent_blocking", "target": "self", "true": 5, "false": 6 },
+        { "id": 5, "op": "heal.apply", "target": "self", "amount": 1, "next": 6 },
+        { "id": 6, "op": "tile.set_first_adjacent_clear_state", "target": "self", "state": "RaisedStone" }
+      ]
+    },
+    {
+      "id": "behavior.enemy.spore_cantor_turn",
+      "steps": [
+        { "id": 1, "op": "focus.nearest_actor", "relation": "hostile", "next": 2 },
+        { "id": 2, "op": "branch.adjacent", "source": "self", "target": "focus.actor", "true": 3, "false": 5 },
+        { "id": 3, "op": "damage.apply", "target": "focus.actor", "amount": 1, "next": 4 },
+        { "id": 4, "op": "effect.attach", "target": "focus.actor", "source": "self", "effect": "effect.poison", "amount": 2, "next": 7 },
+        { "id": 5, "op": "branch.line_of_sight", "source": "self", "target": "focus.actor", "true": 6, "false": 7 },
+        { "id": 6, "op": "effect.attach", "target": "focus.actor", "source": "self", "effect": "effect.poison", "amount": 1, "next": 7 },
+        { "id": 7, "op": "flow.stop" }
+      ]
+    },
+    {
+      "id": "behavior.enemy.iron_pilgrim_turn",
+      "steps": [
+        { "id": 1, "op": "counter.add", "target": "self", "counter": "counter.ai.guard", "amount": 1, "next": 2 },
+        { "id": 2, "op": "counter.at_least", "target": "self", "counter": "counter.ai.guard", "amount": 3, "true": 3, "false": 6 },
+        { "id": 3, "op": "effect.attach", "target": "self", "source": "self", "effect": "effect.ward", "amount": 1, "next": 4 },
+        { "id": 4, "op": "counter.consume", "target": "self", "counter": "counter.ai.guard", "amount": 3, "next": 10 },
+        { "id": 6, "op": "focus.nearest_actor", "relation": "hostile", "next": 7 },
+        { "id": 7, "op": "branch.adjacent", "source": "self", "target": "focus.actor", "true": 8, "false": 9 },
+        { "id": 8, "op": "damage.apply", "target": "focus.actor", "amount": 1, "next": 10 },
+        { "id": 9, "op": "move.step_toward", "target": "self", "source": "focus.tile", "next": 10 },
+        { "id": 10, "op": "flow.stop" }
+      ]
+    },
+    {
+      "id": "behavior.enemy.moss_chirurgeon_turn",
+      "steps": [
+        { "id": 1, "op": "counter.add", "target": "self", "counter": "counter.ai.mending", "amount": 1, "next": 2 },
+        { "id": 2, "op": "counter.at_least", "target": "self", "counter": "counter.ai.mending", "amount": 2, "true": 3, "false": 6 },
+        { "id": 3, "op": "focus.nearest_local_injured_actor", "relation": "ally", "next": 4 },
+        { "id": 4, "op": "heal.apply", "target": "focus.actor", "amount": 2, "next": 5 },
+        { "id": 5, "op": "counter.consume", "target": "self", "counter": "counter.ai.mending", "amount": 2, "next": 9 },
+        { "id": 6, "op": "focus.nearest_local_actor", "relation": "ally", "next": 7 },
+        { "id": 7, "op": "move.step_toward", "target": "self", "source": "focus.tile", "next": 9 },
+        { "id": 9, "op": "flow.stop" }
+      ]
+    },
+    {
+      "id": "behavior.enemy.obsidian_crown_turn",
+      "steps": [
+        { "id": 1, "op": "counter.add", "target": "self", "counter": "counter.ai.ritual", "amount": 1, "next": 2 },
+        { "id": 2, "op": "counter.at_least", "target": "self", "counter": "counter.ai.ritual", "amount": 3, "true": 3, "false": 7 },
+        { "id": 3, "op": "effect.damage_actors_on_owned_tiles", "effect": "condition.marked", "amount": 2, "next": 4 },
+        { "id": 4, "op": "effect.clear_owned_tiles", "effect": "condition.marked", "next": 5 },
+        { "id": 5, "op": "effect.attach", "target": "self", "source": "self", "effect": "effect.ward", "amount": 1, "next": 6 },
+        { "id": 6, "op": "counter.consume", "target": "self", "counter": "counter.ai.ritual", "amount": 3, "true": 9 },
+        { "id": 7, "op": "focus.nearest_actor", "relation": "hostile", "next": 8 },
+        { "id": 8, "op": "branch.line_of_sight", "source": "self", "target": "focus.actor", "true": 14, "false": 9 },
+        { "id": 14, "op": "effect.attach", "target": "focus.tile", "source": "self", "effect": "condition.marked", "next": 9 },
+        { "id": 9, "op": "focus.nearest_actor", "relation": "hostile", "next": 10 },
+        { "id": 10, "op": "branch.adjacent", "source": "self", "target": "focus.actor", "true": 11, "false": 12 },
+        { "id": 11, "op": "damage.apply", "target": "focus.actor", "amount": 2, "next": 13 },
+        { "id": 12, "op": "move.step_toward", "target": "self", "source": "focus.tile", "next": 13 },
+        { "id": 13, "op": "flow.stop" }
       ]
     },
     {
@@ -158,6 +222,25 @@
         { "id": 1, "op": "branch.tile_state", "target": "event.tile", "state": "RaisedStone", "true": 2 },
         { "id": 2, "op": "tile.set_state", "target": "event.tile", "state": "Floor" },
         { "id": 3, "op": "damage.apply", "target": "event.actor", "amount": 1 }
+      ]
+    },
+    {
+      "id": "behavior.rule.echoing_steps_after_move",
+      "steps": [
+        { "id": 1, "op": "effect.attach", "target": "event.tile", "source": "event.actor", "effect": "condition.marked" }
+      ]
+    },
+    {
+      "id": "behavior.rule.verdant_pulse_after_spell",
+      "steps": [
+        { "id": 1, "op": "heal.apply", "target": "event.actor", "amount": 1 }
+      ]
+    },
+    {
+      "id": "behavior.rule.obsidian_resonance_after_spell",
+      "steps": [
+        { "id": 1, "op": "damage.apply", "target": "event.actor", "amount": 1, "next": 2 },
+        { "id": 2, "op": "effect.attach", "target": "event.actor", "source": "event.actor", "effect": "effect.ward", "amount": 2 }
       ]
     },
     {
@@ -181,7 +264,7 @@
       "steps": [
         { "id": 1, "op": "branch.relation", "source": "effect.target", "target": "event.actor", "relation": "hostile", "true": 2, "false": 7 },
         { "id": 2, "op": "counter.at_least", "target": "effect.target", "counter": "counter.bonus.charge", "amount": 1, "true": 3, "false": 6 },
-        { "id": 3, "op": "damage.apply", "target": "event.actor", "source": "effect.target", "counter": "counter.bonus.charge", "next": 4 },
+        { "id": 3, "op": "damage.apply", "target": "event.actor", "source": "effect.target", "amount": 1, "next": 4 },
         { "id": 4, "op": "counter.consume", "target": "effect.target", "counter": "counter.bonus.charge", "amount": 1, "true": 5, "false": 6 },
         { "id": 5, "op": "counter.at_least", "target": "effect.target", "counter": "counter.bonus.charge", "amount": 1, "true": 7, "false": 6 },
         { "id": 6, "op": "effect.detach", "target": "effect", "source": "effect.target", "next": 7 },

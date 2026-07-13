@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "rewards": [
+    {
+      "id": "reward.mending_draught",
+      "displayNameKey": "rewards.mending_draught.name",
+      "descriptionKey": "rewards.mending_draught.description",
+      "kind": "Heal",
+      "amount": 2,
+      "tags": [ "recovery" ]
+    },
+    {
+      "id": "reward.deeper_vessel",
+      "displayNameKey": "rewards.deeper_vessel.name",
+      "descriptionKey": "rewards.deeper_vessel.description",
+      "kind": "MaxHealth",
+      "amount": 1,
+      "tags": [ "survival" ]
+    },
+    {
+      "id": "reward.venom_lexicon",
+      "displayNameKey": "rewards.venom_lexicon.name",
+      "descriptionKey": "rewards.venom_lexicon.description",
+      "kind": "UnlockClause",
+      "contentId": "clause.poison_them",
+      "clauseIds": [ "clause.spend_poison" ],
+      "tags": [ "clause", "poison", "bundle" ]
+    },
+    {
+      "id": "reward.crimson_lexicon",
+      "displayNameKey": "rewards.crimson_lexicon.name",
+      "descriptionKey": "rewards.crimson_lexicon.description",
+      "kind": "UnlockClause",
+      "contentId": "clause.bleed_them",
+      "clauseIds": [ "clause.spend_bleed" ],
+      "tags": [ "clause", "bleed", "bundle" ]
+    },
+    {
+      "id": "reward.storm_lexicon",
+      "displayNameKey": "rewards.storm_lexicon.name",
+      "descriptionKey": "rewards.storm_lexicon.description",
+      "kind": "UnlockClause",
+      "contentId": "clause.lightning_shield",
+      "clauseIds": [ "clause.add_lightning_charge", "clause.add_lightning_ward" ],
+      "tags": [ "clause", "lightning", "bundle" ]
+    },
+    {
+      "id": "reward.patient_bell",
+      "displayNameKey": "rewards.patient_bell.name",
+      "descriptionKey": "rewards.patient_bell.description",
+      "kind": "Relic",
+      "contentId": "relic.patient_bell",
+      "clauseIds": [ "clause.spend_focus" ],
+      "tags": [ "relic", "focus" ]
+    },
+    {
+      "id": "reward.memory_lexicon",
+      "displayNameKey": "rewards.memory_store.name",
+      "descriptionKey": "rewards.memory_store.description",
+      "kind": "UnlockClause",
+      "contentId": "clause.store_memory_ref",
+      "clauseIds": [ "clause.focus_memory_ref", "clause.spend_memory" ],
+      "tags": [ "clause", "memory", "bundle" ]
+    }
+  ]
+}

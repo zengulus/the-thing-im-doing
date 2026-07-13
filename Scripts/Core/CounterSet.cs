@@ -24,10 +24,10 @@ public sealed class CounterSet
 
         if (IsCondition(counterId))
         {
-            return Set(counterId, Get(counterId) + amount > 0 ? 1 : 0);
+            return Set(counterId, (long)Get(counterId) + amount > 0 ? 1 : 0);
         }
 
-        int next = Get(counterId) + amount;
+        long next = (long)Get(counterId) + amount;
 
         if (next <= 0)
         {
@@ -35,8 +35,9 @@ public sealed class CounterSet
             return 0;
         }
 
-        _counters[counterId] = next;
-        return next;
+        int clamped = (int)Math.Min(int.MaxValue, next);
+        _counters[counterId] = clamped;
+        return clamped;
     }
 
     public int Set(string counterId, int amount)

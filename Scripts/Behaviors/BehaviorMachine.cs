@@ -12,6 +12,13 @@ public sealed class BehaviorMachine
 {
     private const int MaxBehaviorSteps = 48;
     private const int MaxNestedBehaviorDepth = 8;
+    private static readonly Direction[] PathfindingDirectionOrder =
+    [
+        Direction.North,
+        Direction.East,
+        Direction.South,
+        Direction.West
+    ];
     private static readonly Lazy<BehaviorAtomRegistry> DefaultAtomRegistry = new(CreateDefaultAtomRegistry);
 
     private readonly BehaviorAtomRegistry _atomRegistry;
@@ -118,12 +125,17 @@ public sealed class BehaviorMachine
             ["flow.stop"] = (_, _) => BehaviorAtomResult.Stop(),
             ["focus.selected_target"] = (_, context) => FocusSelectedTarget(context),
             ["focus.nearest_actor"] = (step, context) => FocusNearestActor(step.Relation, context),
+            ["focus.nearest_local_actor"] = (step, context) =>
+                FocusNearestLocalActor(step.Relation, context),
+            ["focus.nearest_local_injured_actor"] = (step, context) =>
+                FocusNearestLocalInjuredActor(step.Relation, context),
             ["focus.self"] = (_, context) => FocusSelf(context),
             ["focus.store_ref"] = (step, context) => StoreFocusRef(step.Ref, context),
             ["focus.ref"] = (step, context) => FocusRef(step.Ref, context),
             ["branch.occupied"] = (step, context) => Branch(IsOccupied(step.Target, context), "if occupied", context),
             ["branch.clear"] = (step, context) => Branch(IsClear(step.Target, context), "if clear", context),
             ["branch.adjacent"] = (step, context) => BranchAdjacent(step, context),
+            ["branch.line_of_sight"] = (step, context) => BranchLineOfSight(step, context),
             ["branch.relation"] = (step, context) => BranchRelation(step, context),
             ["branch.tile_state"] = (step, context) => BranchTileState(step, context),
             ["branch.adjacent_blocking"] = (step, context) => BranchAdjacentBlocking(step, context),
@@ -154,8 +166,31 @@ public sealed class BehaviorMachine
 
     private static BehaviorAtomResult FocusSelectedTarget(BehaviorExecutionContext context)
     {
-        if (context.Working == null || context.SpellWorld == null)
+        if (context.Working == null || context.SpellWorld == null || context.Caster == null)
         {
+            return BehaviorAtomResult.Next();
+        }
+
+        if (context.Caster.Faction == Faction.Player
+            && !context.SpellWorld.IsWithinPerceptionRange(
+                context.Caster.Position,
+                context.Working.SelectedTarget,
+                TacticalEncounter.EnemyAwarenessRadius))
+        {
+            context.Working.FocusTile = null;
+            context.Working.FocusActorId = null;
+            context.Working.Fail("Target is beyond perception range.");
+            context.Trace.Add("The selected target is beyond perception range.");
+            return BehaviorAtomResult.Next();
+        }
+
+        if (context.Caster.Faction == Faction.Player
+            && !context.SpellWorld.HasLineOfSight(context.Caster.Position, context.Working.SelectedTarget))
+        {
+            context.Working.FocusTile = null;
+            context.Working.FocusActorId = null;
+            context.Working.Fail("Target is outside line of sight.");
+            context.Trace.Add("The selected target is outside line of sight.");
             return BehaviorAtomResult.Next();
         }
 
@@ -174,19 +209,122 @@ public sealed class BehaviorMachine
             return BehaviorAtomResult.Next();
         }
 
-        EncounterActor? actor = context.SpellWorld.GetNearestActor(context.Caster, string.IsNullOrWhiteSpace(relation) ? "hostile" : relation);
+        string resolvedRelation = string.IsNullOrWhiteSpace(relation) ? "hostile" : relation;
+        EncounterActor? actor = context.Caster.Faction == Faction.Player
+            ? context.SpellWorld.GetActorsByRelation(context.Caster, resolvedRelation)
+                .Where(candidate => candidate.Id != context.Caster.Id || resolvedRelation == "self")
+                .Where(candidate => context.SpellWorld.IsWithinPerceptionRange(
+                    context.Caster.Position,
+                    candidate.Position,
+                    TacticalEncounter.EnemyAwarenessRadius))
+                .Where(candidate => context.SpellWorld.HasLineOfSight(context.Caster.Position, candidate.Position))
+                .OrderBy(candidate => candidate.Position.ManhattanDistanceTo(context.Caster.Position))
+                .ThenBy(candidate => candidate.Id)
+                .FirstOrDefault()
+            : context.SpellWorld.GetNearestActor(context.Caster, resolvedRelation);
 
         if (actor == null)
         {
             context.Working.FocusActorId = null;
             context.Working.FocusTile = null;
             context.Trace.Add($"Aimed at nearest {relation}, but none was found.");
+
+            if (context.Caster.Faction == Faction.Player)
+            {
+                context.Working.Fail("No visible target is within perception range.");
+            }
+
             return BehaviorAtomResult.Next();
         }
 
         context.Working.FocusActorId = actor.Id;
         context.Working.FocusTile = actor.Position;
         context.Trace.Add($"Aimed at nearest {relation}: actor {actor.Id}.");
+        return BehaviorAtomResult.Next();
+    }
+
+    private static BehaviorAtomResult FocusNearestLocalInjuredActor(
+        string relation,
+        BehaviorExecutionContext context)
+    {
+        if (context.Working == null
+            || context.SpellWorld == null
+            || context.Caster == null
+            || context.Encounter == null)
+        {
+            return BehaviorAtomResult.Next();
+        }
+
+        string resolvedRelation = string.IsNullOrWhiteSpace(relation) ? "ally" : relation;
+        EncounterActor? actor = context.SpellWorld
+            .GetActorsByRelation(context.Caster, resolvedRelation)
+            .Where(candidate => candidate.Health < candidate.MaxHealth)
+            .Where(candidate => context.SpellWorld.IsWithinPerceptionRange(
+                context.Caster.Position,
+                candidate.Position,
+                TacticalEncounter.EnemyAwarenessRadius))
+            .Where(candidate => context.SpellWorld.HasLineOfSight(
+                context.Caster.Position,
+                candidate.Position))
+            .Where(candidate => candidate.Faction != Faction.Enemy
+                || context.Encounter.IsEnemyEngaged(candidate))
+            .OrderBy(candidate => candidate.Position.ManhattanDistanceTo(context.Caster.Position))
+            .ThenBy(candidate => candidate.Id)
+            .FirstOrDefault();
+
+        if (actor == null)
+        {
+            context.Working.FocusActorId = null;
+            context.Working.FocusTile = null;
+            context.Trace.Add($"Sought a local injured {resolvedRelation}, but none was visible and active.");
+            return BehaviorAtomResult.Next();
+        }
+
+        context.Working.FocusActorId = actor.Id;
+        context.Working.FocusTile = actor.Position;
+        context.Trace.Add($"Focused local injured {resolvedRelation}: actor {actor.Id}.");
+        return BehaviorAtomResult.Next();
+    }
+
+    private static BehaviorAtomResult FocusNearestLocalActor(
+        string relation,
+        BehaviorExecutionContext context)
+    {
+        if (context.Working == null
+            || context.SpellWorld == null
+            || context.Caster == null
+            || context.Encounter == null)
+        {
+            return BehaviorAtomResult.Next();
+        }
+
+        string resolvedRelation = string.IsNullOrWhiteSpace(relation) ? "ally" : relation;
+        EncounterActor? actor = context.SpellWorld
+            .GetActorsByRelation(context.Caster, resolvedRelation)
+            .Where(candidate => context.SpellWorld.IsWithinPerceptionRange(
+                context.Caster.Position,
+                candidate.Position,
+                TacticalEncounter.EnemyAwarenessRadius))
+            .Where(candidate => context.SpellWorld.HasLineOfSight(
+                context.Caster.Position,
+                candidate.Position))
+            .Where(candidate => candidate.Faction != Faction.Enemy
+                || context.Encounter.IsEnemyEngaged(candidate))
+            .OrderBy(candidate => candidate.Position.ManhattanDistanceTo(context.Caster.Position))
+            .ThenBy(candidate => candidate.Id)
+            .FirstOrDefault();
+
+        if (actor == null)
+        {
+            context.Working.FocusActorId = null;
+            context.Working.FocusTile = null;
+            context.Trace.Add($"Sought a local {resolvedRelation}, but none was visible and active.");
+            return BehaviorAtomResult.Next();
+        }
+
+        context.Working.FocusActorId = actor.Id;
+        context.Working.FocusTile = actor.Position;
+        context.Trace.Add($"Focused local {resolvedRelation}: actor {actor.Id}.");
         return BehaviorAtomResult.Next();
     }
 
@@ -209,6 +347,18 @@ public sealed class BehaviorMachine
     {
         context.Trace.Add($"Checked \"{label}\" on {DescribeFocus(context)}: {(passed ? "passed" : "failed")}.");
         return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
+    }
+
+    private static BehaviorAtomResult BranchLineOfSight(
+        BehaviorStepDefinition step,
+        BehaviorExecutionContext context)
+    {
+        EncounterActor? source = SelectActor(DefaultIfBlank(step.Source, "self"), context);
+        EncounterActor? target = SelectActor(step.Target, context);
+        bool passed = source != null
+            && target != null
+            && context.SpellWorld?.HasLineOfSight(source.Position, target.Position) == true;
+        return Branch(passed, "line of sight", context);
     }
 
     private static BehaviorAtomResult AddCounter(BehaviorStepDefinition step, BehaviorExecutionContext context)
@@ -240,16 +390,23 @@ public sealed class BehaviorMachine
             return new BehaviorAtomResult(BehaviorFlow.False, false);
         }
 
-        EffectCommandResult result = target.Modify(step.Counter, amount, context);
+        if (!requireAvailable && amount > 0 && step.Maximum.HasValue)
+        {
+            long room = Math.Max(0L, (long)step.Maximum.Value - before);
+            amount = (int)Math.Min(amount, room);
+        }
 
-        if (target.Actor != null && context.Working != null)
+        EffectCommandResult result = target.Modify(step.Counter, amount, context);
+        int appliedAmount = result.CounterValue - before;
+
+        if (target.Actor != null && context.Working != null && appliedAmount != 0)
         {
             EncounterActor caster = context.Caster ?? target.Actor;
-            context.Working.RecordCounterMutation(caster, target.Actor, step.Counter, amount);
+            context.Working.RecordCounterMutation(caster, target.Actor, step.Counter, appliedAmount);
         }
 
         context.Trace.Add($"Set {step.Counter} on {target.Label} to {result.CounterValue}.");
-        return new BehaviorAtomResult(requireAvailable ? BehaviorFlow.True : BehaviorFlow.Next, amount != 0);
+        return new BehaviorAtomResult(requireAvailable ? BehaviorFlow.True : BehaviorFlow.Next, result.ChangedWorld);
     }
 
     private static BehaviorAtomResult BranchCounterAtLeast(BehaviorStepDefinition step, BehaviorExecutionContext context)
@@ -280,7 +437,20 @@ public sealed class BehaviorMachine
 
         EncounterActor? source = SelectActor(step.Source, context);
         EffectCommandResult result = context.Resolve(new DamageActorCommand(target.Id, amount, source?.Id));
-        context.Trace.Add($"Damaged actor {target.Id} for {amount}.");
+
+        if (result.DamagePrevented)
+        {
+            context.Trace.Add($"Damage to actor {target.Id} was prevented.");
+        }
+        else if (result.DamageApplied > 0)
+        {
+            context.Trace.Add($"Damaged actor {target.Id} for {result.DamageApplied}.");
+        }
+        else
+        {
+            context.Trace.Add($"Damage to actor {target.Id} had no effect.");
+        }
+
         return BehaviorAtomResult.Next(result.ChangedWorld);
     }
 
@@ -307,7 +477,9 @@ public sealed class BehaviorMachine
                 step.Effect,
                 owner.Id,
                 step.Amount ?? 0));
-            context.Trace.Add($"Attached {step.Effect} to actor {actor.Id}.");
+            context.Trace.Add(result.ChangedWorld
+                ? $"Attached {step.Effect} to actor {actor.Id}."
+                : $"{step.Effect} on actor {actor.Id} was already at its limit.");
             return BehaviorAtomResult.Next(result.ChangedWorld);
         }
 
@@ -320,7 +492,9 @@ public sealed class BehaviorMachine
                 step.Effect,
                 owner.Id,
                 step.Amount ?? 0));
-            context.Trace.Add($"Attached {step.Effect} to tile {tile.Value}.");
+            context.Trace.Add(result.ChangedWorld
+                ? $"Attached {step.Effect} to tile {tile.Value}."
+                : $"{step.Effect} on tile {tile.Value} was already at its limit.");
             return BehaviorAtomResult.Next(result.ChangedWorld);
         }
 
@@ -363,8 +537,10 @@ public sealed class BehaviorMachine
 
         if (actor != null)
         {
-            bool passed = context.SpellWorld?.HasEffect(actor, step.Effect, owner)
-                ?? actor.FindEffect(step.Effect, owner.Id) != null;
+            bool passed = context.SpellWorld != null
+                ? context.SpellWorld.HasEffect(actor, step.Effect, owner)
+                    || context.SpellWorld.HasEffect(actor.Position, step.Effect, owner)
+                : actor.FindEffect(step.Effect, owner.Id) != null;
             return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
         }
 
@@ -403,7 +579,7 @@ public sealed class BehaviorMachine
             : GetDirectionAwayFrom(source.Position, target.Position);
         EffectCommandResult result = context.Resolve(new PushActorCommand(target.Id, direction, step.Amount ?? 1, source.Id));
         context.Trace.Add(result.ChangedWorld
-            ? $"Moved actor {target.Id} {direction.ToString().ToLowerInvariant()}."
+            ? $"Forced movement affected actor {target.Id} toward {direction.ToString().ToLowerInvariant()}."
             : $"Forced movement against actor {target.Id} failed.");
         return BehaviorAtomResult.Next(result.ChangedWorld);
     }
@@ -423,12 +599,14 @@ public sealed class BehaviorMachine
             return BehaviorAtomResult.Next();
         }
 
-        foreach (Direction direction in GetDirectionsToward(actor.Position, destination.Value))
+        Direction? direction = FindShortestPathDirection(
+            context.Encounter,
+            actor,
+            destination.Value);
+
+        if (direction.HasValue && context.Encounter.TryMoveActor(actor, direction.Value))
         {
-            if (context.Encounter.TryMoveActor(actor, direction))
-            {
-                return BehaviorAtomResult.Next(changedWorld: true);
-            }
+            return BehaviorAtomResult.Next(changedWorld: true);
         }
 
         return BehaviorAtomResult.Next();
@@ -509,9 +687,9 @@ public sealed class BehaviorMachine
 
         foreach (GridPos adjacent in TacticalEncounter.GetAdjacentPositions(actor.Position))
         {
-            if (context.Encounter.Grid.IsEmpty(adjacent))
+            if (context.Encounter.Grid.IsEmpty(adjacent)
+                && context.Encounter.TrySetTileState(adjacent, state))
             {
-                context.Encounter.Grid.SetTile(adjacent, state);
                 return BehaviorAtomResult.Next(changedWorld: true);
             }
         }
@@ -691,14 +869,26 @@ public sealed class BehaviorMachine
 
     private static BehaviorAtomResult StoreFocusRef(string refId, BehaviorExecutionContext context)
     {
-        if (context.Working == null)
+        if (context.Working == null || context.Caster == null)
         {
             return BehaviorAtomResult.Next();
         }
 
         context.Working.StoreReference(refId);
-        context.Trace.Add($"Stored focus in {refId}.");
-        return BehaviorAtomResult.Next();
+
+        bool changedWorld = context.Working.TryGetReference(refId, out WorkingReference reference)
+            && context.Caster.StoreWorkingReference(refId, reference);
+
+        if (changedWorld)
+        {
+            context.Trace.Add($"Stored focus in {refId}.");
+        }
+        else
+        {
+            context.Trace.Add($"Focus in {refId} was already stored.");
+        }
+
+        return BehaviorAtomResult.Next(changedWorld);
     }
 
     private static BehaviorAtomResult FocusRef(string refId, BehaviorExecutionContext context)
@@ -708,7 +898,14 @@ public sealed class BehaviorMachine
             return BehaviorAtomResult.Next();
         }
 
-        if (!context.Working.TryGetReference(refId, out WorkingReference reference))
+        bool foundReference = context.Working.TryGetReference(refId, out WorkingReference reference);
+
+        if (!foundReference && context.Caster != null)
+        {
+            foundReference = context.Caster.TryGetWorkingReference(refId, out reference);
+        }
+
+        if (!foundReference)
         {
             context.Trace.Add($"Focus ref failed because {refId} was empty.");
             return BehaviorAtomResult.Next();
@@ -719,6 +916,11 @@ public sealed class BehaviorMachine
             EncounterActor? actor = context.SpellWorld.GetActor(reference.ActorId.Value);
             if (actor != null && actor.IsAlive)
             {
+                if (!CanPlayerRecallPosition(actor.Position, context))
+                {
+                    return BehaviorAtomResult.Next();
+                }
+
                 context.Working.FocusActorId = actor.Id;
                 context.Working.FocusTile = actor.Position;
                 context.Trace.Add($"Focused {refId}: actor {actor.Id}.");
@@ -728,6 +930,11 @@ public sealed class BehaviorMachine
 
         if (reference.Tile.HasValue)
         {
+            if (!CanPlayerRecallPosition(reference.Tile.Value, context))
+            {
+                return BehaviorAtomResult.Next();
+            }
+
             context.Working.FocusActorId = context.SpellWorld.GetActorAt(reference.Tile.Value)?.Id;
             context.Working.FocusTile = reference.Tile;
             context.Trace.Add($"Focused {refId}: tile {reference.Tile.Value}.");
@@ -736,6 +943,38 @@ public sealed class BehaviorMachine
 
         context.Trace.Add($"Focus ref failed because {refId} held nothing.");
         return BehaviorAtomResult.Next();
+    }
+
+    private static bool CanPlayerRecallPosition(GridPos position, BehaviorExecutionContext context)
+    {
+        if (context.Caster?.Faction != Faction.Player
+            || context.Working == null
+            || context.SpellWorld == null)
+        {
+            return true;
+        }
+
+        context.Working.FocusActorId = null;
+        context.Working.FocusTile = null;
+
+        if (!context.SpellWorld.IsWithinPerceptionRange(
+            context.Caster.Position,
+            position,
+            TacticalEncounter.EnemyAwarenessRadius))
+        {
+            context.Working.Fail("Recalled target is beyond perception range.");
+            context.Trace.Add("The recalled target is beyond perception range.");
+            return false;
+        }
+
+        if (!context.SpellWorld.HasLineOfSight(context.Caster.Position, position))
+        {
+            context.Working.Fail("Recalled target is outside line of sight.");
+            context.Trace.Add("The recalled target is outside line of sight.");
+            return false;
+        }
+
+        return true;
     }
 
     private static BehaviorAtomResult DamageActorsOnOwnedTiles(string effectId, int amount, BehaviorExecutionContext context)
@@ -864,50 +1103,72 @@ public sealed class BehaviorMachine
         return Enum.TryParse(stateName, ignoreCase: true, out state);
     }
 
-    private static IEnumerable<Direction> GetDirectionsToward(GridPos from, GridPos to)
+    private static Direction? FindShortestPathDirection(
+        TacticalEncounter encounter,
+        EncounterActor actor,
+        GridPos destination)
     {
-        int dx = to.X - from.X;
-        int dy = to.Y - from.Y;
-
-        if (Math.Abs(dx) >= Math.Abs(dy))
+        if (!encounter.Grid.IsInside(destination) || actor.Position == destination)
         {
-            if (dx > 0)
+            return null;
+        }
+
+        bool stopAdjacent = encounter.Grid.IsOccupied(destination);
+
+        if (IsPathGoal(actor.Position))
+        {
+            return null;
+        }
+
+        var frontier = new Queue<(GridPos Position, Direction FirstStep)>();
+        var visited = new HashSet<GridPos> { actor.Position };
+
+        foreach (Direction direction in PathfindingDirectionOrder)
+        {
+            GridPos next = actor.Position.Offset(direction);
+
+            if (!visited.Add(next) || !encounter.Grid.IsEmpty(next))
             {
-                yield return Direction.East;
-            }
-            else if (dx < 0)
-            {
-                yield return Direction.West;
+                continue;
             }
 
-            if (dy > 0)
+            if (IsPathGoal(next))
             {
-                yield return Direction.South;
+                return direction;
             }
-            else if (dy < 0)
+
+            frontier.Enqueue((next, direction));
+        }
+
+        while (frontier.Count > 0)
+        {
+            (GridPos position, Direction firstStep) = frontier.Dequeue();
+
+            foreach (Direction direction in PathfindingDirectionOrder)
             {
-                yield return Direction.North;
+                GridPos next = position.Offset(direction);
+
+                if (!visited.Add(next) || !encounter.Grid.IsEmpty(next))
+                {
+                    continue;
+                }
+
+                if (IsPathGoal(next))
+                {
+                    return firstStep;
+                }
+
+                frontier.Enqueue((next, firstStep));
             }
         }
-        else
-        {
-            if (dy > 0)
-            {
-                yield return Direction.South;
-            }
-            else if (dy < 0)
-            {
-                yield return Direction.North;
-            }
 
-            if (dx > 0)
-            {
-                yield return Direction.East;
-            }
-            else if (dx < 0)
-            {
-                yield return Direction.West;
-            }
+        return null;
+
+        bool IsPathGoal(GridPos position)
+        {
+            return stopAdjacent
+                ? position.ManhattanDistanceTo(destination) == 1
+                : position == destination;
         }
     }
 

@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
 
 namespace TheThingImDoing.Content;
@@ -11,7 +9,6 @@ public static class ContentJsonLoader
     private const string BaseContentPath = "res://Content/Base";
     private const string ProjectModsPath = "res://Mods";
     private const string UserModsPath = "user://mods";
-    private static readonly Lazy<string> ProjectRoot = new(FindProjectRoot);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -88,42 +85,23 @@ public static class ContentJsonLoader
 
     private static IEnumerable<string> GetModPaths(string modsRoot, string fileName)
     {
-        string hostModsRoot = ResolvePath(modsRoot);
-
-        if (!Directory.Exists(hostModsRoot))
+        foreach (string path in ContentFileSystem.GetModFilePaths(modsRoot, fileName))
         {
-            yield break;
-        }
-
-        foreach (string modDirectory in Directory
-                     .GetDirectories(hostModsRoot)
-                     .Select(Path.GetFileName)
-                     .OfType<string>()
-                     .Where(name => !string.IsNullOrWhiteSpace(name) && !name.StartsWith('.'))
-                     .OrderBy(name => name, StringComparer.Ordinal))
-        {
-            string path = Path.Combine(hostModsRoot, modDirectory, fileName);
-
-            if (File.Exists(path))
-            {
-                yield return path;
-            }
+            yield return path;
         }
     }
 
     private static TFile? LoadFile<TFile>(string path)
         where TFile : class
     {
-        string hostPath = ResolvePath(path);
-
-        if (!File.Exists(hostPath))
+        if (!ContentFileSystem.TryReadAllText(path, out string json))
         {
             return null;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<TFile>(File.ReadAllText(hostPath), JsonOptions);
+            return JsonSerializer.Deserialize<TFile>(json, JsonOptions);
         }
         catch (Exception exception)
         {
@@ -134,36 +112,6 @@ public static class ContentJsonLoader
 
     internal static string ResolvePath(string path)
     {
-        if (path.StartsWith("res://", StringComparison.Ordinal))
-        {
-            return Path.Combine(ProjectRoot.Value, path["res://".Length..].Replace('/', Path.DirectorySeparatorChar));
-        }
-
-        if (path.StartsWith("user://", StringComparison.Ordinal))
-        {
-            string userRoot = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "the-thing-im-doing");
-            return Path.Combine(userRoot, path["user://".Length..].Replace('/', Path.DirectorySeparatorChar));
-        }
-
-        return path;
-    }
-
-    private static string FindProjectRoot()
-    {
-        DirectoryInfo? directory = new(Directory.GetCurrentDirectory());
-
-        while (directory != null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "project.godot")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        return Directory.GetCurrentDirectory();
+        return ContentFileSystem.ResolveHostPath(path);
     }
 }

@@ -24,14 +24,20 @@ public static class ContentRegistry
         string family,
         IEnumerable<LoadedContentItem<TContent>> items,
         Func<TContent, ContentValidationResult<TDefinition>> resolve)
-        where TContent : IContentDefinition
+        where TContent : class, IContentDefinition
     {
         var definitions = new Dictionary<string, TDefinition>(StringComparer.Ordinal);
         var disabledIds = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (LoadedContentItem<TContent> item in items)
         {
-            string id = item.Value.Id.Trim();
+            if (item.Value == null)
+            {
+                ContentDiagnostics.Warn($"{family} content in {item.SourcePath} is null and was skipped.");
+                continue;
+            }
+
+            string id = (item.Value.Id ?? "").Trim();
             string operation = NormalizeOperation(item.Value.Operation);
 
             if (string.IsNullOrWhiteSpace(id))
@@ -69,7 +75,19 @@ public static class ContentRegistry
                 continue;
             }
 
-            ContentValidationResult<TDefinition> result = resolve(item.Value);
+            ContentValidationResult<TDefinition> result;
+
+            try
+            {
+                result = resolve(item.Value);
+            }
+            catch (Exception exception)
+            {
+                ContentDiagnostics.Warn(
+                    $"{family} '{id}' in {item.SourcePath} could not be resolved and was skipped: " +
+                    $"{exception.GetType().Name}: {exception.Message}");
+                continue;
+            }
 
             if (!result.IsValid || result.Value == null)
             {

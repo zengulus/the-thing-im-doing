@@ -48,11 +48,95 @@
       "tintHex": "#6bbf61",
       "intentRules": [
         {
-          "when": "adjacent_to_blocking",
+          "when": "self_counter_at_least",
+          "counter": "counter.ai.root_mending",
+          "amount": 2,
           "intentKey": "enemies.root_saint.intent.mend_then_raise"
         }
       ],
       "tags": [ "terrain", "healer" ]
+    },
+    {
+      "id": "enemy.spore_cantor",
+      "displayNameKey": "enemies.spore_cantor.name",
+      "sigilKey": "enemies.spore_cantor.sigil",
+      "maxHealth": 4,
+      "purposeKey": "enemies.spore_cantor.purpose",
+      "behaviorId": "behavior.enemy.spore_cantor_turn",
+      "defaultIntentKey": "enemies.spore_cantor.intent.seed",
+      "tintHex": "#9a70c7",
+      "intentRules": [
+        {
+          "when": "adjacent_to_player",
+          "intentKey": "enemies.spore_cantor.intent.claw"
+        }
+      ],
+      "tags": [ "ranged", "poison", "attrition" ]
+    },
+    {
+      "id": "enemy.iron_pilgrim",
+      "displayNameKey": "enemies.iron_pilgrim.name",
+      "sigilKey": "enemies.iron_pilgrim.sigil",
+      "maxHealth": 7,
+      "purposeKey": "enemies.iron_pilgrim.purpose",
+      "behaviorId": "behavior.enemy.iron_pilgrim_turn",
+      "defaultIntentKey": "enemies.iron_pilgrim.intent.advance",
+      "tintHex": "#71808f",
+      "intentRules": [
+        {
+          "when": "self_counter_at_least",
+          "counter": "counter.ai.guard",
+          "amount": 2,
+          "intentKey": "enemies.iron_pilgrim.intent.guard"
+        },
+        {
+          "when": "adjacent_to_player",
+          "intentKey": "enemies.iron_pilgrim.intent.strike"
+        }
+      ],
+      "tags": [ "melee", "tank", "ward" ]
+    },
+    {
+      "id": "enemy.moss_chirurgeon",
+      "displayNameKey": "enemies.moss_chirurgeon.name",
+      "sigilKey": "enemies.moss_chirurgeon.sigil",
+      "maxHealth": 5,
+      "purposeKey": "enemies.moss_chirurgeon.purpose",
+      "behaviorId": "behavior.enemy.moss_chirurgeon_turn",
+      "defaultIntentKey": "enemies.moss_chirurgeon.intent.regroup",
+      "tintHex": "#4f9b78",
+      "intentRules": [
+        {
+          "when": "self_counter_at_least",
+          "counter": "counter.ai.mending",
+          "amount": 1,
+          "intentKey": "enemies.moss_chirurgeon.intent.mend"
+        }
+      ],
+      "tags": [ "support", "healer" ]
+    },
+    {
+      "id": "enemy.obsidian_crown",
+      "displayNameKey": "enemies.obsidian_crown.name",
+      "sigilKey": "enemies.obsidian_crown.sigil",
+      "maxHealth": 12,
+      "purposeKey": "enemies.obsidian_crown.purpose",
+      "behaviorId": "behavior.enemy.obsidian_crown_turn",
+      "defaultIntentKey": "enemies.obsidian_crown.intent.brand",
+      "tintHex": "#342942",
+      "intentRules": [
+        {
+          "when": "self_counter_at_least",
+          "counter": "counter.ai.ritual",
+          "amount": 2,
+          "intentKey": "enemies.obsidian_crown.intent.detonate"
+        },
+        {
+          "when": "adjacent_to_player",
+          "intentKey": "enemies.obsidian_crown.intent.strike"
+        }
+      ],
+      "tags": [ "boss", "capstone", "controller" ]
     }
   ]
 }

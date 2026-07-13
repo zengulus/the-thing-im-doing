@@ -1,877 +1,93 @@
-# Future Features — Magic Glyph Roguelike
+# Future — North Star and Idea Bank
 
-This document is a gated roadmap for future work after the current prototype proves that short Workings, preview, casting, trace-reading, and tactical spell revision are fun.
+This document records the design north star and a bank of ideas that may serve it. It is deliberately not a backlog, milestone plan, or promise.
 
-Do not treat this as a content backlog. A feature belongs here only if it strengthens the core loop:
+[roadmap.md](roadmap.md) is the sole authority for development order, active scope, exit gates, systemic work, and content-scale targets. If this document implies a sequence or conflicts with the roadmap, the roadmap wins. [design.md](design.md) describes the game and [rules.md](rules.md) defines architectural constraints.
 
-> Read the board → construct or revise a short spell circle → preview the omen trace → cast → learn from the result → adapt.
+The purpose of this file is narrower:
 
-The game should feel like magical pseudocode expressed through ritual geometry, not like a programming exercise wearing fantasy skin.
+* preserve the fantasy and player experience the project is trying to reach;
+* distinguish the playable baseline from ideas that still need evidence;
+* keep promising concepts without quietly turning them into commitments;
+* state the dependency and validation question for every substantial idea;
+* retire assumptions that the current build or long-term direction has superseded.
 
 ---
 
-# 0. Current Design Commitments
+# 1. Status Language
 
-## Core Fantasy
+Status describes confidence and maturity, not priority.
 
-The player is not selecting spells from a list. The player is constructing Workings out of clauses.
+* **[Baseline]** — present in the playable build and suitable as a regression fixture. This says that the capability exists, not that human playtests have proved it fun, clear, or complete.
+* **[Committed principle]** — a durable design constraint. Implementation may change, but proposals should preserve it.
+* **[Candidate]** — compatible with the north star and worth keeping in the idea bank. It has no schedule or commitment.
+* **[Gated]** — promising, but inappropriate to expand until the named dependency is real and the stated question can be tested.
+* **[Experimental]** — high-risk research. Prototype cheaply, expect failure, and do not make core content depend on it.
+* **[Superseded]** — retained only to prevent an obsolete assumption from returning. It is not active scope.
 
-A Working should feel like a short ritual sentence:
+Dependencies in this file are logical prerequisites, not an ordered build plan. An idea becomes active work only when the roadmap says so.
+
+---
+
+# 2. Playable Baseline and Open Proof
+
+## [Baseline] What already exists
+
+The current build is a finishable five-floor tactical roguelike, not the one-room prototype for which this document was first written. Its regression baseline includes:
+
+* short, editable Workings assembled from clause nodes with ordinary and conditional flow;
+* a semantic Working model with core versioned JSON import/export, layout metadata kept separate from meaning, and structural validation;
+* deterministic preview on a cloned encounter, live casting through the same resolution path, and omen traces;
+* data-driven clauses, behavior primitives and graphs, effects, enemies, local floor rules, relics, environments, encounters, rewards, and runs;
+* procedural tactical floors with connected rooms and corridors, seeded terrain, exploration, fog of war, awareness, and line of sight;
+* layered enemy behavior, several authored tactical roles, increasingly expansive floors, and a final boss;
+* carried health, reward choices, clause unlocks, relic acquisition, victory, and defeat;
+* relic, rule, and effect hooks integrated into encounter resolution, including preview parity for the one implemented relic;
+* base-content and mod-content loading, validation, 155 automated tests, and generated-run playability fixtures;
+* a functional graph editor and placeholder glyph rendering.
+
+At this snapshot, the authored baseline contains 20 clauses, 30 behavior primitives, 36 behavior definitions, seven enemies including the boss, four environments across five floors, four local rules, five effects, seven rewards, and one relic.
+
+This baseline does **not** imply human playtest proof, player-facing Working sharing, auto-layout or repair, save/load or content fingerprints, or procedural synthesis of alien laws, ecologies, and entities. “Procedural” currently describes tactical map generation; the larger alien generator remains future scope governed by the roadmap.
+
+These capabilities should not be described elsewhere in this file as work that has yet to begin. Their polish, breadth, authoring model, persistence, and long-horizon form may still be candidates or roadmap work.
+
+## [Gated] What only human play can prove
+
+Automated correctness is not evidence that the central loop is satisfying. Broad language growth, elaborate ritual UI, and large content multiplication should continue to answer the same unresolved human questions:
+
+* Can a new player explain what their Working tried to do?
+* Can they identify why it succeeded or failed from the board, preview, and trace?
+* Does preview provoke a meaningful edit, or merely confirm an obvious action?
+* Do enemies, terrain, and local laws make players revise a Working rather than repeat a dominant one?
+* Does the player feel like they formed and tested a magical hypothesis?
+* Are surprising outcomes legible enough to inspire another attempt rather than distrust?
+* Do exploration and discovery feel rewarding without requiring extermination?
+* Do Workings remain readable aloud as their expressive range grows?
+
+**Dependency:** representative human playtests using the current playable run, followed by focused tests whenever a new interaction axis is introduced.
+
+**Validation:** players can answer “what happened, why, and what will I change?” in their own words without an author explaining the system.
+
+---
+
+# 3. North Star
+
+## [Committed principle] A readable ritual instrument
+
+The player is not selecting spells from a list and is not writing unrestricted programs. The player constructs short Workings from ritual clauses.
+
+A Working should read like a compact ritual sentence:
 
 > Aim at the nearest foe.
+>
 > If they are marked, damage them.
+>
 > Otherwise, mark them.
 
-The player-facing experience should avoid words like register, variable, boolean, instruction, script, or program unless used internally. The implementation may be graph-based; the fantasy is ritual grammar.
+The implementation may use graphs, IDs, counters, reducers, and behavior machines. The player-facing fantasy is intent made exact through glyphs, bindings, conditions, and consequences.
 
-## Current Mechanical Shape
-
-The current code already supports:
-
-* Workings made from nodes.
-* An entry node.
-* `next`, `true`, and `false` flow.
-* Clause definitions loaded from content.
-* Behaviour definitions loaded from content.
-* Generic behaviour atoms.
-* Previewing a Working on a cloned encounter.
-* Casting a Working into the real encounter.
-* Omen trace output.
-* Actor effects.
-* Tile effects.
-* Counters.
-* Enemy behaviours.
-* Floor rules.
-* JSON content loading from base content and mods.
-* A basic graph editor.
-
-Future work should build on this substrate rather than replacing it.
-
-## Non-Negotiable Rule
-
-Every future feature must preserve short readable Workings.
-
-If a Working cannot be read aloud as ritual grammar, it is too complex.
-
----
-
-# 1. Immediate Prototype Gate
-
-Before expanding the language, prove the existing loop.
-
-## Required Proof
-
-The prototype must show that all of the following are fun:
-
-* Choosing a target.
-* Previewing a Working.
-* Reading the omen trace.
-* Editing a Working after preview.
-* Casting the revised Working.
-* Seeing enemies or terrain punish a naive Working.
-* Discovering a better Working through tactical reasoning.
-
-## Minimum Playtest Questions
-
-After a short test encounter, the player should be able to answer:
-
-* What did your Working try to do?
-* Why did it succeed or fail?
-* What would you change next turn?
-* Did the preview help?
-* Did the trace explain the result?
-* Did the enemy or terrain make you change your spell construction?
-
-If players cannot answer these, do not add more clauses.
-
----
-
-# 2. Spell Circle Layer
-
-The graph editor is a good prototype UI. The final form should be a spell-circle editor.
-
-## Principle
-
-The spell circle is a visual projection of a semantic Working graph.
-
-The semantic graph is the source of truth. The circle is layout, presentation, and interaction.
-
-## Semantic Working Data
-
-A Working should be reducible to a stable JSON representation:
-
-* schema version;
-* display name;
-* max steps;
-* entry node;
-* nodes;
-* clause ids;
-* outputs;
-* optional layout metadata;
-* optional discovered recipe metadata.
-
-Semantic data and visual layout should remain separate.
-
-A malformed layout must not corrupt a valid Working.
-
-## Circle Presentation
-
-Represent clause families as visual grammar:
-
-* Targeting clauses: anchors, rays, pointing marks.
-* Condition clauses: gates, splits, thresholds.
-* Effect clauses: impact glyphs, burns, cuts, wards, bindings.
-* Memory clauses: bound signs, stars, knots, echo marks.
-* Refrains: repeated ring segments or orbiting marks.
-* Triggers: dormant outer-ring sigils.
-
-Execution should animate around the circle as an omen trace.
-
-## Hover / Inspection
-
-Every visible part of the circle should be hoverable:
-
-* glyph;
-* path;
-* branch split;
-* remembered sign;
-* trigger;
-* counter cost;
-* counter gain;
-* backlash risk;
-* invalid target warning.
-
-Hover should answer:
-
-* What does this part mean?
-* What clause or rule produced it?
-* What does it do during execution?
-* What happens if it fails?
-* What target, sign, or effect does it reference?
-
-## Text Mode
-
-Every circle must have a plain-language rendering.
-
-Example:
-
-> Aim at the nearest foe.
-> If they are marked, damage them.
-> Otherwise, mark them.
-
-This is necessary for accessibility, debugging, sharing, and tooltip clarity.
-
-## Not Yet
-
-Do not implement spell circles until the graph editor proves the core loop. The circle layer is a late-stage interface upgrade, not a reason to delay testing.
-
----
-
-# 3. Working Serialization and Sharing
-
-The game should eventually support sharing Workings as JSON.
-
-## Goals
-
-* Export a named Working.
-* Import a named Working.
-* Validate schema version.
-* Reject unknown clauses cleanly.
-* Preserve semantic meaning even if layout is missing.
-* Allow auto-layout if visual metadata is absent.
-* Support compact share codes later.
-
-## Validation Rules
-
-A shared Working is valid only if:
-
-* it has one entry node;
-* all node ids are unique;
-* all referenced nodes exist;
-* all clause ids resolve;
-* outputs match clause type;
-* max steps is within allowed bounds;
-* the graph cannot exceed hard execution limits;
-* unsupported future schema versions fail gracefully.
-
-## Debug Export
-
-Exports should include optional debug fields:
-
-* estimated counter summary;
-* clause family sequence;
-* generated ritual prose;
-* warnings;
-* last preview trace, if available.
-
-This is for sharing and troubleshooting, not core gameplay.
-
----
-
-# 4. Preview and Omen Trace Improvements
-
-Preview is central. It prevents the game from becoming opaque.
-
-## Near-Term Improvements
-
-* Show whether a Working changes the world.
-* Show exact actor/tile affected by each clause.
-* Show failed condition paths clearly.
-* Show invalid target reasons.
-* Show backlash source.
-* Collapse trace for HUD.
-* Expand trace in editor.
-* Highlight the execution path through the graph or circle.
-
-## Mid-Term Improvements
-
-* Step forward/backward through the omen trace.
-* Preview before/after a clause edit.
-* Compare two Workings on the same target.
-* Preview local terrain rule consequences.
-* Preview enemy response in simple cases.
-* Mark uncertain outcomes separately from deterministic ones.
-
-## Circle-Specific Preview
-
-When spell circles exist:
-
-* animate execution around the circle;
-* pulse the active glyph;
-* light the taken branch;
-* dim untaken branches;
-* mark failed conditions;
-* show backlash distortion at the failing glyph;
-* project affected tiles/actors on the board.
-
-Preview must make debugging feel like reading omens, not reading logs.
-
----
-
-# 5. Spell Language Expansion
-
-Add clauses only when the current grammar feels meaningfully constrained.
-
-## Rule
-
-Do not add a clause unless it satisfies at least one:
-
-* creates a new tactical pattern;
-* makes an enemy more interesting;
-* makes terrain more writable/readable;
-* creates a new kind of preview decision;
-* interacts cleanly with existing counters/effects;
-* supports spell-circle readability.
-
-## Clause Length Limits
-
-Suggested progression:
-
-* early run: 4 clauses;
-* mid run: 6 clauses;
-* late run: 8 clauses;
-* rare exception: 10 clauses.
-
-A longer Working should remain readable aloud.
-
-## Candidate Targeting Clauses
-
-* aim at selected tile;
-* aim at nearest foe;
-* aim at nearest marked foe;
-* aim at remembered sign;
-* aim along marked path;
-* aim at first clear tile in a direction;
-* aim at actor standing on a marked tile.
-
-## Candidate Condition Clauses
-
-* if marked;
-* if clear;
-* if occupied;
-* if wounded;
-* if adjacent to stone;
-* if standing in water;
-* if burning;
-* if warded;
-* unless warded;
-* if alone;
-* if surrounded.
-
-## Candidate Effect Clauses
-
-* damage them;
-* mark them;
-* push them;
-* pull them;
-* raise stone;
-* break stone;
-* chill them;
-* kindle them;
-* mend them;
-* ward them;
-* bind them;
-* weaken them;
-* silence them;
-* move the mark;
-* copy the mark;
-* scatter marks;
-* grow thorns;
-* open a path.
-
-## Memory / Binding Clauses
-
-Only expand memory after one remembered sign feels limiting in a good way.
-
-Candidate additions:
-
-* remember one foe;
-* remember one ally;
-* remember one tile;
-* remember first marked target;
-* remember last damaged target;
-* focus remembered sign;
-* swap remembered signs;
-* forget remembered sign;
-* return to remembered sign.
-
-Never expose these as registers.
-
-## Refrains / Bounded Loops
-
-Loops must be capped, previewable, and readable as ritual refrains.
-
-Allowed forms:
-
-* repeat twice;
-* repeat thrice;
-* for each marked foe;
-* for each marked tile;
-* for each adjacent foe;
-* until blocked, max 4 steps;
-* while burning, max 3 repeats.
-
-Never add unbounded loops.
-
----
-
-# 6. Effects, Triggers, and Delayed Workings
-
-Triggered effects are powerful but increase state complexity.
-
-## Existing Direction
-
-The code already supports effects with triggers such as turn start, movement, adjacency, and before damage. Future work should formalise this into player-readable ritual grammar.
-
-## Candidate Triggered Effects
-
-* when a foe enters a marked tile;
-* when the caster is struck;
-* when a raised stone breaks;
-* when a mark expires;
-* when an enemy casts;
-* when an ally falls below half health.
-
-## Requirements
-
-Triggered effects must be:
-
-* visually telegraphed on the grid;
-* visible in preview where possible;
-* listed in trace output;
-* associated with a clear owner;
-* removable or exhaustible;
-* impossible to stack into unreadable state.
-
-## Delayed Clauses
-
-Delayed effects should use anchors, not hidden timers.
-
-Examples:
-
-* anchor spark here;
-* release next turn;
-* trigger when crossed;
-* store last emitted effect;
-* repeat when mark breaks.
-
-Delayed clauses should be introduced only after normal preview is strong.
-
----
-
-# 7. Enemies That Pressure Grammar
-
-Enemies should pressure spell construction, not merely demand higher damage.
-
-## Design Rule
-
-An enemy is good if it makes the player revise a Working.
-
-Bad enemy:
-
-> Has more HP.
-
-Good enemy:
-
-> Punishes direct damage unless marked first.
-
-## Current Enemy Roles to Strengthen
-
-### Glass Hound
-
-Role: chaser / direct pressure.
-
-Possible grammar pressure:
-
-* stores repeated direct effects;
-* reflects the same clause if used twice;
-* becomes vulnerable after being pushed into terrain;
-* forces the player to branch around adjacency.
-
-### Ash Scribe
-
-Role: mark caster / delayed threat.
-
-Possible grammar pressure:
-
-* marks tiles;
-* detonates marked tiles after charging;
-* forces the player to move marks, clear marks, or exploit enemy-owned marks.
-
-### Root Saint
-
-Role: terrain shaper / healer.
-
-Possible grammar pressure:
-
-* grows walls;
-* heals near raised stone or roots;
-* rewards stone-breaking, pushing, and path-opening clauses.
-
-## Future Enemy Families
-
-### Archive
-
-* Ink Leech: travels along marked paths.
-* Page Wraith: visible only when marked.
-* Seal Warden: blocks effects unless its seal is broken.
-* Index Moth: consumes marks and reveals hidden rules.
-
-### Ossuary
-
-* Bone Chorister: empowers allies near corpses.
-* Grave Ox: charges through marked lanes.
-* Rot Apostle: weakens actors who remain still.
-* Marrow Thief: steals the player’s remembered sign.
-
-### Foundry
-
-* Mirror Smith: creates reflective terrain.
-* Charge Eater: consumes charged tiles to heal.
-* Delay Imp: postpones the next clause of a Working.
-* Furnace Angel: grows stronger from heat.
-
-### Crown Below
-
-* Debt Collector: adds cost to the next Working.
-* Null Moth: consumes marks and queued effects.
-* Clause Eater: temporarily removes the first condition.
-* Inversion Saint: flips one local rule while alive.
-* Crown Scribe: writes hostile marks under player and enemies.
-
----
-
-# 8. Terrain Grammars
-
-Each region should have a small local grammar.
-
-A terrain grammar is not just a tile set. It is a set of readable rules that change how Workings behave.
-
-## Rule Budget
-
-A region should introduce:
-
-* one primary terrain material;
-* one mark interaction;
-* one movement interaction;
-* one enemy ecology interaction;
-* one exceptional ritual rule.
-
-Avoid introducing too many rule changes at once.
-
-## Archive
-
-Terrain:
-
-* paper;
-* ink;
-* burning paper;
-* sealed shelves;
-* written marks;
-* smoke-obscured tiles.
-
-Rules:
-
-* marked paper burns faster;
-* ink carries marks;
-* smoke blocks targeting;
-* sealed shelves break only when marked and heated;
-* burning shelves spread heat.
-
-## Ossuary
-
-Terrain:
-
-* bone piles;
-* corpses;
-* roots;
-* rot;
-* thorn growth;
-* grave soil.
-
-Rules:
-
-* corpses empower nearby enemies;
-* roots grow toward wounded actors;
-* rot weakens warding;
-* bone piles can become temporary walls;
-* healing near roots spreads growth.
-
-## Foundry
-
-Terrain:
-
-* mirrors;
-* charged tiles;
-* molten channels;
-* astral glass;
-* conveyor-like paths;
-* delayed-effect anchors.
-
-Rules:
-
-* mirrors reflect sparks;
-* charged tiles amplify push;
-* molten channels carry heat;
-* anchors delay effects by one turn;
-* astral glass stores the last emitted effect.
-
-## Crown Below
-
-Terrain:
-
-* corrupted sigils;
-* black stone;
-* reversed marks;
-* debt tiles;
-* broken ritual circles;
-* hostile inscriptions.
-
-Rules:
-
-* conditions may invert on corrupted sigils;
-* marks may belong to enemies;
-* failed clauses create debt;
-* backlash can rewrite terrain;
-* enemy Workings may attach flaws to the player’s next spell.
-
----
-
-# 9. Relics and Mutators
-
-Relics should modify the spell system, not merely increase stats.
-
-The code has relic definitions and hook data. Before adding many relics, wire relic hooks into encounter resolution and prove that a relic can alter a Working, trace, cost, or effect in a readable way.
-
-## First Relic Implementation Goals
-
-* Player can hold relics.
-* Relic hooks run at defined timing points.
-* Relic output appears in omen trace.
-* Relic effects are previewable if deterministic.
-* Relic behaviour is content-driven where possible.
-
-## Hook Timing Candidates
-
-* before preview;
-* before cast;
-* after clause resolved;
-* after condition failed;
-* after Working resolved;
-* before backlash;
-* after enemy turn;
-* on mark created;
-* on effect expired.
-
-## Clause Cost Relics
-
-* first condition in each Working is free;
-* first mark clause costs no focus;
-* refrains cost less focus;
-* triggered Workings cost less focus;
-* Workings with no damage clauses refund focus.
-
-## Clause Mutation Relics
-
-* spark them also marks the target;
-* mark them also reveals intent;
-* raise stone also wards adjacent allies;
-* push them leaves a mark behind;
-* chill them spreads through water;
-* kindle them spreads through paper;
-* mend them also removes one mark.
-
-## Risk / Reward Relics
-
-* longer Workings gain power but produce backlash on failure;
-* forgotten signs explode into marks;
-* failed conditions generate warding;
-* repeated clauses become stronger but more unstable;
-* casting the same Working twice adds debt;
-* casting three different Workings clears debt.
-
-## Weird Relics
-
-* marks count as water;
-* stone remembers who touched it;
-* fire refuses to harm marked allies;
-* wounded enemies are considered clear for targeting;
-* raised stone becomes brittle after one turn;
-* the first failed condition each turn becomes true.
-
----
-
-# 10. Procedural Generation
-
-Procedural generation should create magical problems, not noise.
-
-Do not build procedural generation until hand-authored encounters prove the grammar.
-
-## Floor Generation
-
-Possible room types:
-
-* combat room;
-* hazard room;
-* shrine room;
-* glyph trial room;
-* proving circle;
-* elite room;
-* ritual gate;
-* optional risk path.
-
-## Rule Generation
-
-Each floor may generate:
-
-* one primary terrain rule;
-* one enemy ecology rule;
-* one glyph availability constraint;
-* one resource pressure rule;
-* one optional anomaly.
-
-## Glyph Economy
-
-Possible sources:
-
-* common clause pool;
-* rare clause pool;
-* region-specific clauses;
-* corrupted clauses;
-* temporary clauses;
-* shrine-granted clauses;
-* enemy-taught clauses.
-
-## Anti-Softlock Rules
-
-The generator must avoid requiring unavailable clauses.
-
-Examples:
-
-* do not require chill if no chill-like clause exists;
-* do not require marks if no marking method exists;
-* do not require stone-breaking if no push, heat, or break clause exists;
-* do not require hidden enemy detection unless marking/reveal is available;
-* do not require memory interaction unless memory clauses are present.
-
----
-
-# 11. Ritual Encounters
-
-Bosses should be rule systems, not large enemies.
-
-## Ritual Encounter Goals
-
-A ritual encounter should:
-
-* test the floor’s grammar;
-* reward understanding of local rules;
-* require spell adaptation;
-* avoid one-solution puzzle design;
-* make preview and trace especially useful;
-* turn spell-circle editing into the dramatic centre of the fight.
-
-## Archive Ritual Ideas
-
-* burn sealed shelves without destroying the exit;
-* mark the correct pages while enemies rewrite marks;
-* break seals in a specific logical order;
-* use smoke, heat, and ink to reveal the true target.
-
-## Ossuary Ritual Ideas
-
-* contain spreading roots;
-* prevent corpses from empowering the boss;
-* heal or destroy bone nodes in the right rhythm;
-* redirect growth into ritual channels.
-
-## Foundry Ritual Ideas
-
-* reflect an effect through mirrors;
-* charge anchors in sequence;
-* time delayed clauses to hit moving targets;
-* use enemy effects as part of the solution.
-
-## Crown Below Ritual Ideas
-
-* fight a boss that corrupts clauses;
-* survive rule inversion phases;
-* spend or cleanse accumulated debt;
-* rewrite hostile marks into player-owned marks;
-* protect the omen trace from interference.
-
----
-
-# 12. Progression
-
-Progression should increase expressive variety more than raw power.
-
-## Within-Run Progression
-
-* gain new clauses;
-* increase maximum Working length;
-* unlock another prepared Working slot;
-* improve preview detail;
-* gain one extra remembered sign;
-* upgrade specific clause families;
-* gain relics;
-* accept curses for stronger clauses.
-
-## Across-Run Progression
-
-* unlock starting clause pools;
-* unlock mage backgrounds;
-* unlock region variants;
-* unlock relic pools;
-* add glossary entries;
-* preserve discovered Workings as named recipes;
-* unlock optional difficulty modifiers.
-
-Meta-progression should not trivialise early tactical decisions.
-
-## Mage Backgrounds
-
-Mage backgrounds should change starting grammar, not just stats.
-
-### Ash Grammarian
-
-* starts with mark and heat clauses;
-* better at burning terrain;
-* worse at healing and warding.
-
-### Stone Binder
-
-* starts with raise and push clauses;
-* better at terrain control;
-* Workings cost more if they target distant foes.
-
-### Mercy Scribe
-
-* starts with mend and ward clauses;
-* can remember allies more easily;
-* lower direct damage.
-
-### Mirror-Taught Heretic
-
-* starts with reflection or return clauses;
-* stronger preview benefits;
-* higher backlash from failed conditions.
-
-### Debt-Bound Adept
-
-* can cast beyond focus limit;
-* accumulates debt clauses;
-* must build around repayment.
-
----
-
-# 13. UI and Quality-of-Life
-
-## Spell Editing
-
-* save named Workings;
-* duplicate Working;
-* compare two Workings;
-* highlight changed clause;
-* undo/redo clause edits;
-* mark favourite clauses;
-* filter clauses by family;
-* show discovered recipes;
-* warn when a Working has no possible effect;
-* auto-layout graph/circle;
-* switch between circle view and text view.
-
-## Preview
-
-* scrub through omen trace;
-* step forward/backward;
-* preview enemy responses;
-* preview local rule consequences;
-* highlight uncertain outcomes;
-* compare preview before/after edit;
-* show why target is invalid;
-* show source of backlash.
-
-## Accessibility
-
-* clear icon shapes independent of colour;
-* text mode for all glyphs;
-* adjustable animation speed;
-* reduced visual noise mode;
-* large tooltip mode;
-* keyboard-only spell editing;
-* controller-friendly clause selection;
-* exportable plain-language Working summary.
-
----
-
-# 14. Narrative and Worldbuilding
-
-Narrative should support the system’s exactness.
-
-## Core Themes
-
-* magic as literal agreement;
-* ruins as hostile dialects;
-* failure as misworded intent;
-* power through understanding;
-* ritual law versus improvisation;
-* ancient systems that still obey their own rules.
-
-## Lore Delivery
-
-* clause descriptions;
-* enemy ecology notes;
-* region inscriptions;
-* ritual fragments;
-* discovered recipe names;
-* mage background memories;
-* proving-circle commentary;
-* post-run glossary updates.
-
-## In-Universe Terms
-
-Prefer:
+Prefer the terms:
 
 * Working;
 * Clause;
@@ -888,142 +104,470 @@ Prefer:
 * Seal;
 * Anchor.
 
-Avoid player-facing use of:
+Avoid player-facing use of `program`, `script`, `function`, `variable`, `register`, `boolean`, `AST`, `graph`, or `node`, except in explicit debug and authoring views.
 
-* program;
-* script;
-* function;
-* variable;
-* register;
-* boolean;
-* AST;
-* graph;
-* node, except in debug/editor contexts.
+The non-negotiable test is simple: if an ordinary Working cannot be rendered in plain language and read aloud as ritual grammar, it is too complex.
+
+## [Committed principle] Expeditionary xenology
+
+The long-horizon game is an expedition into a newly generated alien reality. Its matter, entities, persistence, senses, causality, ecology, history, and magical dialect may violate human expectations, but they must form a coherent and learnable system.
+
+The player-facing loop is:
+
+> Enter an alien stratum → observe its laws → form a hypothesis → construct a short Working → preview the omen → act → revise what you believe.
+
+The world should feel indifferent, ancient, and partially unknowable without becoming arbitrary. Cosmic unease comes from discovering coherent implications, not from random incomprehensibility or a generic sanity meter.
+
+Workings are both survival tools and experimental instruments. Omen previews, traces, specimens, inscriptions, repeated observations, and failed hypotheses should help the player build a reliable model of an unfamiliar reality.
+
+## [Committed principle] Exploration is the reward loop
+
+Combat may secure access, protect the expedition, alter an ecology, or create evidence. Killing every inhabitant must not become the default progression engine.
+
+Reward-bearing actions should include:
+
+* entering an unmapped stratum or optional site;
+* observing a new capability, material transition, sense, or world law;
+* corroborating or refuting a hypothesis;
+* recovering a specimen, artefact, inscription, shed component, or historical trace;
+* mapping a dangerous route or discovering a repeatable safe procedure;
+* interacting with an anomaly rather than merely destroying it;
+* recognizing how an earlier expedition action changed a revisited place;
+* taking an informed risk to extract knowledge or material;
+* finding a hidden relation, alternate route, or nonviolent resolution.
+
+Clauses, relics, samples, supplies, omen clarity, prepared-Working options, routes, relationships, and durable knowledge are all possible rewards. Information is a first-class reward when it improves prediction or enables a new hypothesis.
+
+## [Committed principle] Complexity belongs between simple things
+
+The world may become extremely deep. Individual Workings should remain bounded, deterministic where promised, inspectable, and short.
+
+Depth should come from interactions among simple clauses, material properties, effects, counters, local laws, entities, senses, drives, histories, and relationships—not from ever-longer Working syntax. Every important surprise needs a causal explanation available at the player’s current level of knowledge.
+
+## [Committed principle] No unconditional direct damage
+
+Choosing or aiming at a target must never be sufficient to deal direct damage. Harm needs a readable situational premise: a mark, exposure, position, collision, material state, terrain relation, observed capability, earned setup, or world law that is visible in preview and trace.
+
+This is not satisfied by attaching an automatic resource cost to a universal attack. The player should have to read the current encounter and improvise a way to make harm possible. Environmental and indirect consequences may deal damage, but their enabling state and causal chain must remain inspectable.
+
+The baseline still contains an unconditional direct-damage clause. That is known design debt, not a precedent for future clauses. The roadmap owns its retirement and the regression work needed to keep the existing run finishable.
 
 ---
 
-# 15. Audio / Visual Identity
+# 4. Idea Bank
 
-## Visual Direction
+## [Committed principle] Omen trace grows into causal inspection
 
-* readable dark fantasy tiles;
-* bright spell geometry over subdued environments;
-* distinct mark shapes per owner/faction;
-* animated clause execution;
-* omen-trace path overlay;
-* region-specific magical scripts;
-* clear enemy silhouettes;
-* strong telegraph shapes;
-* spell circles that remain legible when small;
-* glyphs that preserve meaning under reduced visual noise.
+The existing preview and omen trace are the seed of a general “why?” interface. The baseline already explains invalid targets and local-rule interventions, supports collapsed and expanded trace views, steps through trace entries, highlights the taken Working path, and overlays the predicted final encounter state. It should continue to feel like reading a magical consequence, not reading a debug log.
 
-## Audio Direction
+Candidate capabilities:
 
-* clause family sound motifs;
-* layered sounds for multi-clause Workings;
-* distinct failed-condition sound;
-* backlash distortion;
-* enemy intent warnings;
-* region ambience;
-* successful rewrite/payoff sound.
+* identify the actor, tile, material, effect, or relation changed by each clause;
+* make untaken paths and their conditions inspectable alongside the already highlighted path;
+* add typed provenance for failed conditions, backlash, prevention, amplification, and hook intervention;
+* distinguish deterministic prediction from uncertainty and from facts the expedition has not learned;
+* step forward and backward through per-step world states rather than trace text alone;
+* compare before and after an edit, or compare two Workings against the same known state;
+* project relevant enemy responses and local-law consequences without pretending to reveal hidden information;
+* nest the existing concise and expanded views into a complete causal chain without flooding the combat HUD;
+* extend the same provenance model to “why is this here?” and “what changed this state?”
 
-Audio should reinforce grammar, not just atmosphere.
+**Dependencies:** one shared resolution path for preview and live play; typed provenance from clauses, hooks, rules, materials, and generated facts; a knowledge model that distinguishes unknown from random.
+
+**Validation questions:** Can players locate the first cause of an unexpected result? Does added detail improve decisions without turning every turn into log analysis? Can uncertainty be communicated without breaking trust?
+
+## [Gated] Spell-circle presentation
+
+The graph editor is a functional authoring view. A spell circle is a candidate final projection of the same semantic Working, not a replacement data model.
+
+Candidate visual grammar:
+
+* targeting clauses as anchors, rays, and pointing marks;
+* conditions as gates, splits, and thresholds;
+* effects as impact glyphs, burns, cuts, wards, and bindings;
+* memory as bound signs, stars, knots, and echoes;
+* refrains as repeated ring segments or orbiting marks;
+* triggers as dormant outer-ring sigils;
+* execution as a lit path moving through the circle with failed and untaken branches still readable.
+
+Every visible element should support inspection. Hover, focus, or controller selection should answer what it means, which clause or law produced it, what it references, what it costs, and what happens on failure. The affected board state should remain visually connected to the active glyph.
+
+Every circle also needs a complete plain-language rendering. A malformed or missing layout must never corrupt the Working, and auto-layout must not change semantics.
+
+**Dependencies:** stable semantic serialization; demonstrated player comprehension in the graph/text views; an accessible interaction model; trace events with enough provenance to animate honestly.
+
+**Validation questions:** Can an unfamiliar circle be read more quickly than the graph it projects? Can players edit it precisely with mouse, keyboard, and controller? Does it reinforce ritual fantasy without hiding branch logic? Does it remain legible at combat-HUD scale and in reduced-motion mode?
+
+## [Candidate] Player-facing Working sharing
+
+Versioned Working JSON, structural validation, and semantic/layout separation already exist in the baseline. The candidate is a trustworthy player workflow around them.
+
+Candidate capabilities:
+
+* export and import a named Working without requiring file surgery;
+* report missing or incompatible clause content clearly and without damaging existing Workings;
+* preserve meaning when layout data is absent and offer deterministic auto-layout;
+* show schema version, content requirements, warnings, and generated ritual prose before acceptance;
+* optionally attach a counter summary, clause-family sequence, and a preview trace for troubleshooting;
+* retain provenance for a discovered or player-named recipe;
+* support compact share codes only as an encoding of canonical validated data;
+* make shared Workings useful as expedition notes without letting imports bypass discovery or progression rules.
+
+**Dependencies:** resolved content fingerprints and provenance; stable save and migration rules; actionable import diagnostics; a policy for content the recipient has not discovered or installed.
+
+**Validation questions:** Can players diagnose an incompatible share without technical vocabulary? Is a shared Working still understandable without its original visual layout? Does sharing promote experimentation rather than distribute one universal solution?
+
+## [Gated] Spell-language expansion
+
+Add a clause only when it creates a new tactical or investigative relationship. More synonyms for damage, healing, or cost are not enough.
+
+### [Baseline] Current vocabulary
+
+The implemented language already includes selected and nearest-foe targeting; marked, occupied, and clear conditions; mark, push, raised terrain, poison, bleed, wards, lightning charge, and resource-spend effects; and one primary Remembered sign that can hold and restore an actor or tile focus. It also includes an unconditional direct-damage clause that the north star explicitly treats as design debt.
+
+### [Candidate] Targeting extensions
+
+* aim at the nearest marked foe;
+* aim at a remembered sign;
+* aim along a marked path;
+* aim at the first observable tile in a direction;
+* aim at an entity standing on a marked or material-qualified tile;
+* aim at a component, relation, stimulus, or world-defined property the expedition can perceive.
+
+### [Candidate] Condition extensions
+
+* if wounded, burning, warded, alone, or surrounded;
+* if adjacent to a known substance or structure;
+* if standing in a known material, field, or local relation;
+* unless warded;
+* if the target has demonstrated a known capability;
+* if the omen predicts a bounded, player-readable consequence.
+
+### [Candidate] Effect extensions
+
+* mend, bind, weaken, silence, chill, or kindle;
+* pull, break, grow, open, or redirect;
+* move, copy, scatter, invert, or consume a mark;
+* alter a material state or field through the shared world rules;
+* reveal evidence without automatically revealing the answer.
+
+### [Gated] Memory and binding expansion
+
+The baseline proves the mechanics of storing and recalling one actor or tile through a primary Remembered sign. Candidate extensions include remembering the first marked target, adding another deliberately distinct sign, swapping signs, and deliberately forgetting one. Keep the ritual vocabulary; never expose registers.
+
+**Dependency:** human play must show that the existing Remembered sign produces useful choices without becoming required bookkeeping.
+
+### [Gated] Refrains
+
+Only bounded, previewable loops belong in the language: repeat twice, repeat thrice, for each visible marked foe, for each adjacent foe, or advance until blocked with a strict cap. Unbounded loops do not.
+
+**Dependency:** traces must summarize repetition while allowing inspection of each iteration, and validation must enforce work budgets.
+
+### [Gated] Triggers and delayed clauses
+
+The baseline already has effect, rule, and relic triggers. Player-authored triggers could include when a foe enters a marked tile, when the caster is struck, when a structure breaks, when a mark expires, or when an observed entity emits a known action.
+
+Delayed effects should use visible anchors and explicit events rather than hidden timers: anchor an effect here, release on the next turn, trigger when crossed, or repeat when a mark breaks.
+
+**Dependency:** ownership, lifetime, stacking, event order, and preview uncertainty must all be visible. Trigger chains need hard execution budgets.
+
+**Dependencies for language growth:** human comprehension of the current language; at least two meaningfully different enemies, materials, laws, or exploration problems that consume the proposed interaction; validator and trace support; and generation queries that know whether the expedition can use it.
+
+**Validation questions for language growth:** What new decision does the clause create? Which enemies, materials, laws, or exploration problems consume it? Can a player predict it from prose and trace? Does it preserve a short Working? Can generated content ever make it mandatory when unavailable?
+
+## [Committed principle] Enemies must pressure grammar
+
+An enemy is interesting when it changes the Working the player wants to cast. Additional health is not a grammar pressure.
+
+The current authored enemies remain useful exemplars and regression fixtures. The Ash Scribe already writes and detonates marks; the Root Saint already raises terrain and periodically heals near it; the Spore Cantor, Iron Pilgrim, and Moss Chirurgeon already exercise attrition, defense, and support roles. Candidate extensions include:
+
+* **Glass Hound:** punish repeated direct effects, expose vulnerability after collision, or force a branch around adjacency;
+* **Ash Scribe:** let the player move, erase, steal, or exploit its existing hostile marks;
+* **Root Saint:** deepen the existing terrain-and-healing loop with breaking, pushing, redirection, and route creation;
+* **Spore Cantor, Iron Pilgrim, and Moss Chirurgeon:** turn their existing attrition, defense, and support roles into composable ecology-shaped pressures;
+* **Obsidian Crown:** remain a boss fixture for rule interaction rather than a template for inflated statistics.
+
+Authored concept families may also serve as seed grammars:
+
+* **Archive:** an Ink Leech travels marked paths; a Page Wraith becomes visible when marked; a Seal Warden blocks effects until its seal breaks; an Index Moth consumes marks while exposing hidden rules.
+* **Ossuary:** a Bone Chorister empowers nearby remains; a Grave Ox charges down marked lanes; a Rot Apostle punishes staying still; a Marrow Thief steals a Remembered sign.
+* **Foundry:** a Mirror Smith creates reflective terrain; a Charge Eater consumes charged tiles to mend itself; a Delay Imp postpones a visible clause; a Furnace Angel grows through heat.
+* **Crown:** a Debt Collector burdens the next Working; a Null Moth consumes marks and queued effects; a Clause Eater suppresses the first condition; an Inversion Saint reverses one visible local law; a Crown Scribe writes hostile marks beneath every side.
+
+These names are a vocabulary of tactical hypotheses, not a required fixed bestiary. Under the alien-expedition direction, ordinary entities should eventually derive from world laws, morphology, senses, drives, ecology, site history, and bounded behavior atoms. Authored creatures can remain exemplars, anomalies, bosses, and regression fixtures.
+
+**Dependencies:** inspectable intent; counterplay validation; generated capabilities that share the same behavior substrate as clauses, effects, relics, and rules; ecological and material causes for an entity’s presence.
+
+**Validation questions:** Does the entity force a revision rather than a damage race? Can the player state a testable hypothesis about its senses or behavior? Is at least one counterplay axis available in the current expedition? Does its morphology and ecology explain what it can do?
+
+## [Committed principle] Terrain and local grammars must be readable
+
+A region or stratum needs a small, readable grammar, not merely a different tile palette. A useful local grammar combines a material interaction, a mark or Working interaction, a movement consequence, an ecological consequence, and at most a small number of exceptional laws visible through evidence.
+
+The authored environments in the baseline can continue as test fixtures and sources of interaction motifs:
+
+| Motif | Candidate materials and interactions |
+|---|---|
+| Archive | paper, ink, seals, smoke, written marks, heat spreading through shelves, marks carried by ink |
+| Ossuary | bone, remains, roots, rot, thorn growth, grave soil, growth redirected by healing or injury |
+| Foundry | mirrors, charge, molten channels, astral glass, directional paths, visible delayed-effect anchors |
+| Crown | corrupted sigils, debt, reversed marks, black stone, broken circles, local condition inversion |
+
+Future alien strata need not preserve these categories. A generated local grammar may instead concern memory-bearing stone, crystallized intervals, attention flow, directional tissue, shed identity, or another world-defined substance and field.
+
+Procedural generation already exists at the tactical-floor level. Its future value is not “more random rooms”; it is creating coherent magical problems from world laws, ecology, history, route choice, and known counterplay.
+
+Anti-softlock constraints remain essential:
+
+* never require a clause family, sense, material interaction, or remembered sign unavailable to the expedition;
+* provide more than one counterplay axis for required obstacles;
+* distinguish optional mysteries from mandatory route blockers;
+* reject generated combinations that are incoherent, unreadable, or dominated by one universal Working;
+* attach anomalies to observable evidence rather than surprise exceptions.
+
+**Dependencies:** the layered terrain, material, physics, generation, and knowledge systems named by the roadmap; deterministic preview/live parity; generation constraints that query actual expedition capabilities.
+
+**Validation questions:** Can players infer a local rule through repeated evidence? Does terrain change spell construction and route choice? Can a physical interaction reveal knowledge or access, not just deal damage? Do identical seeds and actions reproduce the same cascade?
+
+## [Candidate] Relics and artefacts as rule mutations
+
+Relic ownership, content definitions, hook timing, encounter execution, progression, traces, and deterministic preview support are baseline capabilities. Future relic design should exploit that substrate rather than reduce artefacts to passive statistics.
+
+Candidate families:
+
+* **Cost mutations:** make a narrow clause family cheaper, refund a deliberately constrained Working, or exchange focus for another legible obligation;
+* **Clause mutations:** a push leaves a mark, a ward changes adjacent material, a chill propagates through a known conductor, or a mark reveals an intent;
+* **Risk/reward bargains:** failed conditions create a benefit and a debt, repeated clauses become stronger and unstable, or varied Workings cleanse an accumulated cost;
+* **World-law artefacts:** marks count as a local substance, stone remembers contact, fire refuses a known relation, or a failed condition is reinterpreted once under a visible rule;
+* **Historical artefacts:** a generated relic has an origin process, material, maker or causal predecessor, relationships, inscriptions, and consequences discoverable in play.
+
+The old strange-relic ideas remain useful provocations: forgotten signs exploding into marks, raised stone becoming briefly brittle, wounds changing target classification, or a relic storing the last emitted effect. None is committed content.
+
+**Dependencies:** hook provenance in preview and trace; bounded trigger recursion; the unified content and event models; exploration-led acquisition; generated artefact history where applicable.
+
+**Validation questions:** Does the relic change how a Working is written or how a world is investigated? Can the player see exactly when it intervened? Does it create several viable constructions rather than one compulsory combo? Can mods reproduce its shape without bespoke engine code?
+
+## [Candidate] Ritual encounters
+
+A boss and a complete run already exist. A future ritual encounter should be a legible rule system, not merely a large enemy.
+
+Candidate encounter verbs include:
+
+* reveal a true target through heat, smoke, marks, observation, or material transitions;
+* break, preserve, or rewrite seals in an inferred causal order;
+* contain or redirect growth without treating every living thing as a target to kill;
+* prevent remains, structures, or fields from sustaining an entity;
+* reflect an effect through visible relations;
+* charge or release anchors in a readable sequence;
+* use an entity’s own effect as part of a solution;
+* survive a temporary local-law inversion;
+* cleanse debt or convert hostile marks;
+* protect evidence, an omen, a specimen, or an escape route while the encounter changes.
+
+Rituals should test the stratum’s learned grammar, permit multiple solutions, reward prior observation, and make Working revision the dramatic centre of the encounter.
+
+**Dependencies:** local rules already introduced through ordinary play; trustworthy preview and causal trace; encounter generation that knows available counterplay; non-combat success and reward states.
+
+**Validation questions:** Did the player solve a system rather than discover an author’s single password? Did earlier exploration materially improve the encounter? Can a failed attempt teach a useful fact without requiring a wiki?
+
+## [Committed principle] Expedition progression follows discovery
+
+The baseline already carries health, rewards, clauses, and relics through a run. The candidate direction is to make those rewards consequences of exploration, evidence, optional risk, and understanding.
+
+Candidate within-expedition rewards:
+
+* a clause or clause-family variation learned from observation;
+* an additional prepared Working option;
+* improved interpretation of a known omen or material;
+* a specimen, artefact, supply, route, relationship, or safe procedure;
+* a named recipe preserved from a successful experiment;
+* a curse, debt, or dangerous tool accepted with informed consent;
+* another remembered sign only if memory has proved useful and legible.
+
+Candidate backgrounds should alter starting grammar and investigative posture rather than merely statistics:
+
+* **Ash Grammarian:** mark and heat interactions;
+* **Stone Binder:** structure and displacement;
+* **Mercy Scribe:** mending, warding, and ally relations;
+* **Mirror-Taught Heretic:** reflection, return, and stronger omen use with visible risk;
+* **Debt-Bound Adept:** controlled overreach paired with repayment grammar.
+
+### [Gated] Across-expedition archive
+
+A persistent archive may retain terminology, observations, specimen records, named Workings, failed theories, and optional starting approaches. It should preserve the history of investigation without converting a newly generated alien reality into solved content.
+
+**Dependency:** persistent world and expedition-event identities, knowledge provenance, saves, and a clear distinction between player knowledge and current-world truth.
+
+**Dependencies:** stable discovery and event identities; explicit novelty and reward-eligibility rules; causal inspection for why a reward became available; and playtest proof that information can feel valuable before large reward pools are authored.
+
+**Validation questions:** Does progression increase expressive and investigative variety more than raw power? Are rewards causally tied to discoveries and stable event IDs? Does a new world still require observation? Can nonviolent and optional discoveries compete with combat rewards?
+
+## [Committed principle] Editing and inspection remain accessible
+
+Deep simulation must not require encyclopedic memory or precise pointer use.
+
+Candidate editing support:
+
+* save, name, duplicate, compare, and restore Workings;
+* undo and redo semantic edits;
+* highlight changed clauses and affected preview steps;
+* filter available clauses by family, relation, known interaction, or provenance;
+* warn when no execution path can affect the known world;
+* switch among circle, structured text, and debug graph projections;
+* support keyboard-only and controller-first construction.
+
+Candidate accessibility support:
+
+* icon shapes that remain distinct without colour;
+* complete text alternatives for glyphs, traces, intents, and local laws;
+* adjustable animation speed and reduced-motion execution;
+* reduced visual noise, large tooltip, and scalable text modes;
+* persistent focus order and no hover-only information;
+* concise and expanded causal summaries;
+* exportable plain-language Working descriptions;
+* search, filters, comparisons, and progressive disclosure for expedition knowledge.
+
+**Dependencies:** semantic UI actions independent of a particular visual projection; centralized terminology and text; input and focus testing; provenance rich enough to summarize; and, for saved or restored Workings, versioned persistence, migrations, and content-compatibility diagnostics.
+
+**Validation questions:** Can the complete Working workflow be performed without colour, hover, drag-and-drop, or fast animation? Do advanced inspection tools reduce memory burden without revealing unknown facts? Can players choose the amount of detail they need?
+
+## [Candidate] Narrative, visual, and audio identity
+
+Narrative should reinforce exact systems: magic as literal agreement, ruins as hostile dialects, failure as misworded intent, and understanding as power.
+
+Candidate lore surfaces include clause descriptions, specimen notes, ecology observations, inscriptions, ritual fragments, recipe names, background memories, proving-circle commentary, post-expedition archives, and causal chronicles projected from world events.
+
+Candidate visual principles:
+
+* bright ritual geometry against restrained, readable environments;
+* faction, owner, or relation marks differentiated by shape as well as colour;
+* strong silhouettes and telegraphs for observed capabilities;
+* region- or world-specific scripts derived from a shared readable grammar;
+* execution paths and affected state visible at board scale;
+* unknown, hypothesised, and confirmed knowledge visually distinct without implying that unknown means random.
+
+Candidate audio principles:
+
+* clause-family motifs that layer across a Working;
+* distinct sounds for failed conditions, uncertainty, intervention, and backlash;
+* enemy-intent warnings linked to observed senses or capabilities;
+* successful revision and discovery cues, not only damage confirmation;
+* ambience that expresses the current world’s material and causal rules.
+
+**Dependencies:** stable semantic events and content provenance; accessibility alternatives for all audio/visual information; generated presentation constrained enough to remain recognizable.
+
+**Validation questions:** Can players hear or see a causal family before reading its details? Does presentation clarify grammar rather than decorate it? Can generated alien variation remain coherent and accessible?
 
 ---
 
-# 16. Long-Term Experimental Ideas
+# 5. Experimental Shelf
 
-These are risky. Do not build until the core game is stable.
+## [Experimental] High-risk Working and world interactions
 
-* enemies that partially rewrite the player’s Working;
-* corrupted clauses with double meanings;
-* player-created named recipes appearing as loot/lore;
-* region dialects that rename clauses but preserve mechanics;
-* multiple simultaneous local rules;
-* spell duels where enemy and player Workings interact;
+These ideas may reveal useful mechanics, but each can damage legibility, determinism, or player ownership. They should remain isolated prototypes until evidence promotes them:
+
+* entities that partially rewrite a Working while preserving a clear before/after account;
+* corrupted clauses with two learnable meanings;
+* spell duels in which bounded player and entity Workings interact;
 * rituals that require non-damaging Workings;
-* optional hidden rules for expert players;
-* asynchronous traps triggered by saved Workings;
-* ally mages with their own Working grammar;
-* draft mode where the player edits during enemy telegraphs;
-* procedural grammar curses that alter syntax;
-* late-game bosses that attack the omen trace itself.
+* asynchronous traps attached to a saved Working;
+* ally entities with their own small ritual grammar;
+* editing during a visible enemy telegraph;
+* generated dialect constraints or curses that alter syntax;
+* entities that interfere with omen fidelity in a way the player can detect and counter;
+* local laws that rename familiar clauses while preserving inspectable semantics;
+* player-created named recipes appearing later as lore, evidence, or transmitted knowledge;
+* simultaneous local rules only when their combined causal chain remains readable;
+* hidden laws for expert play only when evidence can reliably reveal them;
+* alien agencies that learn, steal, forbid, or mutate observed Workings.
+
+**Dependencies:** strong causal inspection, strict graph and hook budgets, replayable simulation, knowledge provenance, and a baseline that remains understandable when the experiment is absent.
+
+**Validation questions:** Can players distinguish deliberate interference from a bug? Does the experiment create a new hypothesis and counterplay axis? Can it be removed without invalidating ordinary content? Does preview communicate the limits of what it knows?
 
 ---
 
-# 17. Promotion Rule
+# 6. Superseded Assumptions
 
-A future feature may become active scope only if it satisfies at least one:
+## [Superseded] This file as a build plan
 
-* makes spell-writing more expressive;
-* makes spell debugging clearer;
-* gives enemies a better way to pressure spell choices;
-* makes terrain more meaningfully writable/readable;
-* improves replayability without increasing confusion;
-* strengthens the magical-pseudocode fantasy;
-* improves spell-circle readability;
-* supports clean JSON serialization or validation.
+Ordered phases, “immediate next” lists, and content targets do not belong here. The roadmap owns them.
 
-If it only adds content, stats, lore, or complexity, defer it.
+## [Superseded] Baseline systems described as future prerequisites
+
+The project no longer needs to postpone all design discussion until procedural floors, a complete run, Working JSON validation, progression, a boss, or relic hooks first exist. They exist. The open question is how well they support the north star and how they evolve under the roadmap’s systemic program.
+
+## [Superseded] A fixed four-region campaign as the final destination
+
+Archive, Ossuary, Foundry, and Crown concepts remain useful authored fixtures and motif banks. They are not a mandatory sequence for every future campaign. The north star is generated alien realities with their own ontologies, substances, ecologies, histories, and magical dialects.
+
+## [Superseded] Procedural generation as room arrangement alone
+
+Connected tactical floors are baseline. The meaningful frontier is coherent causal generation: laws shaping materials, ecologies, entities, sites, discoveries, and tactical problems.
+
+## [Superseded] Floor completion and kills as the primary reward source
+
+The current reward screen may remain a pacing fixture. Long-term reward value should derive from what the expedition explored, risked, recovered, changed, and learned.
+
+## [Superseded] More clauses as the main source of scale
+
+The clause library should grow cautiously. Most variety should come from relationships among laws, substances, senses, behaviors, entities, histories, sites, and existing clauses.
+
+## [Superseded] Unconditional direct damage as a universal verb
+
+An aim followed by an always-valid damage clause undermines improvisation and tends toward a dominant Working. Direct harm must instead be earned through readable encounter state, setup, and interaction.
 
 ---
 
-# 18. Current Recommended Build Order
+# 7. Non-Goals
 
-## Phase 1 — Prove Current Loop
+## [Committed principle] Things this project is not trying to become
 
-* tighten graph editor;
-* improve trace readability;
-* make preview clearer;
-* add invalid-target warnings;
-* make current sample Workings feel good;
-* improve enemy intent display;
-* add a few hand-authored challenge rooms.
+* unrestricted visual programming with fantasy terminology;
+* long Workings whose complexity substitutes for world depth;
+* opaque randomness presented as alien mystery;
+* a conventional fantasy bestiary with generated names and stat rolls;
+* a kill-everything reward economy;
+* a generic sanity meter or arbitrary “incomprehensible” effects;
+* a catalogue of stat-only relics, enemies, or upgrades;
+* unconditional direct damage hidden behind a target selector or automatic resource cost;
+* hidden trigger stacks, unbounded loops, or timers the player cannot inspect;
+* a spell-circle renderer that becomes the semantic source of truth;
+* a simulation whose detail never affects decisions, evidence, exploration, or causal storytelling;
+* a fixed authored content sequence masquerading as systemic replayability;
+* mod support, validation, accessibility, explainability, determinism, or save compatibility deferred until after content production;
+* this idea bank being treated as permission to bypass roadmap gates.
 
-## Phase 2 — Strengthen Tactical Pressure
+---
 
-* make enemies force spell revision;
-* make floor rules matter;
-* add one or two terrain interactions;
-* add one more enemy per grammar role;
-* keep Workings short.
+# 8. Idea Admission and Promotion
 
-## Phase 3 — Serialization
+## [Committed principle] Admission test
 
-* define Working JSON schema;
-* export/import Workings;
-* separate semantic data from layout data;
-* validate shared Workings;
-* auto-layout imported Workings.
+An idea belongs in this file only if it materially strengthens at least one of these:
 
-## Phase 4 — Spell Circle Renderer
+* readable Working construction;
+* preview, trace, or causal understanding;
+* enemy, terrain, or world-law pressure on spell choices;
+* contextual setup for harm without unconditional direct damage;
+* expeditionary observation and hypothesis testing;
+* exploration-led reward and persistent consequence;
+* coherent alien world generation;
+* accessibility, sharing, modding, validation, or determinism;
+* ritual fantasy without sacrificing semantic clarity.
 
-* render existing Workings as circles;
-* make glyphs hoverable;
-* animate omen trace through the circle;
-* preserve text mode;
-* keep graph editor as fallback/debug view.
+Every admitted idea should name its status, dependency, and validation question. If it only adds volume, lore, statistics, or complexity, it needs a stronger interaction case.
 
-## Phase 5 — Relic Hooks
+## [Committed principle] Promotion test
 
-* wire relic hooks into encounter resolution;
-* make relic effects previewable;
-* add trace lines for relic intervention;
-* add a small set of spell-system relics.
+A candidate becomes committed work only through an explicit roadmap change. Before promotion, ask:
 
-## Phase 6 — Language Expansion
+* What player decision does it create?
+* What existing atoms and systems does it combine?
+* How will preview and trace explain it?
+* What evidence would falsify the idea?
+* What is its execution and cognitive budget?
+* Can generated content and mods use it without a bespoke path?
+* Does it preserve a playable, readable baseline?
 
-* add bounded refrains;
-* add remembered-sign expansion;
-* add trigger clauses;
-* add terrain-region clauses;
-* keep all additions previewable.
-
-## Phase 7 — Regions, Generation, Rituals
-
-* build one complete region grammar;
-* build hand-authored ritual encounters;
-* then add procedural generation;
-* then add long-term experimental systems.
-
-Build in this order unless playtests prove a different bottleneck.
+Ideas that fail those questions should be narrowed, returned to experimental status, or marked superseded rather than left as ambiguous promises.

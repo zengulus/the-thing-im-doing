@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "encounters": [
+    {
+      "id": "encounter.ashen_threshold",
+      "displayNameKey": "encounters.ashen_threshold.name",
+      "environmentId": "environment.ashen_archive",
+      "gridWidth": 6,
+      "gridHeight": 5,
+      "playerStart": { "x": 1, "y": 2 },
+      "enemies": [
+        { "enemyId": "enemy.glass_hound", "x": 4, "y": 2 }
+      ],
+      "tiles": [
+        { "x": 3, "y": 1, "state": "Wall" },
+        { "x": 3, "y": 3, "state": "Wall" }
+      ],
+      "isFinal": false,
+      "rewardAmount": 2,
+      "tags": [ "intro", "push" ],
+      "generation": {
+        "seed": 1101,
+        "width": 32,
+        "height": 24,
+        "roomCount": 8,
+        "enemyCount": 4,
+        "minRoomWidth": 4,
+        "minRoomHeight": 4,
+        "maxRoomWidth": 7,
+        "maxRoomHeight": 7,
+        "corridorWidth": 1,
+        "extraConnectionPercent": 12,
+        "terrainVariationPercent": 14,
+        "terrainStates": [ "Wall", "RaisedStone" ]
+      }
+    },
+    {
+      "id": "encounter.echoing_causeway",
+      "displayNameKey": "encounters.echoing_causeway.name",
+      "environmentId": "environment.echoing_foundry",
+      "gridWidth": 7,
+      "gridHeight": 5,
+      "playerStart": { "x": 1, "y": 2 },
+      "enemies": [
+        { "enemyId": "enemy.iron_pilgrim", "x": 5, "y": 2 },
+        { "enemyId": "enemy.glass_hound", "x": 5, "y": 4 }
+      ],
+      "tiles": [
+        { "x": 3, "y": 1, "state": "RaisedStone" },
+        { "x": 3, "y": 3, "state": "Wall" },
+        { "x": 4, "y": 1, "state": "Wall" }
+      ],
+      "isFinal": false,
+      "rewardAmount": 2,
+      "tags": [ "echo", "armored" ],
+      "generation": {
+        "seed": 2202,
+        "width": 36,
+        "height": 26,
+        "roomCount": 10,
+        "enemyCount": 6,
+        "minRoomWidth": 4,
+        "minRoomHeight": 4,
+        "maxRoomWidth": 8,
+        "maxRoomHeight": 7,
+        "corridorWidth": 1,
+        "extraConnectionPercent": 16,
+        "terrainVariationPercent": 18,
+        "terrainStates": [ "Wall", "RaisedStone" ]
+      }
+    },
+    {
+      "id": "encounter.verdant_choir",
+      "displayNameKey": "encounters.verdant_choir.name",
+      "environmentId": "environment.verdant_ossuary",
+      "gridWidth": 8,
+      "gridHeight": 6,
+      "playerStart": { "x": 1, "y": 1 },
+      "enemies": [
+        { "enemyId": "enemy.spore_cantor", "x": 6, "y": 1 },
+        { "enemyId": "enemy.moss_chirurgeon", "x": 6, "y": 4 },
+        { "enemyId": "enemy.root_saint", "x": 2, "y": 4 }
+      ],
+      "tiles": [
+        { "x": 3, "y": 2, "state": "Wall" },
+        { "x": 3, "y": 3, "state": "RaisedStone" },
+        { "x": 4, "y": 2, "state": "RaisedStone" },
+        { "x": 5, "y": 3, "state": "Wall" }
+      ],
+      "isFinal": false,
+      "rewardAmount": 2,
+      "tags": [ "growth", "attrition", "support" ],
+      "generation": {
+        "seed": 3303,
+        "width": 40,
+        "height": 28,
+        "roomCount": 12,
+        "enemyCount": 7,
+        "minRoomWidth": 4,
+        "minRoomHeight": 4,
+        "maxRoomWidth": 8,
+        "maxRoomHeight": 8,
+        "corridorWidth": 2,
+        "extraConnectionPercent": 18,
+        "terrainVariationPercent": 22,
+        "terrainStates": [ "Wall", "RaisedStone" ]
+      }
+    },
+    {
+      "id": "encounter.obsidian_approach",
+      "displayNameKey": "encounters.obsidian_approach.name",
+      "environmentId": "environment.obsidian_sanctum",
+      "gridWidth": 8,
+      "gridHeight": 6,
+      "playerStart": { "x": 1, "y": 3 },
+      "enemies": [
+        { "enemyId": "enemy.iron_pilgrim", "x": 6, "y": 3 },
+        { "enemyId": "enemy.ash_scribe", "x": 5, "y": 1 },
+        { "enemyId": "enemy.spore_cantor", "x": 5, "y": 5 }
+      ],
+      "tiles": [
+        { "x": 3, "y": 1, "state": "Wall" },
+        { "x": 3, "y": 2, "state": "RaisedStone" },
+        { "x": 3, "y": 4, "state": "RaisedStone" },
+        { "x": 3, "y": 5, "state": "Wall" }
+      ],
+      "isFinal": false,
+      "rewardAmount": 2,
+      "tags": [ "obsidian", "mixed" ],
+      "generation": {
+        "seed": 4404,
+        "width": 44,
+        "height": 30,
+        "roomCount": 14,
+        "enemyCount": 8,
+        "minRoomWidth": 4,
+        "minRoomHeight": 4,
+        "maxRoomWidth": 8,
+        "maxRoomHeight": 8,
+        "corridorWidth": 2,
+        "extraConnectionPercent": 20,
+        "terrainVariationPercent": 24,
+        "terrainStates": [ "Wall", "RaisedStone" ]
+      }
+    },
+    {
+      "id": "encounter.obsidian_crown",
+      "displayNameKey": "encounters.obsidian_crown.name",
+      "environmentId": "environment.obsidian_sanctum",
+      "gridWidth": 9,
+      "gridHeight": 7,
+      "playerStart": { "x": 1, "y": 3 },
+      "enemies": [
+        { "enemyId": "enemy.obsidian_crown", "x": 7, "y": 3 },
+        { "enemyId": "enemy.iron_pilgrim", "x": 6, "y": 1 },
+        { "enemyId": "enemy.moss_chirurgeon", "x": 6, "y": 5 }
+      ],
+      "tiles": [
+        { "x": 3, "y": 1, "state": "Wall" },
+        { "x": 3, "y": 5, "state": "Wall" },
+        { "x": 4, "y": 2, "state": "RaisedStone" },
+        { "x": 4, "y": 4, "state": "RaisedStone" },
+        { "x": 5, "y": 3, "state": "Wall" }
+      ],
+      "isFinal": true,
+      "rewardAmount": 3,
+      "tags": [ "final", "boss", "obsidian" ],
+      "generation": {
+        "seed": 5505,
+        "width": 48,
+        "height": 32,
+        "roomCount": 16,
+        "enemyCount": 10,
+        "minRoomWidth": 4,
+        "minRoomHeight": 4,
+        "maxRoomWidth": 9,
+        "maxRoomHeight": 8,
+        "corridorWidth": 2,
+        "extraConnectionPercent": 24,
+        "terrainVariationPercent": 28,
+        "terrainStates": [ "Wall", "RaisedStone" ]
+      }
+    }
+  ]
+}

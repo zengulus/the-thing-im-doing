@@ -15,10 +15,14 @@ public partial class SpellGraphEditorControl : Control
     private readonly Dictionary<int, PanelContainer> _nodeCards = new();
     private readonly Dictionary<int, bool> _draggingByNode = new();
     private readonly Dictionary<int, Vector2> _dragOffsetsByNode = new();
+    private readonly HashSet<int> _visitedTraceNodeIds = new();
+    private readonly HashSet<(int Source, int Target)> _visitedTraceEdges = new();
     private Working? _working;
     private PendingConnection? _pendingConnection;
+    private int? _activeTraceNodeId;
 
-    [Export(PropertyHint.Range, "1,24,1")] public int MaxNodeCount { get; set; } = 7;
+    [Export(PropertyHint.Range, "1,24,1")]
+    public int MaxNodeCount { get; set; } = WorkingValidator.MaxNodeCount;
 
     public event Action? GraphChanged;
 
@@ -42,6 +46,11 @@ public partial class SpellGraphEditorControl : Control
 
         foreach (WorkingNode node in _working.Nodes)
         {
+            DrawNodeTraceState(node);
+        }
+
+        foreach (WorkingNode node in _working.Nodes)
+        {
             DrawConnection(node, WorkingOutputPort.Next, new Color(0.48f, 0.68f, 0.95f));
             DrawConnection(node, WorkingOutputPort.True, new Color(0.36f, 0.82f, 0.50f));
             DrawConnection(node, WorkingOutputPort.False, new Color(0.92f, 0.42f, 0.38f));
@@ -61,7 +70,33 @@ public partial class SpellGraphEditorControl : Control
     {
         _working = working;
         _pendingConnection = null;
+        ClearTraceProgress();
         RebuildNodeCards();
+        QueueRedraw();
+    }
+
+    public void SetTraceProgress(OmenTrace trace, int visibleSteps)
+    {
+        ClearTraceProgress();
+
+        int? previousNodeId = null;
+
+        foreach (int nodeId in trace.Events
+                     .Take(Math.Max(0, visibleSteps))
+                     .Where(traceEvent => traceEvent.WorkingNodeId.HasValue)
+                     .Select(traceEvent => traceEvent.WorkingNodeId!.Value))
+        {
+            _visitedTraceNodeIds.Add(nodeId);
+            _activeTraceNodeId = nodeId;
+
+            if (previousNodeId.HasValue && previousNodeId.Value != nodeId)
+            {
+                _visitedTraceEdges.Add((previousNodeId.Value, nodeId));
+            }
+
+            previousNodeId = nodeId;
+        }
+
         QueueRedraw();
     }
 
@@ -78,6 +113,11 @@ public partial class SpellGraphEditorControl : Control
         }
 
         if (_working.Nodes.Count >= MaxNodeCount)
+        {
+            return;
+        }
+
+        if (_working.Nodes.Any(node => node.ClauseId == clauseId))
         {
             return;
         }
@@ -335,7 +375,38 @@ public partial class SpellGraphEditorControl : Control
         Vector2 end = GetInputPosition(target);
         Vector2 controlA = start + new Vector2(44, 0);
         Vector2 controlB = end - new Vector2(44, 0);
-        DrawPolyline(GetBezierPoints(start, controlA, controlB, end), color, width: 3.0f);
+        bool wasTraversed = _visitedTraceEdges.Contains((source.Id, target.Id));
+        Color drawColor = wasTraversed ? new Color(1.0f, 0.78f, 0.24f) : color;
+        DrawPolyline(
+            GetBezierPoints(start, controlA, controlB, end),
+            drawColor,
+            width: wasTraversed ? 5.0f : 3.0f);
+    }
+
+    private void DrawNodeTraceState(WorkingNode node)
+    {
+        Rect2 outline = new Rect2(GetNodePosition(node), new Vector2(NodeWidth, NodeHeight)).Grow(3.0f);
+
+        if (_activeTraceNodeId == node.Id)
+        {
+            DrawRect(outline, new Color(1.0f, 0.78f, 0.24f), filled: false, width: 5.0f);
+        }
+        else if (_visitedTraceNodeIds.Contains(node.Id))
+        {
+            DrawRect(outline, new Color(0.36f, 0.72f, 0.96f), filled: false, width: 3.0f);
+        }
+
+        if (_working?.EntryNodeId == node.Id)
+        {
+            DrawCircle(outline.Position + new Vector2(8, 8), 5.0f, new Color(0.76f, 0.52f, 1.0f));
+        }
+    }
+
+    private void ClearTraceProgress()
+    {
+        _visitedTraceNodeIds.Clear();
+        _visitedTraceEdges.Clear();
+        _activeTraceNodeId = null;
     }
 
     private Vector2 GetNodePosition(WorkingNode node)

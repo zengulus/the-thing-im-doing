@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TheThingImDoing.Actors;
 using TheThingImDoing.Core;
@@ -27,6 +28,16 @@ public sealed class EncounterSpellWorld : ISpellWorld
     public bool IsClear(GridPos pos)
     {
         return _encounter.Grid.IsEmpty(pos);
+    }
+
+    public bool IsWithinPerceptionRange(GridPos from, GridPos to, int radius)
+    {
+        return Math.Max(Math.Abs(from.X - to.X), Math.Abs(from.Y - to.Y)) <= radius;
+    }
+
+    public bool HasLineOfSight(GridPos from, GridPos to)
+    {
+        return _encounter.Grid.HasLineOfSight(from, to);
     }
 
     public EncounterActor? GetActor(int actorId)

@@ -37,7 +37,8 @@
       "triggers": [
         { "triggerId": "before_damage", "behaviorId": "behavior.effect.ward_before_damage" }
       ],
-      "counters": [ "counter.stack" ]
+      "counters": [ "counter.stack" ],
+      "maxStacks": 2
     }
   ]
 }

@@ -10,7 +10,7 @@
       "counterCosts": {},
       "counterGains": {},
       "behaviorId": "behavior.clause.aim_at_target",
-      "tags": [ "targeting" ]
+      "tags": [ "targeting", "selected" ]
     },
     {
       "id": "clause.aim_at_nearest_foe",
@@ -167,7 +167,7 @@
       "tooltipKey": "clauses.add_lightning_charge.tooltip",
       "family": "Effect",
       "counterCosts": {},
-      "counterGains": { "counter.bonus.charge": 1 },
+      "counterGains": {},
       "behaviorId": "behavior.clause.add_lightning_charge",
       "tags": [ "counter", "counter.bonus.charge", "effect.lightning_shield" ]
     },

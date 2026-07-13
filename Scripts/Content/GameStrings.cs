@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
 
 namespace TheThingImDoing.Content;
@@ -13,26 +11,36 @@ public static class GameStrings
     private const string UserModsPath = "user://mods";
     private const string ModStringsFileName = "strings.json";
 
+    private static readonly object LoadGate = new();
     private static readonly Dictionary<string, string> Strings = new(StringComparer.Ordinal);
     private static bool _loaded;
 
     public static string Get(string key)
     {
-        EnsureLoaded();
-        return Strings.TryGetValue(key, out string? value) ? value : $"#{key}";
+        lock (LoadGate)
+        {
+            EnsureLoaded();
+            return Strings.TryGetValue(key, out string? value) ? value : $"#{key}";
+        }
     }
 
     public static bool Has(string key)
     {
-        EnsureLoaded();
-        return Strings.ContainsKey(key);
+        lock (LoadGate)
+        {
+            EnsureLoaded();
+            return Strings.ContainsKey(key);
+        }
     }
 
     public static void Reload()
     {
-        _loaded = false;
-        Strings.Clear();
-        EnsureLoaded();
+        lock (LoadGate)
+        {
+            _loaded = false;
+            Strings.Clear();
+            EnsureLoaded();
+        }
     }
 
     private static void EnsureLoaded()
@@ -50,29 +58,15 @@ public static class GameStrings
 
     private static void LoadMods(string modsRoot)
     {
-        string hostModsRoot = ContentJsonLoader.ResolvePath(modsRoot);
-
-        if (!Directory.Exists(hostModsRoot))
+        foreach (string path in ContentFileSystem.GetModFilePaths(modsRoot, ModStringsFileName))
         {
-            return;
-        }
-
-        foreach (string modDirectory in Directory
-                     .GetDirectories(hostModsRoot)
-                     .Select(Path.GetFileName)
-                     .OfType<string>()
-                     .Where(name => !string.IsNullOrWhiteSpace(name) && !name.StartsWith('.'))
-                     .OrderBy(name => name, StringComparer.Ordinal))
-        {
-            LoadStringFile(Path.Combine(hostModsRoot, modDirectory, ModStringsFileName));
+            LoadStringFile(path);
         }
     }
 
     private static void LoadStringFile(string path)
     {
-        string hostPath = ContentJsonLoader.ResolvePath(path);
-
-        if (!File.Exists(hostPath))
+        if (!ContentFileSystem.TryReadAllText(path, out string json))
         {
             return;
         }
@@ -82,7 +76,7 @@ public static class GameStrings
         try
         {
             loadedStrings = JsonSerializer.Deserialize<Dictionary<string, string>>(
-                File.ReadAllText(hostPath));
+                json);
         }
         catch (Exception exception)
         {

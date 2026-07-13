@@ -10,6 +10,8 @@ public interface ISpellWorld
     bool IsInside(GridPos pos);
     bool IsOccupied(GridPos pos);
     bool IsClear(GridPos pos);
+    bool IsWithinPerceptionRange(GridPos from, GridPos to, int radius);
+    bool HasLineOfSight(GridPos from, GridPos to);
 
     EncounterActor? GetActor(int actorId);
     EncounterActor? GetActorAt(GridPos pos);

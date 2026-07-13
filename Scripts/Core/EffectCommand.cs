@@ -42,12 +42,22 @@ public sealed record PreventEventDamageCommand : EffectCommand;
 public readonly record struct EffectCommandResult(
     bool ChangedWorld,
     int CounterValue = 0,
-    EffectInstance? Effect = null)
+    EffectInstance? Effect = null,
+    int DamageApplied = 0,
+    bool DamagePrevented = false)
 {
     public static EffectCommandResult NoChange { get; } = new(false);
 
     public static EffectCommandResult Changed(int counterValue = 0, EffectInstance? effect = null)
     {
         return new EffectCommandResult(true, counterValue, effect);
+    }
+
+    public static EffectCommandResult Damage(bool changedWorld, int appliedAmount, bool prevented)
+    {
+        return new EffectCommandResult(
+            changedWorld,
+            DamageApplied: appliedAmount,
+            DamagePrevented: prevented);
     }
 }

@@ -6,12 +6,23 @@ namespace TheThingImDoing.Spells;
 public sealed class OmenTrace
 {
     private readonly List<OmenTraceEvent> _events = new();
+    private int? _workingNodeId;
 
     public IReadOnlyList<OmenTraceEvent> Events => _events;
 
     public void Add(string text)
     {
-        _events.Add(new OmenTraceEvent(_events.Count + 1, text));
+        _events.Add(new OmenTraceEvent(_events.Count + 1, text, _workingNodeId));
+    }
+
+    public void EnterWorkingNode(int nodeId)
+    {
+        _workingNodeId = nodeId;
+    }
+
+    public void LeaveWorkingNode()
+    {
+        _workingNodeId = null;
     }
 
     public string ToDisplayText()
@@ -19,4 +30,3 @@ public sealed class OmenTrace
         return string.Join("\n", _events.Select(traceEvent => $"{traceEvent.Step}. {traceEvent.Text}"));
     }
 }
-

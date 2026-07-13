@@ -147,6 +147,11 @@ Do not add hidden effects that only appear after real casting unless uncertainty
 * Terrain reactions should be definitions or rule hooks, not hardcoded tile-name checks outside the terrain/rule system.
 * Enemy turns, spell clauses, rule reactions, effect triggers, and relic triggers should all run through the same behavior machine unless there is a strong reason to create a specialized executor.
 * Loot and encounter generation should consume weighted pools from content definitions.
+* Rewards should be tied primarily to exploration events: discovering sites, observing systems, recovering evidence, testing hypotheses, mapping hazards, and reaching optional places.
+* Combat rewards access, safety, evidence, or changed world state. Do not make enemy kills the default repeatable source of progression currency.
+* Information is a valid reward when it materially improves prediction, preview, generation choices, or future expedition planning.
+* Reward eligibility should use stable discovery/event IDs and explicit novelty rules so observations and generated anomalies cannot be farmed indefinitely.
+* End-of-floor reward choices may remain as pacing UI, but their pool and strength should reflect what was explored, recovered, risked, and learned during that floor.
 * The UI should ask registries what exists; it should not maintain its own parallel list of clauses, relics, enemies, or rules.
 * Any code-only prototype shortcut should preserve the eventual data shape.
 
@@ -186,7 +191,7 @@ Behavior code should resolve primitive IDs through the primitive registry before
 
 # 9. Schema and Validation
 
-All JSON content files should include `schemaVersion`.
+All structured JSON content files should include `schemaVersion`. String catalogs are the deliberate exception: `strings.json` is a flat dictionary whose keys and values must both be strings.
 
 Registries and loaders should validate:
 
@@ -302,5 +307,73 @@ A new feature may enter active implementation only if it satisfies at least one:
 * improves spell-circle readability;
 * removes a hardcoded special case;
 * strengthens the magical-pseudocode fantasy.
+* strengthens observation, hypothesis, or discovery within an alien world.
 
 If it only adds content, stats, lore, or complexity, defer it.
+
+---
+
+# 15. Alien World Coherence
+
+Each campaign may generate a different ontology, but generated strangeness must be internally consistent and investigable.
+
+* Generate a small set of deep world laws before generating substances, ecologies, entities, histories, or sites that depend on them.
+* Treat familiar concepts—matter, organism, death, hunger, ownership, faction, linear time, physical distance—as optional world-specific outcomes rather than universal assumptions.
+* Every generated law must expose simulation hooks, observable evidence, and at least one meaningful tactical or exploratory consequence.
+* Alien does not mean random. Equivalent observations under equivalent conditions should support reliable inference.
+* Narrative text, names, codex entries, and visual motifs must project from structured generated facts; they must not invent contradictory lore.
+* Horror should emerge from coherent implications, scale, indifference, and incomplete knowledge. Do not use a generic sanity meter as a substitute for systems.
+* A new campaign must differ structurally, not merely rename the same materials, creatures, factions, and historical events.
+* Preserve uncertainty explicitly. The expedition may store observations and hypotheses without the game falsely confirming hidden truth.
+
+---
+
+# 16. Procedural Entity and Enemy Synthesis
+
+Enemies and other entities should be constructible from the same atomic content foundation as clauses, effects, relics, and rules.
+
+Generated entities must compose:
+
+* persistence model and morphology;
+* components and substances;
+* locomotion or other spatial relation mechanisms;
+* senses and attention rules;
+* drives and target preferences;
+* capabilities and atomic behavior primitives;
+* bounded behavior graphs;
+* effects, counters, vulnerabilities, and state transitions;
+* telegraphs, intent prose, sigils, and inspection text;
+* ecological niche, origin, and historical relationships.
+
+Generation rules:
+
+* Reuse the behavior machine. Do not create a second bespoke procedural-enemy executor.
+* Generated behavior graphs must obey strict step, recursion, and total-work budgets.
+* Morphology, senses, drives, and behavior must agree. A capability needs an explicit mechanism.
+* Every combat-relevant action must have a readable telegraph or a discoverable sensory rule.
+* Every generated enemy must have counterplay available within the campaign's clause and environment pools.
+* Preview, trace, displayed intent, and real resolution must consume the same resolved behavior graph.
+* Reject incoherent, degenerate, impossible, or non-interactive combinations before encounter placement.
+* Assign deterministic run-local species IDs and instance IDs so observations, histories, saves, and replays refer to the same generated entity.
+* Generate novelty from interacting constraints and capabilities, not from arbitrary stat variance.
+* Authored enemies remain valid as exemplars, bosses, seed grammars, and regression fixtures; they must not be the only source of ordinary encounters.
+
+---
+
+# 17. Terrain and Physics
+
+Terrain and physics are content-backed simulation systems, not collections of special cases.
+
+* Do not represent the expanded world as a giant `TileState` enum. Resolve cells from stable-ID layers for topology, substrate, structure, surface, fluid, gas, fields, effects, and occupancy.
+* Base terrain, generated terrain, and mod terrain must use the same definitions, registries, validators, and loading path.
+* Materials and substances own reusable physical properties and state transitions. Systems must query those properties rather than branch on display names or specific terrain IDs.
+* Physical changes must be submitted as typed commands or events to deterministic reducers. Do not scatter direct grid mutations through clauses, enemies, relics, and UI code.
+* Physics is discrete, turn-based, bounded, and grid-oriented. Continuous rigid-body simulation is out of scope unless deliberately introduced behind a separate contract.
+* Collision, force transfer, support, fracture, heat, phase change, fluid/gas flow, pressure, conductivity, and fields must have explicit update order, tie-breaking, and work budgets.
+* Update dirty regions and active boundaries. Do not resimulate every cell every turn when nothing relevant changed.
+* World laws parameterise physical rules such as attraction, conservation, propagation, and observability. Do not hardcode conventional gravity or matter as universal truth.
+* Movement, pathfinding, line of sight, targeting, AI prediction, and inspection must query the same resolved cell properties used by resolution.
+* Preview, omen trace, replay, and live resolution must execute the same reducers against cloned or recorded state.
+* Every transition emits enough typed evidence to explain its cause and support deterministic history, discovery, and debugging.
+* Conserve quantities when the resolved world law requires conservation. Explicitly record creation, destruction, exchange, or transformation when it does not.
+* Physics interactions should support exploration: opening routes, revealing strata, collecting specimens, testing hypotheses, and discovering world laws must feed the exploration reward system.

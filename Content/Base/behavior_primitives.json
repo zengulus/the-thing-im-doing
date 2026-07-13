@@ -26,6 +26,26 @@
       ]
     },
     {
+      "id": "focus.nearest_local_actor",
+      "displayNameKey": "behavior_primitives.focus.nearest_local_actor.name",
+      "descriptionKey": "behavior_primitives.focus.nearest_local_actor.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "focus", "targeting", "relation", "perception" ],
+      "parameters": [
+        { "name": "relation", "type": "relation", "default": "ally" }
+      ]
+    },
+    {
+      "id": "focus.nearest_local_injured_actor",
+      "displayNameKey": "behavior_primitives.focus.nearest_local_injured_actor.name",
+      "descriptionKey": "behavior_primitives.focus.nearest_local_injured_actor.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "focus", "targeting", "relation", "perception", "healing" ],
+      "parameters": [
+        { "name": "relation", "type": "relation", "default": "ally" }
+      ]
+    },
+    {
       "id": "focus.self",
       "displayNameKey": "behavior_primitives.focus.self.name",
       "descriptionKey": "behavior_primitives.focus.self.description",
@@ -84,6 +104,17 @@
       ]
     },
     {
+      "id": "branch.line_of_sight",
+      "displayNameKey": "behavior_primitives.branch.line_of_sight.name",
+      "descriptionKey": "behavior_primitives.branch.line_of_sight.description",
+      "scopes": [ "enemy" ],
+      "tags": [ "branch", "perception" ],
+      "parameters": [
+        { "name": "source", "type": "actor", "default": "self" },
+        { "name": "target", "type": "actor", "required": true }
+      ]
+    },
+    {
       "id": "branch.relation",
       "displayNameKey": "behavior_primitives.branch.relation.name",
       "descriptionKey": "behavior_primitives.branch.relation.description",
@@ -125,7 +156,8 @@
       "parameters": [
         { "name": "target", "type": "counter_target", "required": true },
         { "name": "counter", "type": "counter", "required": true },
-        { "name": "amount", "type": "int", "default": "1" }
+        { "name": "amount", "type": "int", "default": "1" },
+        { "name": "maximum", "type": "int" }
       ]
     },
     {

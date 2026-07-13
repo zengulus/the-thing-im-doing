@@ -42,5 +42,9 @@ public readonly record struct GridPos(int X, int Y)
     {
         return new GridPos(left.X - right.X, left.Y - right.Y);
     }
-}
 
+    public override string ToString()
+    {
+        return $"({X}, {Y})";
+    }
+}

@@ -42,8 +42,7 @@ public partial class HealthComponent : Node
             return;
         }
 
-        CurrentHealth = Math.Min(MaxHealth, CurrentHealth + amount);
+        CurrentHealth = (int)Math.Min(MaxHealth, (long)CurrentHealth + amount);
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
     }
 }
-

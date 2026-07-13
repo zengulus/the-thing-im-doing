@@ -48,6 +48,8 @@ public static class ClauseDefinitionCatalog
     private static ContentValidationResult<ClauseDefinition> Resolve(ClauseContentDefinition content)
     {
         var issues = new List<string>();
+        Dictionary<string, int> counterCosts = content.CounterCosts ?? [];
+        Dictionary<string, int> counterGains = content.CounterGains ?? [];
 
         RequireStringKey(content.DisplayNameKey, nameof(content.DisplayNameKey), issues);
         RequireStringKey(content.PlayerTextKey, nameof(content.PlayerTextKey), issues);
@@ -57,14 +59,16 @@ public static class ClauseDefinitionCatalog
             RequireStringKey(content.TooltipKey, nameof(content.TooltipKey), issues);
         }
 
-        if (!Enum.TryParse(content.Family, ignoreCase: true, out ClauseFamily family))
+        if (!Enum.TryParse(content.Family, ignoreCase: true, out ClauseFamily family)
+            || !Enum.IsDefined(family)
+            || int.TryParse(content.Family, out _))
         {
             issues.Add($"family '{content.Family}' is invalid.");
         }
 
         ValidateBehaviorReference(content.BehaviorId, issues);
-        ValidateCounters(content.CounterCosts, nameof(content.CounterCosts), issues);
-        ValidateCounters(content.CounterGains, nameof(content.CounterGains), issues);
+        ValidateCounters(counterCosts, nameof(content.CounterCosts), issues);
+        ValidateCounters(counterGains, nameof(content.CounterGains), issues);
 
         if (ContentRegistry.HasAnyIssue(issues, out IReadOnlyList<string> issueList))
         {
@@ -72,33 +76,35 @@ public static class ClauseDefinitionCatalog
         }
 
         return ContentRegistry.Valid(new ClauseDefinition(
-            content.Id,
-            content.DisplayNameKey,
-            content.PlayerTextKey,
+            content.Id?.Trim() ?? "",
+            content.DisplayNameKey ?? "",
+            content.PlayerTextKey ?? "",
             family,
-            content.CounterCosts,
-            content.CounterGains,
-            content.TooltipKey,
-            content.BehaviorId,
+            counterCosts,
+            counterGains,
+            content.TooltipKey ?? "",
+            content.BehaviorId ?? "",
             content.IsCondition,
-            content.Tags));
+            (content.Tags ?? []).Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag!).ToArray()));
     }
 
-    private static void RequireStringKey(string key, string field, List<string> issues)
+    private static void RequireStringKey(string? key, string field, List<string> issues)
     {
-        if (!ContentRegistry.HasString(key))
+        if (!ContentRegistry.HasString(key ?? ""))
         {
             issues.Add($"{field} references missing string key '{key}'.");
         }
     }
 
-    private static void ValidateBehaviorReference(string behaviorId, List<string> issues)
+    private static void ValidateBehaviorReference(string? behaviorId, List<string> issues)
     {
-        if (BehaviorDefinitionCatalog.IsDisabled(behaviorId))
+        string id = behaviorId ?? "";
+
+        if (BehaviorDefinitionCatalog.IsDisabled(id))
         {
             issues.Add($"behaviorId references disabled behavior '{behaviorId}'.");
         }
-        else if (!BehaviorDefinitionCatalog.TryGet(behaviorId, out _))
+        else if (!BehaviorDefinitionCatalog.TryGet(id, out _))
         {
             issues.Add($"behaviorId references missing behavior '{behaviorId}'.");
         }
@@ -130,14 +136,14 @@ public static class ClauseDefinitionCatalog
     {
         public string Id { get; set; } = "";
         public string Operation { get; set; } = "";
-        public string DisplayNameKey { get; set; } = "";
-        public string PlayerTextKey { get; set; } = "";
-        public string TooltipKey { get; set; } = "";
-        public string Family { get; set; } = "";
-        public Dictionary<string, int> CounterCosts { get; set; } = [];
-        public Dictionary<string, int> CounterGains { get; set; } = [];
-        public string BehaviorId { get; set; } = "";
+        public string? DisplayNameKey { get; set; } = "";
+        public string? PlayerTextKey { get; set; } = "";
+        public string? TooltipKey { get; set; } = "";
+        public string? Family { get; set; } = "";
+        public Dictionary<string, int>? CounterCosts { get; set; } = [];
+        public Dictionary<string, int>? CounterGains { get; set; } = [];
+        public string? BehaviorId { get; set; } = "";
         public bool IsCondition { get; set; }
-        public List<string> Tags { get; set; } = [];
+        public List<string?>? Tags { get; set; } = [];
     }
 }

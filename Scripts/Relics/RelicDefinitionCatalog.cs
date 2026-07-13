@@ -64,15 +64,25 @@ public static class RelicDefinitionCatalog
     private static ContentValidationResult<RelicDefinition> Resolve(RelicContentDefinition content)
     {
         var issues = new List<string>();
+        RelicHookContentDefinition[] hooks = (content.Hooks ?? [])
+            .OfType<RelicHookContentDefinition>()
+            .ToArray();
 
         RequireStringKey(content.DisplayNameKey, nameof(content.DisplayNameKey), issues);
         RequireStringKey(content.DescriptionKey, nameof(content.DescriptionKey), issues);
 
-        foreach (RelicHookContentDefinition hook in content.Hooks)
+        if ((content.Hooks ?? []).Any(hook => hook == null))
         {
-            if (!KnownTriggers.Contains(hook.Trigger))
+            issues.Add("hooks contains a null hook.");
+        }
+
+        foreach (RelicHookContentDefinition hook in hooks)
+        {
+            string trigger = hook.Trigger ?? "";
+
+            if (!KnownTriggers.Contains(trigger))
             {
-                issues.Add($"hook trigger '{hook.Trigger}' is invalid.");
+                issues.Add($"hook trigger '{trigger}' is invalid.");
             }
 
             ValidateBehaviorReference(hook.BehaviorId, issues);
@@ -84,30 +94,35 @@ public static class RelicDefinitionCatalog
         }
 
         return ContentRegistry.Valid(new RelicDefinition(
-            content.Id,
-            content.DisplayNameKey,
-            content.DescriptionKey,
-            content.Hooks
-                .Select(hook => new RelicHookDefinition(hook.Trigger, hook.BehaviorId, hook.Priority))
+            content.Id?.Trim() ?? "",
+            content.DisplayNameKey ?? "",
+            content.DescriptionKey ?? "",
+            hooks
+                .Select(hook => new RelicHookDefinition(
+                    hook.Trigger ?? "",
+                    hook.BehaviorId ?? "",
+                    hook.Priority))
                 .ToArray(),
-            content.Tags));
+            (content.Tags ?? []).Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag!).ToArray()));
     }
 
-    private static void RequireStringKey(string key, string field, List<string> issues)
+    private static void RequireStringKey(string? key, string field, List<string> issues)
     {
-        if (!ContentRegistry.HasString(key))
+        if (!ContentRegistry.HasString(key ?? ""))
         {
             issues.Add($"{field} references missing string key '{key}'.");
         }
     }
 
-    private static void ValidateBehaviorReference(string behaviorId, List<string> issues)
+    private static void ValidateBehaviorReference(string? behaviorId, List<string> issues)
     {
-        if (BehaviorDefinitionCatalog.IsDisabled(behaviorId))
+        string id = behaviorId ?? "";
+
+        if (BehaviorDefinitionCatalog.IsDisabled(id))
         {
             issues.Add($"behaviorId references disabled behavior '{behaviorId}'.");
         }
-        else if (!BehaviorDefinitionCatalog.TryGet(behaviorId, out _))
+        else if (!BehaviorDefinitionCatalog.TryGet(id, out _))
         {
             issues.Add($"behaviorId references missing behavior '{behaviorId}'.");
         }
@@ -123,16 +138,16 @@ public static class RelicDefinitionCatalog
     {
         public string Id { get; set; } = "";
         public string Operation { get; set; } = "";
-        public string DisplayNameKey { get; set; } = "";
-        public string DescriptionKey { get; set; } = "";
-        public List<RelicHookContentDefinition> Hooks { get; set; } = [];
-        public List<string> Tags { get; set; } = [];
+        public string? DisplayNameKey { get; set; } = "";
+        public string? DescriptionKey { get; set; } = "";
+        public List<RelicHookContentDefinition?>? Hooks { get; set; } = [];
+        public List<string?>? Tags { get; set; } = [];
     }
 
     private sealed class RelicHookContentDefinition
     {
-        public string Trigger { get; set; } = "";
-        public string BehaviorId { get; set; } = "";
+        public string? Trigger { get; set; } = "";
+        public string? BehaviorId { get; set; } = "";
         public int Priority { get; set; }
     }
 }

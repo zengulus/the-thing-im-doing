@@ -11,6 +11,7 @@ public sealed record BehaviorStepDefinition(
     int? True,
     int? False,
     int? Amount,
+    int? Maximum,
     string Counter,
     string Effect,
     string Relation,

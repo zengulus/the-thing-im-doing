@@ -18,6 +18,12 @@ public sealed class WorkingContext
     public IReadOnlyDictionary<string, int> CounterCosts => _counterCosts;
     public IReadOnlyDictionary<string, int> CounterGains => _counterGains;
     public int CostAdjustment { get; private set; }
+    public string? FailureReason { get; private set; }
+
+    public void Fail(string reason)
+    {
+        FailureReason ??= reason;
+    }
 
     public void StoreReference(string refId)
     {

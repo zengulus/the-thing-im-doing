@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "environments": [
+    {
+      "id": "environment.ashen_archive",
+      "displayNameKey": "environments.ashen_archive.name",
+      "descriptionKey": "environments.ashen_archive.description",
+      "floorRuleId": "rule.brittle_stone",
+      "backgroundColorHex": "#12141A",
+      "gridColorHex": "#4D5563",
+      "tags": [ "archive", "stone" ]
+    },
+    {
+      "id": "environment.echoing_foundry",
+      "displayNameKey": "environments.echoing_foundry.name",
+      "descriptionKey": "environments.echoing_foundry.description",
+      "floorRuleId": "rule.echoing_steps",
+      "backgroundColorHex": "#17130F",
+      "gridColorHex": "#80684F",
+      "tags": [ "foundry", "echo" ]
+    },
+    {
+      "id": "environment.verdant_ossuary",
+      "displayNameKey": "environments.verdant_ossuary.name",
+      "descriptionKey": "environments.verdant_ossuary.description",
+      "floorRuleId": "rule.verdant_pulse",
+      "backgroundColorHex": "#0F1812",
+      "gridColorHex": "#4F7859",
+      "tags": [ "ossuary", "growth" ]
+    },
+    {
+      "id": "environment.obsidian_sanctum",
+      "displayNameKey": "environments.obsidian_sanctum.name",
+      "descriptionKey": "environments.obsidian_sanctum.description",
+      "floorRuleId": "rule.obsidian_resonance",
+      "backgroundColorHex": "#100D18",
+      "gridColorHex": "#67547F",
+      "tags": [ "sanctum", "obsidian", "boss" ]
+    }
+  ]
+}

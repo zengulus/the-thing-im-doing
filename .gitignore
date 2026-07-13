@@ -1,11 +1,14 @@
 # Godot 4
 .godot/
-export_presets.cfg
+Builds/
 
 # Godot C# / .NET
 .mono/
 bin/
 obj/
+TestResults/
+*.dmp
+Tests/**/*.cs.uid
 
 # IDEs and local machine state
 .vscode/
@@ -15,4 +18,3 @@ obj/
 # OS files
 .DS_Store
 Thumbs.db
-

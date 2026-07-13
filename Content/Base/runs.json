@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "runs": [
+    {
+      "id": "run.ashen_archive",
+      "displayNameKey": "runs.ashen_archive.name",
+      "encounterIds": [
+        "encounter.ashen_threshold",
+        "encounter.echoing_causeway",
+        "encounter.verdant_choir",
+        "encounter.obsidian_approach",
+        "encounter.obsidian_crown"
+      ],
+      "tags": [ "complete", "compact" ]
+    }
+  ]
+}

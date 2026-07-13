@@ -1,5 +1,15 @@
 # Codex Build Brief — Magic Glyph Roguelike Prototype
 
+## Implemented Game Scope
+
+The original milestone brief below began as a one-room prototype plan. The current build supersedes that scope with a finishable procedural tactics roguelike while retaining the same readable-Working constraints. The long-term direction is expeditionary xenology: each campaign enters a generated alien reality with its own learnable ontology, ecology, history, substances, and procedurally assembled entities. See [roadmap.md](roadmap.md).
+
+The run is assembled atomically from JSON definitions: behavior primitives form behavior graphs; graphs power clauses, enemies, effects, relics, and local rules; encounter templates seed large connected room-and-corridor maps; encounters pair with themed environments; and five increasingly expansive floors form the complete Ashen Archive run. Player health and chosen rewards carry between floors, advanced clauses unlock during the run, and the final Obsidian Crown encounter ends in an explicit victory state. The current floor-clear reward screen is a baseline pacing mechanism; the long-term reward economy is driven by exploration, observation, recovered evidence, optional risk, and confirmed understanding rather than kills. The current small `TileState` model is also only a baseline: the roadmap replaces it with layered terrain, composable substances, and deterministic turn-based physics shared by preview and live resolution. Graphics remain placeholders by design.
+
+Exploration uses fog of war and a following camera. Walls and raised stone block sight. Enemies remain dormant at long distance, become alerted through player sight, damage, or sight of nearby alerted allies, and only execute full behavior inside a viewport-sized engagement radius. This keeps simulation cost bounded without making distant actors omniscient.
+
+The historical prototype brief below is retained as design lineage, not as the active scope restriction.
+
 ## Project Goal
 
 Build a Godot C# prototype for a turn-based tactics roguelike where spells are written as compact magical pseudocode.

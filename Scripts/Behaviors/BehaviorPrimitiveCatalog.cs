@@ -68,11 +68,19 @@ public static class BehaviorPrimitiveCatalog
     private static ContentValidationResult<BehaviorPrimitiveDefinition> Resolve(BehaviorPrimitiveContentDefinition content)
     {
         var issues = new List<string>();
+        BehaviorPrimitiveParameterContentDefinition[] parameters = (content.Parameters ?? [])
+            .OfType<BehaviorPrimitiveParameterContentDefinition>()
+            .ToArray();
 
         RequireStringKey(content.DisplayNameKey, nameof(content.DisplayNameKey), issues);
         RequireStringKey(content.DescriptionKey, nameof(content.DescriptionKey), issues);
 
-        foreach (BehaviorPrimitiveParameterContentDefinition parameter in content.Parameters)
+        if ((content.Parameters ?? []).Any(parameter => parameter == null))
+        {
+            issues.Add("parameters contains a null parameter.");
+        }
+
+        foreach (BehaviorPrimitiveParameterContentDefinition parameter in parameters)
         {
             if (string.IsNullOrWhiteSpace(parameter.Name))
             {
@@ -98,25 +106,28 @@ public static class BehaviorPrimitiveCatalog
         }
 
         return ContentRegistry.Valid(new BehaviorPrimitiveDefinition(
-            content.Id,
-            content.DisplayNameKey,
-            content.DescriptionKey,
+            content.Id?.Trim() ?? "",
+            content.DisplayNameKey ?? "",
+            content.DescriptionKey ?? "",
             string.IsNullOrWhiteSpace(content.BehaviorId) ? null : content.BehaviorId,
-            content.Scopes,
-            content.Tags,
-            content.Parameters
+            (content.Scopes ?? []).Where(scope => !string.IsNullOrWhiteSpace(scope)).Select(scope => scope!).ToArray(),
+            (content.Tags ?? []).Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag!).ToArray(),
+            parameters
                 .Select(parameter => new BehaviorPrimitiveParameterDefinition(
-                    parameter.Name,
-                    parameter.Type,
+                    parameter.Name ?? "",
+                    parameter.Type ?? "",
                     parameter.Required,
-                    parameter.Default,
-                    parameter.AllowedValues))
+                    parameter.Default ?? "",
+                    (parameter.AllowedValues ?? [])
+                        .Where(value => !string.IsNullOrWhiteSpace(value))
+                        .Select(value => value!)
+                        .ToArray()))
                 .ToArray()));
     }
 
-    private static void RequireStringKey(string key, string field, List<string> issues)
+    private static void RequireStringKey(string? key, string field, List<string> issues)
     {
-        if (!ContentRegistry.HasString(key))
+        if (!ContentRegistry.HasString(key ?? ""))
         {
             issues.Add($"{field} references missing string key '{key}'.");
         }
@@ -125,27 +136,27 @@ public static class BehaviorPrimitiveCatalog
     private sealed class BehaviorPrimitiveContentFile : IContentFile
     {
         public int SchemaVersion { get; set; }
-        public List<BehaviorPrimitiveContentDefinition> Primitives { get; set; } = [];
+        public List<BehaviorPrimitiveContentDefinition>? Primitives { get; set; } = [];
     }
 
     private sealed class BehaviorPrimitiveContentDefinition : IContentDefinition
     {
         public string Id { get; set; } = "";
         public string Operation { get; set; } = "";
-        public string DisplayNameKey { get; set; } = "";
-        public string DescriptionKey { get; set; } = "";
+        public string? DisplayNameKey { get; set; } = "";
+        public string? DescriptionKey { get; set; } = "";
         public string? BehaviorId { get; set; }
-        public List<string> Scopes { get; set; } = [];
-        public List<string> Tags { get; set; } = [];
-        public List<BehaviorPrimitiveParameterContentDefinition> Parameters { get; set; } = [];
+        public List<string?>? Scopes { get; set; } = [];
+        public List<string?>? Tags { get; set; } = [];
+        public List<BehaviorPrimitiveParameterContentDefinition?>? Parameters { get; set; } = [];
     }
 
     private sealed class BehaviorPrimitiveParameterContentDefinition
     {
-        public string Name { get; set; } = "";
-        public string Type { get; set; } = "";
+        public string? Name { get; set; } = "";
+        public string? Type { get; set; } = "";
         public bool Required { get; set; }
-        public string Default { get; set; } = "";
-        public List<string> AllowedValues { get; set; } = [];
+        public string? Default { get; set; } = "";
+        public List<string?>? AllowedValues { get; set; } = [];
     }
 }

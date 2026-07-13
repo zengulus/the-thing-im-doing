@@ -12,6 +12,42 @@
         }
       ],
       "tags": [ "terrain", "push" ]
+    },
+    {
+      "id": "rule.echoing_steps",
+      "displayNameKey": "rules.echoing_steps.name",
+      "descriptionKey": "rules.echoing_steps.description",
+      "hooks": [
+        {
+          "trigger": "after_move",
+          "behaviorId": "behavior.rule.echoing_steps_after_move"
+        }
+      ],
+      "tags": [ "movement", "marks" ]
+    },
+    {
+      "id": "rule.verdant_pulse",
+      "displayNameKey": "rules.verdant_pulse.name",
+      "descriptionKey": "rules.verdant_pulse.description",
+      "hooks": [
+        {
+          "trigger": "after_spell_resolved",
+          "behaviorId": "behavior.rule.verdant_pulse_after_spell"
+        }
+      ],
+      "tags": [ "spell", "healing" ]
+    },
+    {
+      "id": "rule.obsidian_resonance",
+      "displayNameKey": "rules.obsidian_resonance.name",
+      "descriptionKey": "rules.obsidian_resonance.description",
+      "hooks": [
+        {
+          "trigger": "after_spell_resolved",
+          "behaviorId": "behavior.rule.obsidian_resonance_after_spell"
+        }
+      ],
+      "tags": [ "capstone", "spell", "risk", "ward" ]
     }
   ]
 }

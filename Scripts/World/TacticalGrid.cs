@@ -62,6 +62,65 @@ public sealed class TacticalGrid
         return IsInside(position) && !IsBlocked(position) && !IsOccupied(position);
     }
 
+    public bool HasLineOfSight(GridPos from, GridPos to)
+    {
+        if (!IsInside(from) || !IsInside(to))
+        {
+            return false;
+        }
+
+        int x = from.X;
+        int y = from.Y;
+        int deltaX = Math.Abs(to.X - from.X);
+        int deltaY = Math.Abs(to.Y - from.Y);
+        int stepX = from.X < to.X ? 1 : -1;
+        int stepY = from.Y < to.Y ? 1 : -1;
+        int traversedX = 0;
+        int traversedY = 0;
+
+        while (traversedX < deltaX || traversedY < deltaY)
+        {
+            int decision = (1 + 2 * traversedX) * deltaY
+                - (1 + 2 * traversedY) * deltaX;
+
+            if (decision == 0)
+            {
+                GridPos horizontalNeighbor = new(x + stepX, y);
+                GridPos verticalNeighbor = new(x, y + stepY);
+
+                if (GetTile(horizontalNeighbor).IsBlocking()
+                    && GetTile(verticalNeighbor).IsBlocking())
+                {
+                    return false;
+                }
+
+                x += stepX;
+                y += stepY;
+                traversedX++;
+                traversedY++;
+            }
+            else if (decision < 0)
+            {
+                x += stepX;
+                traversedX++;
+            }
+            else
+            {
+                y += stepY;
+                traversedY++;
+            }
+
+            var position = new GridPos(x, y);
+
+            if (position != to && GetTile(position).IsBlocking())
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public TileOccupancy GetOccupancy(GridPos position)
     {
         return _actorsByPosition.TryGetValue(position, out int actorId)

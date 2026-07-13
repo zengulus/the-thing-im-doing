@@ -1,9 +1,10 @@
-<Project Sdk="Godot.NET.Sdk/4.4.1">
+<Project Sdk="Godot.NET.Sdk/4.7.0">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>TheThingImDoing</AssemblyName>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <Nullable>enable</Nullable>
+    <GodotProjectDir>$(MSBuildThisFileDirectory)</GodotProjectDir>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Tests/**/*.cs" />

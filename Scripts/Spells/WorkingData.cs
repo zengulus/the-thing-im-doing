@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -7,18 +8,18 @@ namespace TheThingImDoing.Spells;
 public sealed class WorkingData
 {
     public int SchemaVersion { get; set; } = Working.CurrentSchemaVersion;
-    public string Id { get; set; } = "";
-    public string DisplayNameKey { get; set; } = "";
+    public string? Id { get; set; } = "";
+    public string? DisplayNameKey { get; set; } = "";
     public int MaxSteps { get; set; } = 24;
     public int? EntryNodeId { get; set; }
-    public List<WorkingNodeData> Nodes { get; set; } = [];
-    public Dictionary<int, WorkingNodeLayoutData> Layout { get; set; } = [];
+    public List<WorkingNodeData>? Nodes { get; set; } = [];
+    public Dictionary<int, WorkingNodeLayoutData>? Layout { get; set; } = [];
 }
 
 public sealed class WorkingNodeData
 {
     public int Id { get; set; }
-    public string ClauseId { get; set; } = "";
+    public string? ClauseId { get; set; } = "";
     public int? NextNodeId { get; set; }
     public int? TrueNodeId { get; set; }
     public int? FalseNodeId { get; set; }
@@ -65,20 +66,39 @@ public static class WorkingJson
 
     public static Working FromData(WorkingData data)
     {
+        ArgumentNullException.ThrowIfNull(data);
+
         if (data.SchemaVersion != Working.CurrentSchemaVersion)
         {
             throw new JsonException($"Unsupported Working schemaVersion {data.SchemaVersion}.");
         }
 
-        var working = new Working(data.Id, data.DisplayNameKey)
+        IReadOnlyList<WorkingNodeData> nodes = data.Nodes ?? [];
+        var duplicateNodeIds = nodes
+            .OfType<WorkingNodeData>()
+            .GroupBy(node => node.Id)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .OrderBy(id => id)
+            .ToArray();
+
+        if (duplicateNodeIds.Length > 0)
+        {
+            throw new JsonException(
+                $"Working JSON contains duplicate node ids: {string.Join(", ", duplicateNodeIds)}.");
+        }
+
+        var working = new Working(data.Id ?? "", data.DisplayNameKey ?? "")
         {
             SchemaVersion = data.SchemaVersion,
             MaxSteps = data.MaxSteps
         };
 
-        foreach (WorkingNodeData node in data.Nodes)
+        for (int index = 0; index < nodes.Count; index++)
         {
-            working.AddNode(new WorkingNode(node.Id, node.ClauseId)
+            WorkingNodeData node = nodes[index]
+                ?? throw new JsonException($"Working JSON contains a null node at index {index}.");
+            working.AddNode(new WorkingNode(node.Id, node.ClauseId ?? "")
             {
                 NextNodeId = node.NextNodeId,
                 TrueNodeId = node.TrueNodeId,
@@ -86,12 +106,22 @@ public static class WorkingJson
             });
         }
 
-        foreach ((int nodeId, WorkingNodeLayoutData layout) in data.Layout)
+        foreach ((int nodeId, WorkingNodeLayoutData layoutData) in data.Layout ?? [])
         {
+            WorkingNodeLayoutData layout = layoutData
+                ?? throw new JsonException($"Working JSON contains null layout data for node {nodeId}.");
             working.SetNodeLayout(nodeId, new WorkingNodeLayout(layout.X, layout.Y));
         }
 
         working.EntryNodeId = data.EntryNodeId;
+
+        IReadOnlyList<string> issues = WorkingValidator.Validate(working);
+
+        if (issues.Count > 0)
+        {
+            throw new JsonException($"Working JSON is invalid: {string.Join(" ", issues)}");
+        }
+
         return working;
     }
 

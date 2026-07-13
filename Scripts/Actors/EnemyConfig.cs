@@ -90,6 +90,9 @@ public static class EnemyConfigCatalog
     private static ContentValidationResult<EnemyConfig> Resolve(EnemyContentDefinition content)
     {
         var issues = new List<string>();
+        EnemyIntentContentRule[] intentRules = (content.IntentRules ?? [])
+            .OfType<EnemyIntentContentRule>()
+            .ToArray();
 
         RequireStringKey(content.DisplayNameKey, nameof(content.DisplayNameKey), issues);
         RequireStringKey(content.SigilKey, nameof(content.SigilKey), issues);
@@ -107,18 +110,25 @@ public static class EnemyConfigCatalog
             issues.Add($"tintHex '{content.TintHex}' is invalid.");
         }
 
-        foreach (EnemyIntentContentRule rule in content.IntentRules)
+        if ((content.IntentRules ?? []).Any(rule => rule == null))
         {
-            if (!KnownIntentRules.Contains(rule.When))
+            issues.Add("intentRules contains a null rule.");
+        }
+
+        foreach (EnemyIntentContentRule rule in intentRules)
+        {
+            string when = rule.When ?? "";
+
+            if (!KnownIntentRules.Contains(when))
             {
-                issues.Add($"intent rule '{rule.When}' is invalid.");
+                issues.Add($"intent rule '{when}' is invalid.");
             }
 
             RequireStringKey(rule.IntentKey, nameof(rule.IntentKey), issues);
 
             if (rule.Amount is < 0)
             {
-                issues.Add($"intent rule '{rule.When}' has negative amount {rule.Amount}.");
+                issues.Add($"intent rule '{when}' has negative amount {rule.Amount}.");
             }
         }
 
@@ -128,43 +138,50 @@ public static class EnemyConfigCatalog
         }
 
         return ContentRegistry.Valid(new EnemyConfig(
-            content.Id,
-            content.DisplayNameKey,
-            content.SigilKey,
+            content.Id?.Trim() ?? "",
+            content.DisplayNameKey ?? "",
+            content.SigilKey ?? "",
             content.MaxHealth,
-            content.PurposeKey,
-            content.BehaviorId,
-            content.DefaultIntentKey,
-            content.TintHex,
-            content.IntentRules
-                .Select(rule => new EnemyIntentRule(rule.When, rule.IntentKey, rule.Amount, rule.Counter))
+            content.PurposeKey ?? "",
+            content.BehaviorId ?? "",
+            content.DefaultIntentKey ?? "",
+            content.TintHex ?? "",
+            intentRules
+                .Select(rule => new EnemyIntentRule(
+                    rule.When ?? "",
+                    rule.IntentKey ?? "",
+                    rule.Amount,
+                    rule.Counter ?? ""))
                 .ToArray(),
-            content.Tags));
+            (content.Tags ?? []).Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag!).ToArray()));
     }
 
-    private static void RequireStringKey(string key, string field, List<string> issues)
+    private static void RequireStringKey(string? key, string field, List<string> issues)
     {
-        if (!ContentRegistry.HasString(key))
+        if (!ContentRegistry.HasString(key ?? ""))
         {
             issues.Add($"{field} references missing string key '{key}'.");
         }
     }
 
-    private static void ValidateBehaviorReference(string behaviorId, List<string> issues)
+    private static void ValidateBehaviorReference(string? behaviorId, List<string> issues)
     {
-        if (BehaviorDefinitionCatalog.IsDisabled(behaviorId))
+        string id = behaviorId ?? "";
+
+        if (BehaviorDefinitionCatalog.IsDisabled(id))
         {
             issues.Add($"behaviorId references disabled behavior '{behaviorId}'.");
         }
-        else if (!BehaviorDefinitionCatalog.TryGet(behaviorId, out _))
+        else if (!BehaviorDefinitionCatalog.TryGet(id, out _))
         {
             issues.Add($"behaviorId references missing behavior '{behaviorId}'.");
         }
     }
 
-    private static bool IsValidHexColor(string hex)
+    private static bool IsValidHexColor(string? hex)
     {
-        return hex.Length == 7
+        return hex != null
+            && hex.Length == 7
             && hex[0] == '#'
             && int.TryParse(hex.AsSpan(1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)
             && int.TryParse(hex.AsSpan(3, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)
@@ -181,22 +198,22 @@ public static class EnemyConfigCatalog
     {
         public string Id { get; set; } = "";
         public string Operation { get; set; } = "";
-        public string DisplayNameKey { get; set; } = "";
-        public string SigilKey { get; set; } = "";
+        public string? DisplayNameKey { get; set; } = "";
+        public string? SigilKey { get; set; } = "";
         public int MaxHealth { get; set; }
-        public string PurposeKey { get; set; } = "";
-        public string BehaviorId { get; set; } = "";
-        public string DefaultIntentKey { get; set; } = "";
-        public string TintHex { get; set; } = "#e65a52";
-        public List<EnemyIntentContentRule> IntentRules { get; set; } = [];
-        public List<string> Tags { get; set; } = [];
+        public string? PurposeKey { get; set; } = "";
+        public string? BehaviorId { get; set; } = "";
+        public string? DefaultIntentKey { get; set; } = "";
+        public string? TintHex { get; set; } = "#e65a52";
+        public List<EnemyIntentContentRule?>? IntentRules { get; set; } = [];
+        public List<string?>? Tags { get; set; } = [];
     }
 
     private sealed class EnemyIntentContentRule
     {
-        public string When { get; set; } = "";
-        public string IntentKey { get; set; } = "";
+        public string? When { get; set; } = "";
+        public string? IntentKey { get; set; } = "";
         public int? Amount { get; set; }
-        public string Counter { get; set; } = "";
+        public string? Counter { get; set; } = "";
     }
 }

@@ -60,28 +60,58 @@ public static class EffectDefinitionCatalog
     private static ContentValidationResult<EffectDefinition> Resolve(EffectContentDefinition content)
     {
         var issues = new List<string>();
+        EffectTriggerContentDefinition[] triggers = (content.Triggers ?? [])
+            .OfType<EffectTriggerContentDefinition>()
+            .ToArray();
+        string[] counters = (content.Counters ?? [])
+            .Where(counter => counter != null)
+            .Select(counter => counter!)
+            .ToArray();
 
-        if (!ContentRegistry.HasString(content.DisplayNameKey))
+        if (!ContentRegistry.HasString(content.DisplayNameKey ?? ""))
         {
             issues.Add($"displayNameKey references missing string key '{content.DisplayNameKey}'.");
         }
 
-        foreach (EffectTriggerContentDefinition trigger in content.Triggers)
+        if ((content.Triggers ?? []).Any(trigger => trigger == null))
         {
-            if (!KnownTriggers.Contains(trigger.TriggerId))
+            issues.Add("triggers contains a null trigger.");
+        }
+
+        foreach (EffectTriggerContentDefinition trigger in triggers)
+        {
+            string triggerId = trigger.TriggerId ?? "";
+
+            if (!KnownTriggers.Contains(triggerId))
             {
-                issues.Add($"trigger '{trigger.TriggerId}' is invalid.");
+                issues.Add($"trigger '{triggerId}' is invalid.");
             }
 
             ValidateBehaviorReference(trigger.BehaviorId, issues);
         }
 
-        foreach (string counterId in content.Counters)
+        if ((content.Counters ?? []).Any(counter => counter == null))
+        {
+            issues.Add("counters contains a null counter id.");
+        }
+
+        foreach (string counterId in counters)
         {
             if (string.IsNullOrWhiteSpace(counterId))
             {
                 issues.Add("counters contains a blank counter id.");
             }
+        }
+
+        if (content.MaxStacks.HasValue && content.MaxStacks.Value <= 0)
+        {
+            issues.Add("maxStacks must be positive when provided.");
+        }
+
+        if (content.MaxStacks.HasValue
+            && !counters.Contains("counter.stack", StringComparer.Ordinal))
+        {
+            issues.Add("maxStacks requires the counter.stack counter.");
         }
 
         if (ContentRegistry.HasAnyIssue(issues, out IReadOnlyList<string> issueList))
@@ -90,24 +120,27 @@ public static class EffectDefinitionCatalog
         }
 
         return ContentRegistry.Valid(new EffectDefinition(
-            content.Id,
-            content.DisplayNameKey,
-            content.Triggers
+            content.Id?.Trim() ?? "",
+            content.DisplayNameKey ?? "",
+            triggers
                 .Select(trigger => new EffectTriggerDefinition(
-                    trigger.TriggerId,
-                    trigger.BehaviorId,
+                    trigger.TriggerId ?? "",
+                    trigger.BehaviorId ?? "",
                     trigger.Priority))
                 .ToArray(),
-            content.Counters.ToHashSet(StringComparer.Ordinal)));
+            counters.ToHashSet(StringComparer.Ordinal),
+            content.MaxStacks));
     }
 
-    private static void ValidateBehaviorReference(string behaviorId, List<string> issues)
+    private static void ValidateBehaviorReference(string? behaviorId, List<string> issues)
     {
-        if (BehaviorDefinitionCatalog.IsDisabled(behaviorId))
+        string id = behaviorId ?? "";
+
+        if (BehaviorDefinitionCatalog.IsDisabled(id))
         {
             issues.Add($"behaviorId references disabled behavior '{behaviorId}'.");
         }
-        else if (!BehaviorDefinitionCatalog.TryGet(behaviorId, out _))
+        else if (!BehaviorDefinitionCatalog.TryGet(id, out _))
         {
             issues.Add($"behaviorId references missing behavior '{behaviorId}'.");
         }
@@ -123,15 +156,16 @@ public static class EffectDefinitionCatalog
     {
         public string Id { get; set; } = "";
         public string Operation { get; set; } = "";
-        public string DisplayNameKey { get; set; } = "";
-        public List<EffectTriggerContentDefinition> Triggers { get; set; } = [];
-        public List<string> Counters { get; set; } = [];
+        public string? DisplayNameKey { get; set; } = "";
+        public List<EffectTriggerContentDefinition?>? Triggers { get; set; } = [];
+        public List<string?>? Counters { get; set; } = [];
+        public int? MaxStacks { get; set; }
     }
 
     private sealed class EffectTriggerContentDefinition
     {
-        public string TriggerId { get; set; } = "";
-        public string BehaviorId { get; set; } = "";
+        public string? TriggerId { get; set; } = "";
+        public string? BehaviorId { get; set; } = "";
         public int Priority { get; set; }
     }
 }
