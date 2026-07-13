@@ -381,6 +381,11 @@ public sealed class TacticalEncounter
 
     public WorkingResult PreviewWorking(Working working, GridPos selectedTarget)
     {
+        return PreviewWorkingDetailed(working, selectedTarget).Result;
+    }
+
+    public WorkingPreview PreviewWorkingDetailed(Working working, GridPos selectedTarget)
+    {
         var machine = new WorkingMachine();
         TacticalEncounter previewEncounter = Clone();
         WorkingResult result = machine.Execute(
@@ -388,7 +393,8 @@ public sealed class TacticalEncounter
             new EncounterSpellWorld(previewEncounter),
             previewEncounter.Player.Id,
             selectedTarget);
-        return result.WithHookChanges(previewEncounter.RunAfterSpellResolvedHooks(result.Trace));
+        result = result.WithHookChanges(previewEncounter.RunAfterSpellResolvedHooks(result.Trace));
+        return new WorkingPreview(result, previewEncounter);
     }
 
     public WorkingResult TryCastWorking(Working working, GridPos selectedTarget)
@@ -565,7 +571,7 @@ public sealed class TacticalEncounter
         return true;
     }
 
-    public bool TryPushActor(int actorId, Direction direction, int distance)
+    public bool TryPushActor(int actorId, Direction direction, int distance, OmenTrace? trace = null)
     {
         if (!_actorsById.TryGetValue(actorId, out EncounterActor? actor) || !actor.IsAlive)
         {
@@ -585,7 +591,7 @@ public sealed class TacticalEncounter
                 continue;
             }
 
-            if (TryRunPushCollisionHooks(actor, destination, direction))
+            if (TryRunPushCollisionHooks(actor, destination, direction, trace))
             {
                 return true;
             }
@@ -606,7 +612,7 @@ public sealed class TacticalEncounter
         return moved;
     }
 
-    public EffectCommandResult ResolveEffectCommand(EffectCommand command)
+    public EffectCommandResult ResolveEffectCommand(EffectCommand command, OmenTrace? trace = null)
     {
         switch (command)
         {
@@ -614,7 +620,7 @@ public sealed class TacticalEncounter
                 return new EffectCommandResult(TryDamageActor(damage.ActorId, damage.Amount));
 
             case PushActorCommand push:
-                return new EffectCommandResult(TryPushActor(push.ActorId, push.Direction, push.Distance));
+                return new EffectCommandResult(TryPushActor(push.ActorId, push.Direction, push.Distance, trace));
 
             case SetTileStateCommand setTile:
                 return new EffectCommandResult(TrySetTileState(setTile.Position, setTile.State));
@@ -711,17 +717,18 @@ public sealed class TacticalEncounter
         return _relicIds.Remove(relicId);
     }
 
-    private bool TryRunPushCollisionHooks(EncounterActor actor, GridPos destination, Direction direction)
+    private bool TryRunPushCollisionHooks(EncounterActor actor, GridPos destination, Direction direction, OmenTrace? trace)
     {
+        OmenTrace collisionTrace = trace ?? new OmenTrace();
         bool changedWorld = RunRuleHooks(
             RuleTriggerIds.PushCollision,
-            new OmenTrace(),
+            collisionTrace,
             eventActor: actor,
             eventTile: destination,
             eventDirection: direction).ChangedWorld;
         changedWorld |= RunRelicHooks(
             RuleTriggerIds.PushCollision,
-            new OmenTrace(),
+            collisionTrace,
             eventActor: actor,
             eventTile: destination,
             eventDirection: direction).ChangedWorld;

@@ -561,6 +561,70 @@ Start with one rule only. Add others after preview and trace support them.
 
 ---
 
+# Rules Create Situations, Not Tax
+
+Local rules should create new tactical situations, not merely make the game arbitrarily harder.
+
+A local rule is good when the player can exploit it.
+
+The player should usually respond to a rule by thinking:
+
+> How can I use this?
+
+not merely:
+
+> How do I compensate for this?
+
+Rules may increase danger, but they must also create opportunity. They are local magical physics, not difficulty modifiers.
+
+## Good Rule Pattern
+
+A good local rule:
+
+* changes how existing clauses behave;
+* creates new board states;
+* gives enemies new tactical meaning;
+* gives the player new tactical leverage;
+* is visible or previewable;
+* can be explained in the omen trace;
+* can be exploited by clever spell construction.
+
+Example:
+
+> Brittle Stone: when an actor is pushed into raised stone, the stone breaks and the actor takes 1 damage.
+
+This is good because it creates both hazard and weapon. The player can be punished by it, but can also build around it with `raise stone` and `push them`.
+
+## Bad Rule Pattern
+
+A bad local rule only taxes the player.
+
+Avoid rules like:
+
+* enemies deal +1 damage;
+* spells cost +1 focus;
+* player movement is slower;
+* all conditions are less reliable;
+* random backlash chance increases;
+* enemies get more health.
+
+These can be difficulty modifiers, but they do not create interesting magical grammar by themselves.
+
+## Design Test
+
+Before adding a local rule, ask:
+
+1. What new situation does this create?
+2. How can the player exploit it?
+3. How can enemies exploit it?
+4. Which clauses become more interesting because this rule exists?
+5. Can preview show the consequence?
+6. Can the omen trace explain it?
+
+If the answer is mostly “it makes things harder,” reject or redesign the rule.
+
+---
+
 # UI Requirements
 
 ## Spell Bar
@@ -721,11 +785,17 @@ Goal: make spell outcomes understandable before casting.
 
 Tasks:
 
-* [ ] Add spell preview overlay.
+* [x] Add spell preview overlay.
 * [x] Add omen trace panel.
 * [x] Run `WorkingMachine` in preview mode.
 * [x] Show damage, marks, raised stone, and failed clauses.
-* [ ] Add step-through trace if feasible.
+* [x] Add step-through trace if feasible.
+
+Implementation note:
+
+* Preview now runs against a cloned encounter and returns both the omen trace and forecast board state.
+* The test room overlays predicted tile changes, marks, actor movement, damage, and failed previews on the board.
+* Trace controls can reveal the omen trace one step at a time or jump back to the full trace.
 
 Acceptance:
 
@@ -791,7 +861,11 @@ Tasks:
 * [x] Include one active local rule.
 * [x] Add restart button.
 * [x] Add simple debug logging.
-* [ ] Run repeated self-tests.
+* [x] Run repeated self-tests.
+
+Implementation note:
+
+* Self-tests cover `Mark-or-Spark`, `Emergency Wall`, `Push Trap`, Brittle Stone collision tracing, and preview/cast consistency.
 
 Acceptance:
 

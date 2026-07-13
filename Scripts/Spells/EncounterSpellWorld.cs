@@ -89,9 +89,9 @@ public sealed class EncounterSpellWorld : ISpellWorld
         return _encounter.HasTileEffect(pos, effectId, owner.Id);
     }
 
-    public EffectCommandResult Resolve(EffectCommand command)
+    public EffectCommandResult Resolve(EffectCommand command, OmenTrace? trace = null)
     {
-        return _encounter.ResolveEffectCommand(command);
+        return _encounter.ResolveEffectCommand(command, trace);
     }
 
     public void ApplyDamage(EncounterActor target, int amount, EncounterActor? source)

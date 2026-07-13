@@ -24,7 +24,7 @@ public interface ISpellWorld
     EffectInstance? AttachEffect(GridPos pos, string effectId, EncounterActor owner, int stacks);
     bool HasEffect(EncounterActor target, string effectId, EncounterActor owner);
     bool HasEffect(GridPos pos, string effectId, EncounterActor owner);
-    EffectCommandResult Resolve(EffectCommand command);
+    EffectCommandResult Resolve(EffectCommand command, OmenTrace? trace = null);
 
     void ApplyDamage(EncounterActor target, int amount, EncounterActor? source);
     bool TryPushActor(EncounterActor target, Direction direction, int distance, EncounterActor? source);

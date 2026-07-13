@@ -34,9 +34,9 @@ public sealed class BehaviorExecutionContext
 
         if (SpellWorld != null)
         {
-            return SpellWorld.Resolve(command);
+            return SpellWorld.Resolve(command, Trace);
         }
 
-        return Encounter?.ResolveEffectCommand(command) ?? EffectCommandResult.NoChange;
+        return Encounter?.ResolveEffectCommand(command, Trace) ?? EffectCommandResult.NoChange;
     }
 }

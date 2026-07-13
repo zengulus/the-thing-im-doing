@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
@@ -34,6 +35,10 @@ public partial class TestRoomController : Node2D
     private Button? _editorToggleButton;
     private SpellGraphEditorControl? _spellEditor;
     private Button[] _slotButtons = [];
+    private WorkingPreview? _preview;
+    private string _lastTraceActionLabel = "";
+    private WorkingResult? _lastTraceResult;
+    private int _visibleTraceSteps = int.MaxValue;
     private bool _isSpellEditorOpen;
     private int _selectedWorkingIndex;
     private GridPos _selectedTarget = new(5, 1);
@@ -173,6 +178,8 @@ public partial class TestRoomController : Node2D
                 DrawRect(GetTileRect(actor.Position).Grow(-6), new Color(0.95f, 0.62f, 1.0f), filled: false, width: 2.0f);
             }
         }
+
+        DrawPreviewOverlay();
     }
 
     private void ResetEncounter()
@@ -348,6 +355,8 @@ public partial class TestRoomController : Node2D
         };
         sampleButton.Pressed += ResetSelectedWorkingToSample;
         actionRow.AddChild(sampleButton);
+
+        AddTraceStepControls(actionRow);
 
         _spellEditor = new SpellGraphEditorControl
         {
@@ -580,6 +589,8 @@ public partial class TestRoomController : Node2D
         castButton.Pressed += CastSelectedWorking;
         row.AddChild(castButton);
 
+        AddTraceStepControls(row);
+
         var hintLabel = new Label
         {
             Text = GameStrings.Get("ui.play.hint"),
@@ -596,6 +607,25 @@ public partial class TestRoomController : Node2D
         };
         _quickTraceLabel.AddThemeFontSizeOverride("font_size", 12);
         root.AddChild(_quickTraceLabel);
+    }
+
+    private void AddTraceStepControls(HBoxContainer row)
+    {
+        row.AddChild(CreateTraceButton("<", "Show the previous omen trace step.", () => StepTrace(-1)));
+        row.AddChild(CreateTraceButton(">", "Show the next omen trace step.", () => StepTrace(1)));
+        row.AddChild(CreateTraceButton("All", "Show the full omen trace.", ShowFullTrace));
+    }
+
+    private static Button CreateTraceButton(string text, string tooltip, Action pressed)
+    {
+        var button = new Button
+        {
+            Text = text,
+            TooltipText = tooltip,
+            CustomMinimumSize = new Vector2(36, 30)
+        };
+        button.Pressed += pressed;
+        return button;
     }
 
     private void SetSpellEditorOpen(bool isOpen)
@@ -667,9 +697,11 @@ public partial class TestRoomController : Node2D
             return;
         }
 
-        WorkingResult result = _encounter.PreviewWorking(_preparedWorkings[_selectedWorkingIndex], _selectedTarget);
+        _preview = _encounter.PreviewWorkingDetailed(_preparedWorkings[_selectedWorkingIndex], _selectedTarget);
+        WorkingResult result = _preview.Result;
         LogDebug($"Previewed {_preparedWorkings[_selectedWorkingIndex].DisplayName} at {_selectedTarget}: {result.Succeeded}");
         ShowTrace(GameStrings.Get("ui.editor.preview"), result);
+        QueueRedraw();
     }
 
     private void CastSelectedWorking()
@@ -679,6 +711,7 @@ public partial class TestRoomController : Node2D
             return;
         }
 
+        _preview = null;
         WorkingResult result = _encounter.TryCastWorking(_preparedWorkings[_selectedWorkingIndex], _selectedTarget);
         LogDebug($"Cast {_preparedWorkings[_selectedWorkingIndex].DisplayName} at {_selectedTarget}: {result.Succeeded}");
         ShowTrace(GameStrings.Get("ui.editor.cast"), result);
@@ -695,10 +728,52 @@ public partial class TestRoomController : Node2D
 
     private void ShowTrace(string label, WorkingResult result)
     {
+        _lastTraceActionLabel = label;
+        _lastTraceResult = result;
+        _visibleTraceSteps = result.Trace.Events.Count;
+        RenderTrace();
+    }
+
+    private void StepTrace(int delta)
+    {
+        if (_lastTraceResult == null || _lastTraceResult.Trace.Events.Count == 0)
+        {
+            return;
+        }
+
+        int total = _lastTraceResult.Trace.Events.Count;
+        int current = _visibleTraceSteps == int.MaxValue ? total : _visibleTraceSteps;
+        _visibleTraceSteps = Math.Clamp(current + delta, 1, total);
+        RenderTrace();
+    }
+
+    private void ShowFullTrace()
+    {
+        if (_lastTraceResult == null)
+        {
+            return;
+        }
+
+        _visibleTraceSteps = _lastTraceResult.Trace.Events.Count;
+        RenderTrace();
+    }
+
+    private void RenderTrace()
+    {
+        if (_lastTraceResult == null)
+        {
+            return;
+        }
+
+        WorkingResult result = _lastTraceResult;
+        int totalSteps = result.Trace.Events.Count;
+        int visibleSteps = totalSteps == 0
+            ? 0
+            : Math.Clamp(_visibleTraceSteps, 1, totalSteps);
         string status = result.Succeeded ? "ok" : $"failed: {result.FailureReason}";
         string traceText =
-            $"{label}: {status} | counters {result.CounterSummary} | cost {result.CostAdjustmentSummary}\n" +
-            result.Trace.ToDisplayText();
+            $"{_lastTraceActionLabel}: {status} | trace {visibleSteps}/{totalSteps} | counters {result.CounterSummary} | cost {result.CostAdjustmentSummary}\n" +
+            BuildTraceDisplayText(result.Trace, visibleSteps);
 
         if (_traceLabel != null)
         {
@@ -708,6 +783,135 @@ public partial class TestRoomController : Node2D
         if (_quickTraceLabel != null)
         {
             _quickTraceLabel.Text = CollapseTraceForHud(traceText);
+        }
+    }
+
+    private static string BuildTraceDisplayText(OmenTrace trace, int visibleSteps)
+    {
+        string traceText = string.Join(
+            "\n",
+            trace.Events
+                .Take(visibleSteps)
+                .Select(traceEvent => $"{traceEvent.Step}. {traceEvent.Text}"));
+
+        if (visibleSteps < trace.Events.Count)
+        {
+            traceText += $"\n... {trace.Events.Count - visibleSteps} more";
+        }
+
+        return traceText;
+    }
+
+    private void DrawPreviewOverlay()
+    {
+        if (_encounter == null || _preview == null)
+        {
+            return;
+        }
+
+        TacticalEncounter forecast = _preview.Encounter;
+
+        DrawPreviewTileChanges(forecast);
+        DrawPreviewTileMarks(forecast);
+        DrawPreviewActorChanges(forecast);
+
+        if (!_preview.Result.Succeeded && _encounter.Grid.IsInside(_selectedTarget))
+        {
+            DrawRect(GetTileRect(_selectedTarget).Grow(-7), new Color(1.0f, 0.25f, 0.20f, 0.95f), filled: false, width: 4.0f);
+        }
+    }
+
+    private void DrawPreviewTileChanges(TacticalEncounter forecast)
+    {
+        if (_encounter == null)
+        {
+            return;
+        }
+
+        int width = Math.Min(_encounter.Grid.Width, forecast.Grid.Width);
+        int height = Math.Min(_encounter.Grid.Height, forecast.Grid.Height);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                var position = new GridPos(x, y);
+                TileState current = _encounter.Grid.GetTile(position);
+                TileState predicted = forecast.Grid.GetTile(position);
+
+                if (current == predicted)
+                {
+                    continue;
+                }
+
+                Color color = predicted switch
+                {
+                    TileState.RaisedStone => new Color(0.62f, 0.80f, 1.0f, 0.95f),
+                    TileState.Floor => new Color(1.0f, 0.62f, 0.30f, 0.95f),
+                    _ => new Color(0.90f, 0.90f, 0.95f, 0.95f)
+                };
+
+                DrawRect(GetTileRect(position).Grow(-5), color, filled: false, width: 4.0f);
+            }
+        }
+    }
+
+    private void DrawPreviewTileMarks(TacticalEncounter forecast)
+    {
+        if (_encounter == null)
+        {
+            return;
+        }
+
+        foreach (TileCondition condition in forecast.TileConditions.Where(condition =>
+                     condition.ConditionId == "condition.marked"
+                     && !_encounter.HasTileCondition(condition.Position, condition.ConditionId, condition.OwnerActorId)))
+        {
+            DrawCircle(GridToWorldCenter(condition.Position), TileSize * 0.24f, new Color(0.95f, 0.62f, 1.0f, 0.36f));
+            DrawRect(GetTileRect(condition.Position).Grow(-10), new Color(0.95f, 0.62f, 1.0f, 0.95f), filled: false, width: 3.0f);
+        }
+    }
+
+    private void DrawPreviewActorChanges(TacticalEncounter forecast)
+    {
+        if (_encounter == null)
+        {
+            return;
+        }
+
+        foreach (EncounterActor actor in _encounter.Actors.Where(actor => actor.IsAlive))
+        {
+            EncounterActor? predicted = forecast.GetActor(actor.Id);
+
+            if (predicted == null)
+            {
+                continue;
+            }
+
+            if (predicted.IsAlive && predicted.Position != actor.Position)
+            {
+                DrawLine(
+                    GridToWorldCenter(actor.Position),
+                    GridToWorldCenter(predicted.Position),
+                    new Color(0.30f, 0.92f, 1.0f, 0.90f),
+                    width: 4.0f);
+                DrawRect(GetTileRect(predicted.Position).Grow(-8), new Color(0.30f, 0.92f, 1.0f, 0.95f), filled: false, width: 3.0f);
+            }
+
+            if (predicted.Health < actor.Health || !predicted.IsAlive)
+            {
+                GridPos damagePosition = predicted.IsAlive ? predicted.Position : actor.Position;
+                DrawRect(GetTileRect(damagePosition).Grow(-4), new Color(1.0f, 0.20f, 0.26f, 0.95f), filled: false, width: 4.0f);
+            }
+
+            bool markedNow = _encounter.HasActorCondition(actor.Id, "condition.marked", _encounter.Player.Id);
+            bool markedPredicted = forecast.HasActorCondition(actor.Id, "condition.marked", forecast.Player.Id);
+
+            if (!markedNow && markedPredicted)
+            {
+                GridPos markPosition = predicted.IsAlive ? predicted.Position : actor.Position;
+                DrawRect(GetTileRect(markPosition).Grow(-9), new Color(0.95f, 0.62f, 1.0f, 0.95f), filled: false, width: 3.0f);
+            }
         }
     }
 
