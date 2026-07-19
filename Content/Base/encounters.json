@@ -180,6 +180,43 @@
         "terrainVariationPercent": 28,
         "terrainStates": [ "Wall", "RaisedStone" ]
       }
+    },
+    {
+      "id": "encounter.archive_expanse",
+      "displayNameKey": "encounters.archive_expanse.name",
+      "environmentId": "environment.ashen_archive",
+      "gridWidth": 12,
+      "gridHeight": 8,
+      "playerStart": { "x": 1, "y": 4 },
+      "enemies": [
+        { "enemyId": "enemy.obsidian_crown", "x": 10, "y": 4 },
+        { "enemyId": "enemy.glass_hound", "x": 8, "y": 1 },
+        { "enemyId": "enemy.ash_scribe", "x": 8, "y": 2 },
+        { "enemyId": "enemy.root_saint", "x": 8, "y": 3 },
+        { "enemyId": "enemy.spore_cantor", "x": 8, "y": 4 },
+        { "enemyId": "enemy.iron_pilgrim", "x": 8, "y": 5 },
+        { "enemyId": "enemy.moss_chirurgeon", "x": 8, "y": 6 }
+      ],
+      "tiles": [],
+      "isFinal": true,
+      "rewardAmount": 0,
+      "victoryTargetEnemyId": "enemy.obsidian_crown",
+      "tags": [ "sandbox", "final", "boss", "exploration" ],
+      "generation": {
+        "seed": 7707,
+        "width": 40,
+        "height": 28,
+        "roomCount": 12,
+        "enemyCount": 12,
+        "minRoomWidth": 4,
+        "minRoomHeight": 4,
+        "maxRoomWidth": 8,
+        "maxRoomHeight": 7,
+        "corridorWidth": 2,
+        "extraConnectionPercent": 28,
+        "terrainVariationPercent": 18,
+        "terrainStates": [ "Wall", "RaisedStone" ]
+      }
     }
   ]
 }

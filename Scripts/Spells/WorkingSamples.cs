@@ -22,9 +22,9 @@ public static class WorkingSamples
         working.AddNode(mark);
         working.EntryNodeId = aim.Id;
         SetPosition(working, aim.Id, new Vector2(16, 24));
-        SetPosition(working, condition.Id, new Vector2(220, 24));
-        SetPosition(working, damage.Id, new Vector2(430, 4));
-        SetPosition(working, mark.Id, new Vector2(430, 140));
+        SetPosition(working, condition.Id, new Vector2(260, 24));
+        SetPosition(working, damage.Id, new Vector2(504, 4));
+        SetPosition(working, mark.Id, new Vector2(504, 140));
 
         return working;
     }
@@ -44,8 +44,8 @@ public static class WorkingSamples
         working.AddNode(stone);
         working.EntryNodeId = aim.Id;
         SetPosition(working, aim.Id, new Vector2(16, 24));
-        SetPosition(working, condition.Id, new Vector2(220, 24));
-        SetPosition(working, stone.Id, new Vector2(430, 24));
+        SetPosition(working, condition.Id, new Vector2(260, 24));
+        SetPosition(working, stone.Id, new Vector2(504, 24));
 
         return working;
     }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using TheThingImDoing.Behaviors;
 using TheThingImDoing.Core;
 using TheThingImDoing.Spells;
@@ -49,7 +50,7 @@ public sealed class FloorRuleTests
     }
 
     [Fact]
-    public void EchoingSteps_PlayerOwnedTileMark_SatisfiesIfMarkedForItsOccupant()
+    public void EchoingSteps_PlayerOwnedTileMark_PreviewAndLiveCastBothConsumeItForDamage()
     {
         TacticalEncounter encounter = CreateEncounter("rule.echoing_steps");
         encounter.RemoveRelic("relic.patient_bell");
@@ -63,8 +64,27 @@ public sealed class FloorRuleTests
         Assert.True(encounter.HasTileCondition(markedPosition, "condition.marked", encounter.Player.Id));
         Assert.True(preview.Result.Succeeded);
         Assert.True(preview.Result.ChangedWorld);
-        Assert.Equal(encounter.Player.Health - 1, preview.Encounter.Player.Health);
+        Assert.Equal(encounter.Player.Health - 2, preview.Encounter.Player.Health);
+        Assert.False(preview.Encounter.HasTileCondition(
+            markedPosition,
+            "condition.marked",
+            preview.Encounter.Player.Id));
         Assert.Equal(encounter.Player.MaxHealth, encounter.Player.Health);
+
+        WorkingResult cast = encounter.TryCastWorking(
+            CreateIfMarkedDamageWorking(),
+            markedPosition);
+
+        Assert.True(cast.Succeeded);
+        Assert.Equal(preview.Result.ChangedWorld, cast.ChangedWorld);
+        Assert.Equal(preview.Encounter.Player.Health, encounter.Player.Health);
+        Assert.False(encounter.HasTileCondition(
+            markedPosition,
+            "condition.marked",
+            encounter.Player.Id));
+        Assert.Equal(
+            preview.Result.Trace.Events.Select(traceEvent => traceEvent.Text),
+            cast.Trace.Events.Select(traceEvent => traceEvent.Text));
     }
 
     [Fact]
@@ -195,11 +215,14 @@ public sealed class FloorRuleTests
             playerHealth: 5,
             playerMaxHealth: 5);
         EncounterActor enemy = encounter.AddDummyEnemy(new GridPos(6, 1), health: 20);
+        Working mark = CreateMarkWorking();
         Working damage = CreateSelectedDamageWorking();
 
         for (int castIndex = 0; castIndex < 5; castIndex++)
         {
-            WorkingResult result = encounter.TryCastWorking(damage, enemy.Position);
+            WorkingResult result = encounter.TryCastWorking(
+                castIndex % 2 == 0 ? mark : damage,
+                enemy.Position);
             Assert.True(result.Succeeded);
             Assert.True(result.ChangedWorld);
             Assert.InRange(

@@ -2,6 +2,14 @@
   "schemaVersion": 1,
   "runs": [
     {
+      "id": "run.archive_sandbox",
+      "displayNameKey": "runs.archive_sandbox.name",
+      "encounterIds": [
+        "encounter.archive_expanse"
+      ],
+      "tags": [ "complete", "sandbox", "single-boss" ]
+    },
+    {
       "id": "run.ashen_archive",
       "displayNameKey": "runs.ashen_archive.name",
       "encounterIds": [

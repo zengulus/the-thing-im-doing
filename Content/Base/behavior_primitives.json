@@ -221,11 +221,17 @@
       "id": "effect.detach",
       "displayNameKey": "behavior_primitives.effect.detach.name",
       "descriptionKey": "behavior_primitives.effect.detach.description",
-      "scopes": [ "effect" ],
+      "scopes": [ "spell", "effect" ],
       "tags": [ "effect" ],
       "parameters": [
         { "name": "target", "type": "effect", "default": "effect" },
-        { "name": "source", "type": "target", "default": "effect.target" }
+        { "name": "source", "type": "target", "default": "effect.target" },
+        { "name": "effect", "type": "effect" },
+        {
+          "name": "owner",
+          "type": "actor",
+          "allowedValues": [ "focus", "focus.actor", "caster", "self", "enemy", "event.actor", "effect.target" ]
+        }
       ]
     },
     {

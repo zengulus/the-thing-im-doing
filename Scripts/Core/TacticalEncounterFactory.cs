@@ -31,7 +31,8 @@ public static class TacticalEncounterFactory
             layout.PlayerStart,
             environment.FloorRuleId,
             playerHealth,
-            playerMaxHealth);
+            playerMaxHealth,
+            definition.VictoryTargetEnemyId);
 
         foreach (EncounterTilePlacement tile in layout.Tiles)
         {

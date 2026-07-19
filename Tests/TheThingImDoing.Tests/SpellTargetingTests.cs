@@ -53,11 +53,13 @@ public sealed class SpellTargetingTests
     {
         var encounter = new TacticalEncounter(7, 3, new GridPos(1, 1));
         EncounterActor enemy = encounter.AddDummyEnemy(new GridPos(5, 1), health: 3);
+        encounter.AddActorCondition(enemy.Id, "condition.marked", encounter.Player.Id);
 
         WorkingResult result = encounter.TryCastWorking(CreateSelectedTargetDamageWorking(), enemy.Position);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(2, enemy.Health);
+        Assert.Equal(1, enemy.Health);
+        Assert.False(encounter.HasActorCondition(enemy.Id, "condition.marked", encounter.Player.Id));
         Assert.Equal(TurnPhase.EnemyTurn, encounter.Turns.Phase);
     }
 
@@ -68,12 +70,13 @@ public sealed class SpellTargetingTests
         EncounterActor hidden = encounter.AddDummyEnemy(new GridPos(3, 3), health: 3);
         EncounterActor visible = encounter.AddDummyEnemy(new GridPos(1, 6), health: 3);
         encounter.Grid.SetTile(new GridPos(2, 3), TileState.Wall);
+        encounter.AddActorCondition(visible.Id, "condition.marked", encounter.Player.Id);
 
         WorkingResult result = encounter.TryCastWorking(CreateNearestTargetDamageWorking(), encounter.Player.Position);
 
         Assert.True(result.Succeeded);
         Assert.Equal(3, hidden.Health);
-        Assert.Equal(2, visible.Health);
+        Assert.Equal(1, visible.Health);
     }
 
     [Fact]

@@ -79,14 +79,15 @@ public sealed class EnemyAwarenessTests
     [Fact]
     public void EnemyAwareness_ClearSightWithinRadiusEngagesFullBehavior()
     {
-        var encounter = new TacticalEncounter(15, 3, new GridPos(1, 1));
-        EncounterActor hound = encounter.AddEnemy("enemy.glass_hound", new GridPos(12, 1));
+        int enemyX = 1 + TacticalEncounter.EnemyAwarenessRadius;
+        var encounter = new TacticalEncounter(enemyX + 2, 3, new GridPos(1, 1));
+        EncounterActor hound = encounter.AddEnemy("enemy.glass_hound", new GridPos(enemyX, 1));
 
         RunEnemyTurn(encounter);
 
         Assert.True(hound.IsAlerted);
         Assert.True(encounter.IsEnemyEngaged(hound));
-        Assert.Equal(new GridPos(11, 1), hound.Position);
+        Assert.Equal(new GridPos(enemyX - 1, 1), hound.Position);
     }
 
     [Fact]
@@ -120,27 +121,27 @@ public sealed class EnemyAwarenessTests
     public void EnemyAwareness_BlockingTerrainPreventsDirectAlert()
     {
         var encounter = new TacticalEncounter(12, 3, new GridPos(1, 1));
-        EncounterActor hound = encounter.AddEnemy("enemy.glass_hound", new GridPos(9, 1));
+        EncounterActor hound = encounter.AddEnemy("enemy.glass_hound", new GridPos(8, 1));
         encounter.Grid.SetTile(new GridPos(5, 1), TileState.Wall);
 
         RunEnemyTurn(encounter);
 
         Assert.False(hound.IsAlerted);
-        Assert.Equal(new GridPos(9, 1), hound.Position);
+        Assert.Equal(new GridPos(8, 1), hound.Position);
     }
 
     [Fact]
     public void EnemyAwareness_SuccessfulDamageAlertsEnemyThroughBlockingTerrain()
     {
         var encounter = new TacticalEncounter(12, 3, new GridPos(1, 1));
-        EncounterActor hound = encounter.AddEnemy("enemy.glass_hound", new GridPos(9, 1));
+        EncounterActor hound = encounter.AddEnemy("enemy.glass_hound", new GridPos(8, 1));
         encounter.Grid.SetTile(new GridPos(5, 1), TileState.Wall);
 
         encounter.TryDamageActor(hound.Id, 1);
         RunEnemyTurn(encounter);
 
         Assert.True(hound.IsAlerted);
-        Assert.NotEqual(new GridPos(9, 1), hound.Position);
+        Assert.NotEqual(new GridPos(8, 1), hound.Position);
     }
 
     [Fact]
@@ -148,28 +149,28 @@ public sealed class EnemyAwarenessTests
     {
         var encounter = new TacticalEncounter(12, 5, new GridPos(1, 2));
         EncounterActor scout = encounter.AddEnemy("enemy.glass_hound", new GridPos(5, 2));
-        EncounterActor sleeper = encounter.AddEnemy("enemy.glass_hound", new GridPos(9, 2));
+        EncounterActor sleeper = encounter.AddEnemy("enemy.glass_hound", new GridPos(8, 2));
         encounter.Grid.SetTile(new GridPos(7, 2), TileState.Wall);
 
         RunEnemyTurn(encounter);
 
         Assert.True(scout.IsAlerted);
         Assert.False(sleeper.IsAlerted);
-        Assert.Equal(new GridPos(9, 2), sleeper.Position);
+        Assert.Equal(new GridPos(8, 2), sleeper.Position);
     }
 
     [Fact]
     public void EnemyAwareness_AllyAlertDoesNotPropagateBeyondViewportRadius()
     {
-        var encounter = new TacticalEncounter(30, 3, new GridPos(1, 1));
-        EncounterActor scout = encounter.AddEnemy("enemy.glass_hound", new GridPos(10, 1));
-        EncounterActor distant = encounter.AddEnemy("enemy.glass_hound", new GridPos(14, 1));
+        var encounter = new TacticalEncounter(12, 3, new GridPos(1, 1));
+        EncounterActor scout = encounter.AddEnemy("enemy.glass_hound", new GridPos(8, 1));
+        EncounterActor distant = encounter.AddEnemy("enemy.glass_hound", new GridPos(9, 1));
 
         RunEnemyTurn(encounter);
 
         Assert.True(scout.IsAlerted);
         Assert.False(distant.IsAlerted);
-        Assert.Equal(new GridPos(14, 1), distant.Position);
+        Assert.Equal(new GridPos(9, 1), distant.Position);
     }
 
     [Fact]

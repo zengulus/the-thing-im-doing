@@ -32,7 +32,7 @@ public sealed class WorkingTransactionTests
         Assert.False(cast.Succeeded);
         Assert.False(cast.ChangedWorld);
         Assert.Equal("Target is outside line of sight.", cast.FailureReason);
-        Assert.Contains(cast.Trace.Events, item => item.Text == "Damaged actor 2 for 1.");
+        Assert.Contains(cast.Trace.Events, item => item.Text == "Damaged actor 2 for 2.");
         Assert.Contains(cast.Trace.Events, item =>
             item.Text == "The selected target is outside line of sight.");
         Assert.Contains(cast.Trace.Events, item =>
@@ -64,8 +64,8 @@ public sealed class WorkingTransactionTests
     {
         var working = new Working("working.test.late_failure", "workings.mark_or_damage.name");
         working.AddNode(new WorkingNode(1, "clause.aim_at_nearest_foe") { NextNodeId = 2 });
-        working.AddNode(new WorkingNode(2, "clause.damage_them") { NextNodeId = 3 });
-        working.AddNode(new WorkingNode(3, "clause.mark_them") { NextNodeId = 4 });
+        working.AddNode(new WorkingNode(2, "clause.mark_them") { NextNodeId = 3 });
+        working.AddNode(new WorkingNode(3, "clause.damage_them") { NextNodeId = 4 });
         working.AddNode(new WorkingNode(4, "clause.store_memory_ref") { NextNodeId = 5 });
         working.AddNode(new WorkingNode(5, "clause.aim_at_target"));
         return working;

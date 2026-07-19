@@ -12,7 +12,7 @@ namespace TheThingImDoing.Core;
 
 public sealed class TacticalEncounter
 {
-    public const int EnemyAwarenessRadius = 12;
+    public const int EnemyAwarenessRadius = 7;
     public const int TemporaryRaisedStoneDuration = 3;
 
     private readonly Dictionary<int, EncounterActor> _actorsById = new();
@@ -41,7 +41,8 @@ public sealed class TacticalEncounter
         GridPos playerStart,
         string activeFloorRuleId,
         int playerHealth,
-        int playerMaxHealth)
+        int playerMaxHealth,
+        string? victoryTargetEnemyId = null)
     {
         if (playerMaxHealth <= 0)
         {
@@ -63,6 +64,9 @@ public sealed class TacticalEncounter
         Grid = new TacticalGrid(width, height);
         Turns = new TurnSystem();
         FloorRules = new FloorRuleSet(activeFloorRuleId);
+        VictoryTargetEnemyId = string.IsNullOrWhiteSpace(victoryTargetEnemyId)
+            ? null
+            : victoryTargetEnemyId.Trim();
         Player = AddActor(Faction.Player, playerStart, health: playerMaxHealth);
         Player.ApplyDamage(playerMaxHealth - playerHealth);
     }
@@ -78,7 +82,8 @@ public sealed class TacticalEncounter
         List<string> relicIds,
         int nextActorId,
         int nextTileEffectInstanceId,
-        int playerActorId)
+        int playerActorId,
+        string? victoryTargetEnemyId)
     {
         Grid = grid;
         Turns = turns;
@@ -90,6 +95,7 @@ public sealed class TacticalEncounter
         _relicIds = relicIds;
         _nextActorId = nextActorId;
         _nextTileEffectInstanceId = nextTileEffectInstanceId;
+        VictoryTargetEnemyId = victoryTargetEnemyId;
         Player = _actorsById[playerActorId];
     }
 
@@ -97,6 +103,26 @@ public sealed class TacticalEncounter
     public TurnSystem Turns { get; }
     public FloorRuleSet FloorRules { get; }
     public EncounterActor Player { get; }
+    public string? VictoryTargetEnemyId { get; }
+
+    public EncounterActor? VictoryTarget
+    {
+        get
+        {
+            if (VictoryTargetEnemyId == null)
+            {
+                return null;
+            }
+
+            EncounterActor[] candidates = _actorsById.Values
+                .Where(actor =>
+                    actor.EnemyId == VictoryTargetEnemyId
+                    && IsHostile(Player, actor))
+                .Take(2)
+                .ToArray();
+            return candidates.Length == 1 ? candidates[0] : null;
+        }
+    }
 
     public IReadOnlyCollection<EncounterActor> Actors => _actorsById.Values;
     public IReadOnlyList<string> RelicIds => _relicIds;
@@ -139,6 +165,18 @@ public sealed class TacticalEncounter
             if (!Player.IsAlive)
             {
                 return GameResult.PlayerLost;
+            }
+
+            if (VictoryTargetEnemyId != null)
+            {
+                EncounterActor? victoryTarget = VictoryTarget;
+
+                if (victoryTarget == null || victoryTarget.IsAlive)
+                {
+                    return GameResult.InProgress;
+                }
+
+                return GameResult.PlayerWon;
             }
 
             return Enemies.Any() ? GameResult.InProgress : GameResult.PlayerWon;
@@ -239,6 +277,21 @@ public sealed class TacticalEncounter
     public bool HasTileCondition(GridPos position, string conditionId, int ownerActorId)
     {
         return HasTileEffect(position, conditionId, ownerActorId);
+    }
+
+    public EffectInstance? FindTileEffect(
+        GridPos position,
+        string effectId,
+        int? ownerActorId = null)
+    {
+        if (!_tileEffects.TryGetValue(position, out List<EffectInstance>? effects))
+        {
+            return null;
+        }
+
+        return effects.FirstOrDefault(effect =>
+            effect.EffectId == effectId
+            && (!ownerActorId.HasValue || effect.OwnerActorId == ownerActorId.Value));
     }
 
     public int GetActorCounter(int actorId, string counterId)
@@ -602,6 +655,15 @@ public sealed class TacticalEncounter
             if (!enemy.IsAlive)
             {
                 Grid.RemoveActor(enemy.Id);
+            }
+
+            if (Result != GameResult.InProgress)
+            {
+                break;
+            }
+
+            if (!enemy.IsAlive)
+            {
                 continue;
             }
 
@@ -861,7 +923,8 @@ public sealed class TacticalEncounter
             _relicIds.ToList(),
             _nextActorId,
             _nextTileEffectInstanceId,
-            Player.Id);
+            Player.Id,
+            VictoryTargetEnemyId);
     }
 
     private void TickTemporaryRaisedStone()

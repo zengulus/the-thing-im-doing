@@ -9,6 +9,7 @@ public sealed record ClauseDefinition(
     string DisplayNameKey,
     string PlayerTextKey,
     ClauseFamily Family,
+    ClauseRole Role,
     IReadOnlyDictionary<string, int> CounterCosts,
     IReadOnlyDictionary<string, int> CounterGains,
     string TooltipKey,

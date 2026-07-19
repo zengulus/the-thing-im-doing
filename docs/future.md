@@ -33,20 +33,20 @@ Dependencies in this file are logical prerequisites, not an ordered build plan. 
 
 ## [Baseline] What already exists
 
-The current build is a finishable five-floor tactical roguelike, not the one-room prototype for which this document was first written. Its regression baseline includes:
+The current build is a finishable single-map tactical sandbox. It replaces the earlier five-floor main run while retaining that authored run as a regression fixture. Its baseline includes:
 
 * short, editable Workings assembled from clause nodes with ordinary and conditional flow;
 * a semantic Working model with core versioned JSON import/export, layout metadata kept separate from meaning, and structural validation;
 * deterministic preview on a cloned encounter, live casting through the same resolution path, and omen traces;
 * data-driven clauses, behavior primitives and graphs, effects, enemies, local floor rules, relics, environments, encounters, rewards, and runs;
-* procedural tactical floors with connected rooms and corridors, seeded terrain, exploration, fog of war, awareness, and line of sight;
-* layered enemy behavior, several authored tactical roles, increasingly expansive floors, and a final boss;
-* carried health, reward choices, clause unlocks, relic acquisition, victory, and defeat;
+* one large procedural Archive with connected rooms and corridors, seeded terrain, exploration, fog of war, awareness, and line of sight;
+* layered enemy behavior, six ordinary tactical roles, and exactly one embedded Obsidian Crown objective;
+* the complete clause and relic toolkit at entry, two editable Workings, victory, defeat, same-seed retry, and new-seed regeneration;
 * relic, rule, and effect hooks integrated into encounter resolution, including preview parity for the one implemented relic;
-* base-content and mod-content loading, validation, 155 automated tests, and generated-run playability fixtures;
+* base-content and mod-content loading, validation, a broad automated suite, and generated-sandbox playability fixtures;
 * a functional graph editor and placeholder glyph rendering.
 
-At this snapshot, the authored baseline contains 20 clauses, 30 behavior primitives, 36 behavior definitions, seven enemies including the boss, four environments across five floors, four local rules, five effects, seven rewards, and one relic.
+At this snapshot, the authored content contains 20 clauses, 30 behavior primitives, 36 behavior definitions, seven enemies including the boss, four reusable environments, four local rules, five effects, seven legacy rewards, one relic, six encounters, and two run definitions. The main game deliberately composes a smaller subset into one complete sandbox.
 
 This baseline does **not** imply human playtest proof, player-facing Working sharing, auto-layout or repair, save/load or content fingerprints, or procedural synthesis of alien laws, ecologies, and entities. “Procedural” currently describes tactical map generation; the larger alien generator remains future scope governed by the roadmap.
 
@@ -150,7 +150,7 @@ Choosing or aiming at a target must never be sufficient to deal direct damage. H
 
 This is not satisfied by attaching an automatic resource cost to a universal attack. The player should have to read the current encounter and improvise a way to make harm possible. Environmental and indirect consequences may deal damage, but their enabling state and causal chain must remain inspectable.
 
-The baseline still contains an unconditional direct-damage clause. That is known design debt, not a precedent for future clauses. The roadmap owns its retirement and the regression work needed to keep the existing run finishable.
+The former unconditional damage debt is retired. Direct Damage is now a Consumer that requires and consumes a caster-owned mark from its focused actor or tile; a foreign mark does not qualify. The UI refuses to commit a no-effect omen.
 
 ---
 
@@ -223,7 +223,7 @@ Add a clause only when it creates a new tactical or investigative relationship. 
 
 ### [Baseline] Current vocabulary
 
-The implemented language already includes selected and nearest-foe targeting; marked, occupied, and clear conditions; mark, push, raised terrain, poison, bleed, wards, lightning charge, and resource-spend effects; and one primary Remembered sign that can hold and restore an actor or tile focus. It also includes an unconditional direct-damage clause that the north star explicitly treats as design debt.
+The implemented language already includes selected and nearest-foe targeting; marked, occupied, and clear conditions; mark-gated damage, push, raised terrain, poison, bleed, wards, lightning charge, and resource-spend effects; and one primary Remembered sign that can hold and restore an actor or tile focus.
 
 ### [Candidate] Targeting extensions
 

@@ -368,7 +368,15 @@ public sealed class BehaviorMachine
 
     private static BehaviorAtomResult ConsumeCounter(BehaviorStepDefinition step, BehaviorExecutionContext context)
     {
-        return ModifyCounter(step, context, -(step.Amount ?? 1), requireAvailable: true);
+        int amount = step.Amount ?? 1;
+
+        if (amount <= 0)
+        {
+            context.Trace.Add($"Could not consume {step.Counter}: amount must be positive.");
+            return new BehaviorAtomResult(BehaviorFlow.False, false);
+        }
+
+        return ModifyCounter(step, context, -amount, requireAvailable: true);
     }
 
     private static BehaviorAtomResult ModifyCounter(
@@ -411,11 +419,13 @@ public sealed class BehaviorMachine
 
     private static BehaviorAtomResult BranchCounterAtLeast(BehaviorStepDefinition step, BehaviorExecutionContext context)
     {
-        bool passed = !string.IsNullOrWhiteSpace(step.Counter)
+        int amount = step.Amount ?? 1;
+        bool passed = amount > 0
+            && !string.IsNullOrWhiteSpace(step.Counter)
             && TrySelectCounterTarget(step, context, out CounterTarget target)
-            && target.Get(step.Counter, context) >= (step.Amount ?? 1);
+            && target.Get(step.Counter, context) >= amount;
 
-        return Branch(passed, $"{step.Counter} at least {step.Amount ?? 1}", context);
+        return Branch(passed, $"{step.Counter} at least {amount}", context);
     }
 
     private static BehaviorAtomResult Damage(BehaviorStepDefinition step, BehaviorExecutionContext context)
@@ -504,11 +514,18 @@ public sealed class BehaviorMachine
 
     private static BehaviorAtomResult DetachEffect(BehaviorStepDefinition step, BehaviorExecutionContext context)
     {
-        EffectInstance? effect = SelectEffect(step.Target, step.Effect, context);
+        if (step.Target == "focus.effect")
+        {
+            return DetachFocusedEffect(step, context);
+        }
+
+        EffectInstance? effect = SelectEffect(step.Target, step.Effect, context, step.Owner);
 
         if (effect == null)
         {
-            return BehaviorAtomResult.Next();
+            return string.IsNullOrWhiteSpace(step.Owner)
+                ? BehaviorAtomResult.Next()
+                : BehaviorAtomResult.Stop();
         }
 
         EncounterActor? actor = SelectActor(DefaultIfBlank(step.Source, "effect.target"), context);
@@ -524,12 +541,68 @@ public sealed class BehaviorMachine
             : BehaviorAtomResult.Next();
     }
 
+    private static BehaviorAtomResult DetachFocusedEffect(
+        BehaviorStepDefinition step,
+        BehaviorExecutionContext context)
+    {
+        bool ownerSpecified = !string.IsNullOrWhiteSpace(step.Owner);
+        EncounterActor? owner = !ownerSpecified
+            ? null
+            : SelectActor(step.Owner, context);
+
+        if (ownerSpecified && owner == null)
+        {
+            context.Trace.Add($"Could not consume {step.Effect}: owner selector '{step.Owner}' was invalid.");
+            return BehaviorAtomResult.Stop();
+        }
+
+        EncounterActor? actor = SelectActor("focus.actor", context);
+        EffectInstance? actorEffect = owner == null
+            ? actor?.FindEffect(step.Effect)
+            : actor?.FindEffect(step.Effect, owner.Id);
+
+        if (actor != null && actorEffect != null)
+        {
+            bool changed = context.Resolve(
+                new DetachActorEffectCommand(actor.Id, actorEffect.InstanceId)).ChangedWorld;
+            context.Trace.Add(changed
+                ? $"Consumed {step.Effect} owned by actor {actorEffect.OwnerActorId} from actor {actor.Id}."
+                : $"Could not consume {step.Effect} from actor {actor.Id}.");
+            return changed
+                ? BehaviorAtomResult.Next(changedWorld: true)
+                : BehaviorAtomResult.Stop();
+        }
+
+        GridPos? tile = SelectTile("focus.tile", context);
+        TacticalEncounter? encounter = context.Encounter
+            ?? (context.SpellWorld as EncounterSpellWorld)?.Encounter;
+        EffectInstance? tileEffect = tile.HasValue
+            ? encounter?.FindTileEffect(tile.Value, step.Effect, owner?.Id)
+            : null;
+
+        if (tile.HasValue && tileEffect != null)
+        {
+            bool changed = context.Resolve(
+                new RemoveTileEffectCommand(tile.Value, tileEffect.InstanceId)).ChangedWorld;
+            context.Trace.Add(changed
+                ? $"Consumed {step.Effect} owned by actor {tileEffect.OwnerActorId} from tile {tile.Value}."
+                : $"Could not consume {step.Effect} from tile {tile.Value}.");
+            return changed
+                ? BehaviorAtomResult.Next(changedWorld: true)
+                : BehaviorAtomResult.Stop();
+        }
+
+        context.Trace.Add($"Could not find {step.Effect} on the focused actor or tile to consume.");
+        return BehaviorAtomResult.Stop();
+    }
+
     private static BehaviorAtomResult BranchEffectAttached(BehaviorStepDefinition step, BehaviorExecutionContext context)
     {
         EncounterActor? owner = SelectActor(DefaultIfBlank(step.Source, "self"), context);
 
         if (owner == null || string.IsNullOrWhiteSpace(step.Effect))
         {
+            context.Trace.Add("Checked for an owned effect, but its owner or effect was unavailable.");
             return new BehaviorAtomResult(BehaviorFlow.False, false);
         }
 
@@ -541,12 +614,12 @@ public sealed class BehaviorMachine
                 ? context.SpellWorld.HasEffect(actor, step.Effect, owner)
                     || context.SpellWorld.HasEffect(actor.Position, step.Effect, owner)
                 : actor.FindEffect(step.Effect, owner.Id) != null;
-            return new BehaviorAtomResult(passed ? BehaviorFlow.True : BehaviorFlow.False, false);
+            return Branch(passed, $"{step.Effect} owned by actor {owner.Id}", context);
         }
 
         GridPos? tile = SelectTile(step.Target, context);
         bool tilePassed = tile.HasValue && context.SpellWorld?.HasEffect(tile.Value, step.Effect, owner) == true;
-        return new BehaviorAtomResult(tilePassed ? BehaviorFlow.True : BehaviorFlow.False, false);
+        return Branch(tilePassed, $"{step.Effect} owned by actor {owner.Id}", context);
     }
 
     private static BehaviorAtomResult SetTileState(BehaviorStepDefinition step, BehaviorExecutionContext context)
@@ -747,14 +820,41 @@ public sealed class BehaviorMachine
     private static EffectInstance? SelectEffect(
         string targetId,
         string effectId,
-        BehaviorExecutionContext context)
+        BehaviorExecutionContext context,
+        string ownerId = "")
     {
+        bool ownerSpecified = !string.IsNullOrWhiteSpace(ownerId);
+        EncounterActor? owner = ownerSpecified ? SelectActor(ownerId, context) : null;
+
+        if (ownerSpecified && owner == null)
+        {
+            return null;
+        }
+
         return DefaultIfBlank(targetId, "effect") switch
         {
             "effect" or "current.effect" => context.Effect,
-            "focus.effect" => SelectActor("focus.actor", context)?.FindEffect(effectId),
+            "focus.effect" => FindActorEffect(
+                SelectActor("focus.actor", context),
+                effectId,
+                owner),
             _ => null
         };
+    }
+
+    private static EffectInstance? FindActorEffect(
+        EncounterActor? actor,
+        string effectId,
+        EncounterActor? owner)
+    {
+        if (actor == null)
+        {
+            return null;
+        }
+
+        return owner == null
+            ? actor.FindEffect(effectId)
+            : actor.FindEffect(effectId, owner.Id);
     }
 
     private static bool TrySelectCounterTarget(

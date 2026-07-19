@@ -12,7 +12,7 @@ namespace TheThingImDoing.Tests;
 
 public sealed class GeneratedRunPlayabilityTests
 {
-    private const int MaximumTurnsPerEncounter = 600;
+    internal const int MaximumTurnsPerEncounter = 600;
     private static readonly Direction[] DirectionOrder =
     [
         Direction.North,
@@ -66,7 +66,12 @@ public sealed class GeneratedRunPlayabilityTests
                 pressureWorking.Nodes,
                 node => Assert.Contains(node.ClauseId, playerState.UnlockedClauseIds));
 
-            int turns = RunPolicy(encounter, pressureWorking, out string recentActions);
+            int turns = RunPolicy(
+                encounter,
+                pressureWorking,
+                out string recentActions,
+                out _,
+                out _);
 
             Assert.True(
                 encounter.Result == GameResult.PlayerWon,
@@ -115,14 +120,21 @@ public sealed class GeneratedRunPlayabilityTests
         Assert.True(playerState.CurrentHealth > 0);
     }
 
-    private static int RunPolicy(
+    internal static int RunPolicy(
         TacticalEncounter encounter,
         Working pressureWorking,
-        out string recentActions)
+        out string recentActions,
+        out int successfulWorkingCasts,
+        out int successfulDefensiveCasts,
+        bool prioritizeVictoryTarget = false,
+        Working? defensiveWorking = null)
     {
         int turn = 0;
         var actionLog = new Queue<string>();
         int? pursuedTargetId = null;
+        int workingCasts = 0;
+        int defensiveCasts = 0;
+        bool previousActionWasDefensive = false;
 
         while (encounter.Result == GameResult.InProgress && turn < MaximumTurnsPerEncounter)
         {
@@ -134,6 +146,7 @@ public sealed class GeneratedRunPlayabilityTests
             if (evasion.HasValue)
             {
                 Assert.True(encounter.TryMovePlayer(evasion.Value));
+                previousActionWasDefensive = false;
                 RecordAction($"{turn}:evade {evasion}@{encounter.Player.Position}");
             }
             else
@@ -144,7 +157,7 @@ public sealed class GeneratedRunPlayabilityTests
 
                 if (target == null || !target.IsAlive || target.Faction != Faction.Enemy)
                 {
-                    target = SelectNextTarget(encounter);
+                    target = SelectNextTarget(encounter, GetPolicyPriority);
                     pursuedTargetId = target?.Id;
                 }
 
@@ -153,10 +166,10 @@ public sealed class GeneratedRunPlayabilityTests
 
                 EncounterActor? urgentVisibleTarget = encounter.Enemies
                     .Where(enemy => CanPerceive(encounter, encounter.Player.Position, enemy.Position))
-                    .Where(enemy => target == null
-                        || GetPriority(enemy.EnemyId) < GetPriority(target.EnemyId)
-                        || (!pursuedTargetVisible
-                            && enemy.Position.ManhattanDistanceTo(encounter.Player.Position) == 1))
+                    .Where(enemy => IsUrgentVisibleTarget(
+                        enemy,
+                        target,
+                        pursuedTargetVisible))
                     .OrderBy(enemy => GetPriority(enemy.EnemyId))
                     .ThenBy(enemy => enemy.Position.ManhattanDistanceTo(encounter.Player.Position))
                     .ThenBy(enemy => enemy.Id)
@@ -171,11 +184,7 @@ public sealed class GeneratedRunPlayabilityTests
                 if (target != null
                     && CanPerceive(encounter, encounter.Player.Position, target.Position))
                 {
-                    WorkingResult cast = encounter.TryCastWorking(pressureWorking, target.Position);
-                    Assert.True(
-                        cast.Succeeded,
-                        $"Legal cast at visible {target.EnemyId} failed: {cast.FailureReason}");
-                    RecordAction($"{turn}:cast {target.EnemyId}:{target.Health}@{target.Position}");
+                    CastAtVisibleTarget(target, "cast");
                 }
                 else
                 {
@@ -186,6 +195,7 @@ public sealed class GeneratedRunPlayabilityTests
                     if (approach.HasValue)
                     {
                         Assert.True(encounter.TryMovePlayer(approach.Value));
+                        previousActionWasDefensive = false;
                         RecordAction($"{turn}:move {approach}@{encounter.Player.Position}");
                     }
                     else
@@ -195,7 +205,7 @@ public sealed class GeneratedRunPlayabilityTests
                                 encounter,
                                 encounter.Player.Position,
                                 enemy.Position))
-                            .OrderBy(enemy => GetPriority(enemy.EnemyId))
+                            .OrderBy(GetPolicyPriority)
                             .ThenBy(enemy => enemy.Position.ManhattanDistanceTo(encounter.Player.Position))
                             .ThenBy(enemy => enemy.Id)
                             .FirstOrDefault();
@@ -204,15 +214,14 @@ public sealed class GeneratedRunPlayabilityTests
                         {
                             target = blockingThreat;
                             pursuedTargetId = target.Id;
-                            WorkingResult cast = encounter.TryCastWorking(pressureWorking, target.Position);
-                            Assert.True(cast.Succeeded, cast.FailureReason);
-                            RecordAction($"{turn}:cast blocker {target.EnemyId}:{target.Health}@{target.Position}");
+                            CastAtVisibleTarget(target, "cast blocker");
                         }
                         else
                         {
                             // A temporary stone can close a one-tile route. Waiting is a legal
                             // action, and temporary raised stone is guaranteed to clear.
                             encounter.WaitPlayerTurn();
+                            previousActionWasDefensive = false;
                             RecordAction($"{turn}:wait@{encounter.Player.Position}");
                         }
                     }
@@ -225,8 +234,71 @@ public sealed class GeneratedRunPlayabilityTests
             }
         }
 
+        successfulWorkingCasts = workingCasts;
+        successfulDefensiveCasts = defensiveCasts;
         recentActions = string.Join(" | ", actionLog);
         return turn;
+
+        void CastAtVisibleTarget(EncounterActor target, string action)
+        {
+            if (defensiveWorking != null
+                && ShouldPrepareDefense(encounter, previousActionWasDefensive))
+            {
+                WorkingResult defense = encounter.TryCastWorking(
+                    defensiveWorking,
+                    encounter.Player.Position);
+                Assert.True(
+                    defense.Succeeded,
+                    $"Legal defensive cast failed: {defense.FailureReason}");
+                Assert.True(defense.ChangedWorld, "Defensive policy cast a no-op Working.");
+                defensiveCasts++;
+                previousActionWasDefensive = true;
+                RecordAction($"{turn}:defend@{encounter.Player.Position}");
+                return;
+            }
+
+            WorkingResult cast = encounter.TryCastWorking(pressureWorking, target.Position);
+            Assert.True(
+                cast.Succeeded,
+                $"Legal cast at visible {target.EnemyId} failed: {cast.FailureReason}");
+            Assert.True(cast.ChangedWorld, "Offensive policy cast a no-op Working.");
+            workingCasts++;
+            previousActionWasDefensive = false;
+            RecordAction($"{turn}:{action} {target.EnemyId}:{target.Health}@{target.Position}");
+        }
+
+        int GetPolicyPriority(EncounterActor enemy)
+        {
+            return prioritizeVictoryTarget && enemy.Id == encounter.VictoryTarget?.Id
+                ? -1
+                : GetPriority(enemy.EnemyId);
+        }
+
+        bool IsUrgentVisibleTarget(
+            EncounterActor enemy,
+            EncounterActor? target,
+            bool targetVisible)
+        {
+            if (!prioritizeVictoryTarget)
+            {
+                return target == null
+                    || GetPriority(enemy.EnemyId) < GetPriority(target.EnemyId)
+                    || (!targetVisible
+                        && enemy.Position.ManhattanDistanceTo(encounter.Player.Position) == 1);
+            }
+
+            int? victoryTargetId = encounter.VictoryTarget?.Id;
+
+            if (enemy.Id == victoryTargetId)
+            {
+                return false;
+            }
+
+            return target == null
+                || !targetVisible
+                || (target.Id != victoryTargetId
+                    && GetPriority(enemy.EnemyId) < GetPriority(target.EnemyId));
+        }
 
         void RecordAction(string action)
         {
@@ -239,10 +311,12 @@ public sealed class GeneratedRunPlayabilityTests
         }
     }
 
-    private static EncounterActor? SelectNextTarget(TacticalEncounter encounter)
+    private static EncounterActor? SelectNextTarget(
+        TacticalEncounter encounter,
+        Func<EncounterActor, int> getPriority)
     {
         return encounter.Enemies
-            .OrderBy(enemy => GetPriority(enemy.EnemyId))
+            .OrderBy(getPriority)
             .ThenBy(enemy => enemy.Health)
             .ThenBy(enemy => enemy.Position.ManhattanDistanceTo(encounter.Player.Position))
             .ThenBy(enemy => enemy.Id)
@@ -293,6 +367,46 @@ public sealed class GeneratedRunPlayabilityTests
                 enemy.Position.ManhattanDistanceTo(encounter.Player.Position.Offset(direction))))
             .Cast<Direction?>()
             .FirstOrDefault();
+    }
+
+    private static bool ShouldPrepareDefense(
+        TacticalEncounter encounter,
+        bool previousActionWasDefensive)
+    {
+        if (previousActionWasDefensive)
+        {
+            return false;
+        }
+
+        EncounterActor[] visibleThreats = encounter.Enemies
+            .Where(enemy => CanPerceive(
+                encounter,
+                encounter.Player.Position,
+                enemy.Position))
+            .ToArray();
+
+        if (visibleThreats.Length == 0)
+        {
+            return false;
+        }
+
+        EffectInstance? ward = encounter.Player.FindEffect(
+            "effect.ward",
+            encounter.Player.Id);
+        int wardStacks = ward?.Counters.Get("counter.stack") ?? 0;
+        int charge = encounter.Player.Counters.Get("counter.bonus.charge");
+        bool hasShield = encounter.Player.FindEffect(
+            "effect.lightning_shield",
+            encounter.Player.Id) != null;
+        int nearestDistance = visibleThreats.Min(enemy =>
+            enemy.Position.ManhattanDistanceTo(encounter.Player.Position));
+        int engagedThreats = visibleThreats.Count(encounter.IsEnemyEngaged);
+
+        return !hasShield
+            || charge == 0
+            || wardStacks == 0
+            || (wardStacks < 2
+                && (nearestDistance <= 4 || engagedThreats >= 2));
     }
 
     private static Direction? FindApproachDirection(
@@ -370,21 +484,40 @@ public sealed class GeneratedRunPlayabilityTests
         return visited.Count;
     }
 
-    private static Working CreatePressureWorking(bool includePoison)
+    internal static Working CreatePressureWorking(
+        bool includePoison,
+        bool includeBleed = false)
     {
         var working = new Working("working.test.pressure", "workings.mark_or_damage.name");
         working.AddNode(new WorkingNode(1, "clause.aim_at_target") { NextNodeId = 2 });
-        working.AddNode(new WorkingNode(2, "clause.damage_them") { NextNodeId = 3 });
+        working.AddNode(new WorkingNode(2, "clause.if_marked")
+        {
+            TrueNodeId = 3,
+            FalseNodeId = 4
+        });
+        working.AddNode(new WorkingNode(3, "clause.damage_them")
+        {
+            NextNodeId = includePoison ? 5 : includeBleed ? 7 : 6
+        });
+        working.AddNode(new WorkingNode(4, "clause.mark_them")
+        {
+            NextNodeId = includePoison ? 5 : includeBleed ? 7 : 6
+        });
 
         if (includePoison)
         {
-            working.AddNode(new WorkingNode(3, "clause.poison_them") { NextNodeId = 4 });
-            working.AddNode(new WorkingNode(4, "clause.push_them"));
+            working.AddNode(new WorkingNode(5, "clause.poison_them")
+            {
+                NextNodeId = includeBleed ? 7 : 6
+            });
         }
-        else
+
+        if (includeBleed)
         {
-            working.AddNode(new WorkingNode(3, "clause.push_them"));
+            working.AddNode(new WorkingNode(7, "clause.bleed_them") { NextNodeId = 6 });
         }
+
+        working.AddNode(new WorkingNode(6, "clause.push_them"));
 
         return working;
     }

@@ -91,6 +91,20 @@ A Working should be executable without the graph editor or spell-circle renderer
 
 A Working should be exportable to JSON once serialization exists.
 
+## Clause roles
+
+Every clause must declare exactly one player-facing role:
+
+* **Generator** — establishes focus, terrain, a mark, a status, a counter, or remembered state that later clauses can use.
+* **Operator** — tests, redirects, recalls, moves, or reshapes existing state. Operators may provide modest standalone utility, but should not replace a payoff.
+* **Consumer** — requires, spends, or commits setup to produce the strongest payoff.
+
+The role is semantic content, not an editor-only badge. A Consumer's behavior must enforce its setup requirement during preview and live resolution. In particular, direct damage consumes a caster-owned mark; selecting a target alone is never sufficient. The omen must show a no-effect result when the required setup is absent.
+
+Content loading fails closed around that promise. Any clause behavior that reaches direct damage must be tagged for damage, declare the Consumer role, and confirm and consume matching effect or counter setup on every reachable damage path. Counter thresholds and consumption must be positive; effect consumption must name the same explicit owner that established the setup. Damage must remain explicit in the clause behavior rather than hidden inside a composite primitive, so the loader can inspect the whole path. Invalid mod overrides are skipped rather than weakening the base definition. Explicit effect-owner selectors are validated; an unresolved owner stops the payoff instead of falling back to another actor's state.
+
+The Clause Codex and graph editor must expose these roles consistently. Adding a fourth role or leaving a clause unclassified requires a schema and design review rather than an ad hoc tag.
+
 ---
 
 # 5. Spell Circle Rule

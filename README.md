@@ -1,21 +1,24 @@
 # The Thing I'm Doing
 
-Godot 4 .NET / C# tactics roguelike about writing short magical Workings.
+Godot 4 .NET / C# tactics sandbox about writing short magical Workings inside a learnable alien environment.
 
 ## Playable Game
 
-The main scene contains a finishable five-floor run through the Ashen Archive:
+The main scene is a complete, replayable sandbox expedition through the Living Archive:
 
-- deterministic 32×24 through 48×32 procedural maps with connected rooms, corridors, seeded terrain, fog of war, and camera-follow exploration;
-- six data-driven enemy archetypes and the Obsidian Crown boss, distributed across the map;
+- one deterministic 40×28 procedural map per seed, with connected rooms, corridors, varied terrain, fog of war, and camera-follow exploration;
+- a sandbox-first structure where terrain, local law, owned statuses, enemy support roles, and spell clauses combine without encounter scripts;
+- exactly one remote Obsidian Crown boss; defeating it wins immediately, while every ordinary threat is optional;
+- all six ordinary enemy archetypes distributed across the sandbox, dormant until the player enters their local awareness;
 - line-of-sight blocked by walls and raised stone, including player targeting and enemy perception;
-- layered enemy awareness: distant enemies remain dormant, nearby enemies alert through sight, damage, or line of sight to alerted allies, and full AI runs only within a viewport-sized radius;
+- a Crown echo that stays dormant during early investigation, then offers only a coarse direction so the boss remains an eventual finish line rather than the opening waypoint;
 - two editable Workings with deterministic preview and omen traces;
-- carried health, room rewards, clause unlocks, relics, victory, and defeat;
+- a complete Clause Codex from the start: Generators create setup, Operators route or reshape it, and Consumers spend setup for payoff;
+- mark-consuming direct damage, terrain collisions, status interactions, counters, memory, wards, a relic hook, victory, defeat, and seeded restart;
 - environments, rules, enemies, behaviors, effects, rewards, generation templates, and encounters composed from reusable content atoms;
-- intentionally simple placeholder geometry so playtesting stays focused on the systems.
+- clear placeholder geometry that keeps playtesting focused on the systems.
 
-Controls: click a tile to choose it, use WASD/arrows to move or strike, `F` to cast, `P` to preview, `E` to edit, `Tab` to change Working, `Space` to wait, and `R` to restart the run.
+Controls: click a tile or use `Shift`+WASD/arrows to target; use WASD/arrows to move or strike, `F` to cast, `P` to preview, `E` to edit, `Tab` to change Working, `Space` to wait, and `R` to open the restart menu.
 
 ## Design
 
@@ -55,7 +58,7 @@ godot --headless --path . --export-release "Linux" Builds/Linux/TheThingImDoing.
 
 Ship the complete `Builds/Linux` directory; the executable uses its generated `data_TheThingImDoing_linuxbsd_x86_64` companion directory.
 
-Runs generate a fresh seed by default. Reproduce a specific map sequence by setting the seed shown in the HUD:
+Sandboxes generate a fresh seed by default. Reproduce a specific Archive by setting the seed shown in the HUD:
 
 ```bash
 TTID_RUN_SEED=4242 godot --path .

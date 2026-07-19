@@ -40,7 +40,10 @@
     {
       "id": "behavior.clause.damage_them",
       "steps": [
-        { "id": 1, "op": "damage.apply", "target": "focus.actor", "amount": 1 }
+        { "id": 1, "op": "effect.has", "target": "focus", "source": "caster", "effect": "condition.marked", "true": 2, "false": 4 },
+        { "id": 2, "op": "effect.detach", "target": "focus.effect", "source": "focus.actor", "owner": "caster", "effect": "condition.marked", "next": 3 },
+        { "id": 3, "op": "damage.apply", "target": "focus.actor", "amount": 2, "next": 4 },
+        { "id": 4, "op": "flow.stop" }
       ]
     },
     {
@@ -84,7 +87,9 @@
     {
       "id": "behavior.clause.lightning_shield",
       "steps": [
-        { "id": 1, "op": "effect.attach", "target": "focus.actor", "source": "self", "effect": "effect.lightning_shield" }
+        { "id": 1, "op": "counter.at_least", "target": "focus.actor", "counter": "counter.bonus.charge", "amount": 1, "true": 2, "false": 3 },
+        { "id": 2, "op": "effect.attach", "target": "focus.actor", "source": "self", "effect": "effect.lightning_shield", "next": 3 },
+        { "id": 3, "op": "flow.stop" }
       ]
     },
     {

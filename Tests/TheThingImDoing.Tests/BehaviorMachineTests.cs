@@ -117,6 +117,96 @@ public sealed class BehaviorMachineTests
     }
 
     [Fact]
+    public void EffectDetach_InvalidExplicitOwnerSelectorFailsClosed()
+    {
+        var encounter = new TacticalEncounter(5, 5, new GridPos(1, 1));
+        EncounterActor enemy = encounter.AddDummyEnemy(new GridPos(3, 1), health: 3);
+        encounter.AddActorCondition(enemy.Id, "condition.marked", enemy.Id);
+        var working = new WorkingContext
+        {
+            CasterActorId = encounter.Player.Id,
+            SelectedTarget = enemy.Position,
+            StepLimit = 8
+        };
+        var behavior = new BehaviorDefinition(
+            "test.behavior.invalid_owner_detach",
+            new[]
+            {
+                Step(1, "focus.selected_target", next: 2),
+                Step(
+                    2,
+                    "effect.detach",
+                    target: "focus.effect",
+                    effect: "condition.marked",
+                    owner: "castor")
+            });
+        var trace = new OmenTrace();
+
+        BehaviorExecutionResult result = new BehaviorMachine().Execute(
+            behavior,
+            new BehaviorExecutionContext
+            {
+                SpellWorld = new EncounterSpellWorld(encounter),
+                Working = working,
+                Caster = encounter.Player,
+                Trace = trace
+            });
+
+        Assert.False(result.ChangedWorld);
+        Assert.True(encounter.HasActorCondition(enemy.Id, "condition.marked", enemy.Id));
+        Assert.Contains(trace.Events, traceEvent =>
+            traceEvent.Text.Contains("owner selector 'castor' was invalid", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(int.MinValue)]
+    public void CounterConsume_NonPositiveAmountFailsClosed(int amount)
+    {
+        var encounter = new TacticalEncounter(5, 5, new GridPos(1, 1));
+        EncounterActor enemy = encounter.AddDummyEnemy(new GridPos(3, 1), health: 3);
+        var working = new WorkingContext
+        {
+            CasterActorId = encounter.Player.Id,
+            SelectedTarget = enemy.Position,
+            StepLimit = 8
+        };
+        var behavior = new BehaviorDefinition(
+            "test.behavior.invalid_counter_consume",
+            [
+                Step(1, "focus.selected_target", next: 2),
+                Step(
+                    2,
+                    "counter.consume",
+                    trueStep: 3,
+                    falseStep: 4,
+                    amount: amount,
+                    counter: "counter.bonus.focus",
+                    target: "caster"),
+                Step(3, "damage.apply", amount: 1, target: "focus.actor"),
+                Step(4, "flow.stop")
+            ]);
+        var trace = new OmenTrace();
+
+        BehaviorExecutionResult result = new BehaviorMachine().Execute(
+            behavior,
+            new BehaviorExecutionContext
+            {
+                SpellWorld = new EncounterSpellWorld(encounter),
+                Working = working,
+                Caster = encounter.Player,
+                Trace = trace
+            });
+
+        Assert.False(result.ChangedWorld);
+        Assert.Equal(3, enemy.Health);
+        Assert.Equal(0, encounter.Player.Counters.Get("counter.bonus.focus"));
+        Assert.Contains(trace.Events, traceEvent =>
+            traceEvent.Text.Contains("amount must be positive", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ContentCatalogs_LoadGenericPrimitiveAndEffectDefinitions()
     {
         Assert.True(BehaviorPrimitiveCatalog.TryGet("counter.add", out BehaviorPrimitiveDefinition? primitive));
@@ -270,7 +360,7 @@ public sealed class BehaviorMachineTests
         var encounter = new TacticalEncounter(11, 3, new GridPos(0, 1));
         EncounterActor moss = encounter.AddEnemy("enemy.moss_chirurgeon", new GridPos(3, 1));
         EncounterActor nearerFull = encounter.AddEnemy("enemy.glass_hound", new GridPos(4, 1));
-        EncounterActor fartherWounded = encounter.AddEnemy("enemy.glass_hound", new GridPos(8, 1));
+        EncounterActor fartherWounded = encounter.AddEnemy("enemy.glass_hound", new GridPos(7, 1));
         encounter.TryDamageActor(fartherWounded.Id, 2);
         moss.Counters.Add("counter.ai.mending", 1);
 
@@ -283,17 +373,18 @@ public sealed class BehaviorMachineTests
     [Fact]
     public void IronPilgrim_ThirdTurnGainsWardInsteadOfAdvancing()
     {
-        var encounter = new TacticalEncounter(10, 3, new GridPos(0, 1));
-        EncounterActor pilgrim = encounter.AddEnemy("enemy.iron_pilgrim", new GridPos(9, 1));
+        int startX = TacticalEncounter.EnemyAwarenessRadius;
+        var encounter = new TacticalEncounter(startX + 3, 3, new GridPos(0, 1));
+        EncounterActor pilgrim = encounter.AddEnemy("enemy.iron_pilgrim", new GridPos(startX, 1));
 
         RunEnemyTurns(encounter, 2);
 
-        Assert.Equal(new GridPos(7, 1), pilgrim.Position);
+        Assert.Equal(new GridPos(startX - 2, 1), pilgrim.Position);
         Assert.Equal("gain 1 ward", encounter.GetEnemyIntent(pilgrim));
 
         RunEnemyTurns(encounter, 1);
 
-        Assert.Equal(new GridPos(7, 1), pilgrim.Position);
+        Assert.Equal(new GridPos(startX - 2, 1), pilgrim.Position);
         Assert.NotNull(pilgrim.FindEffect("effect.ward", pilgrim.Id));
         Assert.Equal(0, pilgrim.Counters.Get("counter.ai.guard"));
     }
@@ -417,6 +508,48 @@ public sealed class BehaviorMachineTests
         Assert.Equal(3, enemy.Health);
         Assert.Equal(2, encounter.Player.Counters.Get("counter.bonus.charge"));
         Assert.NotNull(encounter.Player.FindEffect("effect.lightning_shield", encounter.Player.Id));
+    }
+
+    [Fact]
+    public void LightningShield_RequiresChargeBeforeItCanBeAttached()
+    {
+        var encounter = new TacticalEncounter(5, 3, new GridPos(1, 1));
+        encounter.AddDummyEnemy(new GridPos(4, 1));
+        Working working = CreateLightningShieldWorking();
+
+        WorkingPreview emptyPreview = encounter.PreviewWorkingDetailed(
+            working,
+            encounter.Player.Position);
+        WorkingResult emptyLive = new WorkingMachine().Execute(
+            working,
+            new EncounterSpellWorld(encounter),
+            encounter.Player.Id,
+            encounter.Player.Position);
+
+        Assert.True(emptyPreview.Result.Succeeded);
+        Assert.False(emptyPreview.Result.ChangedWorld);
+        Assert.True(emptyLive.Succeeded);
+        Assert.False(emptyLive.ChangedWorld);
+        Assert.Null(encounter.Player.FindEffect("effect.lightning_shield", encounter.Player.Id));
+        Assert.Contains(
+            emptyPreview.Result.Trace.Events,
+            traceEvent => traceEvent.Text.Contains("counter.bonus.charge", StringComparison.Ordinal)
+                && traceEvent.Text.Contains("failed", StringComparison.Ordinal));
+
+        encounter.Player.Counters.Add("counter.bonus.charge", 1);
+        WorkingPreview chargedPreview = encounter.PreviewWorkingDetailed(
+            working,
+            encounter.Player.Position);
+        WorkingResult chargedLive = new WorkingMachine().Execute(
+            working,
+            new EncounterSpellWorld(encounter),
+            encounter.Player.Id,
+            encounter.Player.Position);
+
+        Assert.True(chargedPreview.Result.ChangedWorld);
+        Assert.True(chargedLive.ChangedWorld);
+        Assert.NotNull(encounter.Player.FindEffect("effect.lightning_shield", encounter.Player.Id));
+        Assert.Equal(1, encounter.Player.Counters.Get("counter.bonus.charge"));
     }
 
     [Theory]
@@ -599,6 +732,7 @@ public sealed class BehaviorMachineTests
         var encounter = new TacticalEncounter(5, 5, new GridPos(1, 1));
         encounter.AddDummyEnemy(new GridPos(4, 1), health: 3);
         encounter.RemoveRelic("relic.patient_bell");
+        encounter.AddActorCondition(encounter.Player.Id, "condition.marked", encounter.Player.Id);
         encounter.AttachEffectToActor(encounter.Player.Id, "effect.ward", encounter.Player.Id, stacks: 1);
         Working working = CreateSelectedTargetDamageWorking();
 
@@ -608,7 +742,7 @@ public sealed class BehaviorMachineTests
         Assert.True(preview.Result.ChangedWorld);
         Assert.Equal(encounter.Player.MaxHealth, preview.Encounter.Player.Health);
         Assert.Empty(preview.Encounter.Player.Effects);
-        Assert.Single(encounter.Player.Effects);
+        Assert.Equal(2, encounter.Player.Effects.Count);
         Assert.Contains(preview.Result.Trace.Events, traceEvent =>
             traceEvent.Text.Contains("prevented", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(preview.Result.Trace.Events, traceEvent =>
@@ -679,6 +813,14 @@ public sealed class BehaviorMachineTests
         return working;
     }
 
+    private static Working CreateLightningShieldWorking()
+    {
+        var working = new Working("working.test.lightning_shield", "workings.mark_or_damage.name");
+        working.AddNode(new WorkingNode(1, "clause.aim_at_target") { NextNodeId = 2 });
+        working.AddNode(new WorkingNode(2, "clause.lightning_shield"));
+        return working;
+    }
+
     private static WorkingResult ExecuteChargeWorking(TacticalEncounter encounter, GridPos selectedTarget)
     {
         var working = new Working("working.test.charge", "workings.mark_or_damage.name");
@@ -706,7 +848,8 @@ public sealed class BehaviorMachineTests
         string state = "",
         string target = "",
         string source = "",
-        string mode = "")
+        string mode = "",
+        string owner = "")
     {
         return new BehaviorStepDefinition(
             id,
@@ -723,6 +866,7 @@ public sealed class BehaviorMachineTests
             state,
             target,
             source,
-            mode);
+            mode,
+            owner);
     }
 }

@@ -12,18 +12,7 @@ using TheThingImDoing.World;
 
 public partial class TestRoomController : Node2D
 {
-    private static readonly string[] StartingClauseIds =
-    {
-        "clause.aim_at_target",
-        "clause.aim_at_nearest_foe",
-        "clause.if_marked",
-        "clause.if_occupied",
-        "clause.if_clear",
-        "clause.mark_them",
-        "clause.damage_them",
-        "clause.raise_stone",
-        "clause.push_them"
-    };
+    private const int CrownEchoExplorationPercent = 30;
 
     private readonly Dictionary<int, CharacterBody2D> _actorVisuals = new();
     private readonly HashSet<GridPos> _discoveredTiles = new();
@@ -43,6 +32,7 @@ public partial class TestRoomController : Node2D
     private Label? _statusLabel;
     private Label? _arenaTitleLabel;
     private Label? _arenaSubtitleLabel;
+    private Label? _bossStatusLabel;
     private Label? _combatWorkingLabel;
     private Label? _workingTitleLabel;
     private Label? _traceLabel;
@@ -58,6 +48,7 @@ public partial class TestRoomController : Node2D
     private Button? _editorToggleButton;
     private Button? _combatCastButton;
     private Button? _editorCastButton;
+    private Button? _helpBeginButton;
     private SpellGraphEditorControl? _spellEditor;
     private Button[] _slotButtons = [];
     private Button[] _combatSlotButtons = [];
@@ -70,6 +61,7 @@ public partial class TestRoomController : Node2D
     private bool _isSpellEditorOpen;
     private bool _isHoverPreviewActive;
     private bool _encounterResolutionShown;
+    private bool _restartConfirmationShown;
     private int _selectedWorkingIndex;
     private int _previewWorkingIndex;
     private GridPos _selectedTarget = new(5, 1);
@@ -86,7 +78,7 @@ public partial class TestRoomController : Node2D
             _camera.PositionSmoothingEnabled = true;
             _camera.PositionSmoothingSpeed = 10.0f;
         }
-        _playerState = new RunPlayerState(maxHealth: 5, StartingClauseIds);
+        _playerState = SandboxStartingState.Create();
         _statusLabel = GetNodeOrNull<Label>("CanvasLayer/StatusLabel");
 
         if (_statusLabel != null)
@@ -110,10 +102,18 @@ public partial class TestRoomController : Node2D
     {
         if (_rewardBlocker?.Visible == true)
         {
-            if (inputEvent is InputEventKey { Keycode: Key.R, Pressed: true, Echo: false })
+            if (inputEvent is InputEventKey { Pressed: true, Echo: false } modalKey)
             {
-                StartNewRun();
-                GetViewport().SetInputAsHandled();
+                if (_restartConfirmationShown && modalKey.Keycode == Key.Escape)
+                {
+                    HideRewardOverlay();
+                    GetViewport().SetInputAsHandled();
+                }
+                else if (modalKey.Keycode == Key.R)
+                {
+                    StartNewRun();
+                    GetViewport().SetInputAsHandled();
+                }
             }
 
             return;
@@ -182,7 +182,14 @@ public partial class TestRoomController : Node2D
 
         if (direction.HasValue)
         {
-            TryPlayerStepOrAttack(direction.Value);
+            if (key.ShiftPressed)
+            {
+                MoveTargetCursor(direction.Value);
+            }
+            else
+            {
+                TryPlayerStepOrAttack(direction.Value);
+            }
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -217,7 +224,7 @@ public partial class TestRoomController : Node2D
                 GetViewport().SetInputAsHandled();
                 break;
             case Key.R:
-                StartNewRun();
+                ShowRestartConfirmation();
                 GetViewport().SetInputAsHandled();
                 break;
         }
@@ -276,6 +283,11 @@ public partial class TestRoomController : Node2D
                     discovered ? gridColor.Darkened(visible ? 0.0f : 0.65f) : fill,
                     filled: false,
                     width: 1.0f);
+
+                if (discovered)
+                {
+                    DrawTerrainGlyph(position, _encounter.Grid.GetTile(position), visible, gridColor);
+                }
             }
         }
 
@@ -300,6 +312,61 @@ public partial class TestRoomController : Node2D
         }
 
         DrawPreviewOverlay();
+    }
+
+    private void DrawTerrainGlyph(
+        GridPos position,
+        TileState state,
+        bool visible,
+        Color gridColor)
+    {
+        if (state == TileState.Floor)
+        {
+            return;
+        }
+
+        Rect2 rect = GetTileRect(position);
+        Vector2 center = rect.GetCenter();
+        Color feature = visible
+            ? gridColor.Lightened(0.35f)
+            : gridColor.Darkened(0.35f);
+        Color outline = visible
+            ? new Color(0.88f, 0.91f, 0.98f, 0.88f)
+            : new Color(0.45f, 0.48f, 0.56f, 0.72f);
+
+        if (state == TileState.Wall)
+        {
+            Rect2 slab = rect.Grow(-TileSize * 0.22f);
+            DrawRect(slab, feature.Darkened(0.24f));
+            DrawRect(slab, outline, filled: false, width: 2.0f);
+            DrawLine(
+                slab.Position,
+                slab.Position + slab.Size,
+                outline.Darkened(0.22f),
+                width: 2.0f,
+                antialiased: true);
+            DrawLine(
+                slab.Position + new Vector2(slab.Size.X, 0),
+                slab.Position + new Vector2(0, slab.Size.Y),
+                outline.Darkened(0.22f),
+                width: 2.0f,
+                antialiased: true);
+            return;
+        }
+
+        if (state == TileState.RaisedStone)
+        {
+            float radius = TileSize * 0.28f;
+            Vector2[] diamond =
+            [
+                center + new Vector2(0, -radius),
+                center + new Vector2(radius, 0),
+                center + new Vector2(0, radius),
+                center + new Vector2(-radius, 0)
+            ];
+            DrawColoredPolygon(diamond, feature);
+            DrawPolyline([.. diamond, diamond[0]], outline, width: 2.5f, antialiased: true);
+        }
     }
 
     private void ResetEncounter()
@@ -347,24 +414,26 @@ public partial class TestRoomController : Node2D
 
     private void StartNewRun()
     {
-        _playerState = new RunPlayerState(
-            maxHealth: 5,
-            StartingClauseIds);
-        _runSession = new GameRunSession("run.ashen_archive", CreateRunSeed());
+        StartRun(CreateRunSeed());
+    }
+
+    private void RetryCurrentSandbox()
+    {
+        StartRun(_runSession?.Seed ?? CreateRunSeed());
+    }
+
+    private void StartRun(int seed)
+    {
+        SetSpellEditorOpen(false);
+        HideHelp();
+        _playerState = SandboxStartingState.Create();
+        _runSession = new GameRunSession(SandboxStartingState.RunId, seed);
         _preparedWorkings[0] = WorkingSamples.CreateMarkOrDamage();
         _preparedWorkings[1] = WorkingSamples.CreateEmergencyWall();
         _selectedWorkingIndex = 0;
         _spellEditor?.SetWorking(_preparedWorkings[0]);
 
-        if (_rewardPanel != null)
-        {
-            _rewardPanel.Visible = false;
-        }
-
-        if (_rewardBlocker != null)
-        {
-            _rewardBlocker.Visible = false;
-        }
+        HideRewardOverlay();
 
         RefreshCodexAvailability();
         ResetEncounter();
@@ -544,8 +613,8 @@ public partial class TestRoomController : Node2D
         {
             Name = "ArenaHeader",
             Position = new Vector2(532, 28),
-            Size = new Vector2(680, 104),
-            CustomMinimumSize = new Vector2(680, 104),
+            Size = new Vector2(680, 124),
+            CustomMinimumSize = new Vector2(680, 124),
             Theme = _gameTheme
         };
         canvas.AddChild(panel);
@@ -574,6 +643,16 @@ public partial class TestRoomController : Node2D
         _arenaSubtitleLabel.AddThemeFontSizeOverride("font_size", 12);
         _arenaSubtitleLabel.AddThemeColorOverride("font_color", GameTheme.MutedText);
         root.AddChild(_arenaSubtitleLabel);
+
+        _bossStatusLabel = new Label
+        {
+            Text = "",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Visible = false
+        };
+        _bossStatusLabel.AddThemeFontSizeOverride("font_size", 15);
+        _bossStatusLabel.AddThemeColorOverride("font_color", GameTheme.Gold);
+        root.AddChild(_bossStatusLabel);
     }
 
     private void BuildRewardUi(CanvasLayer canvas)
@@ -634,9 +713,9 @@ public partial class TestRoomController : Node2D
         _helpPanel = new PanelContainer
         {
             Name = "HelpPanel",
-            Position = new Vector2(360, 92),
-            Size = new Vector2(560, 536),
-            CustomMinimumSize = new Vector2(560, 536),
+            Position = new Vector2(360, 60),
+            Size = new Vector2(560, 600),
+            CustomMinimumSize = new Vector2(560, 600),
             Visible = false,
             Theme = _gameTheme
         };
@@ -673,23 +752,33 @@ public partial class TestRoomController : Node2D
         subtitle.AddThemeColorOverride("font_color", GameTheme.MutedText);
         root.AddChild(subtitle);
 
+        var instructionScroll = new ScrollContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            VerticalScrollMode = ScrollContainer.ScrollMode.Auto
+        };
+        root.AddChild(instructionScroll);
+
         var instructions = new Label
         {
             Text = GameStrings.Get("ui.help.instructions"),
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-            VerticalAlignment = VerticalAlignment.Center
+            CustomMinimumSize = new Vector2(470, 0),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            VerticalAlignment = VerticalAlignment.Top
         };
         instructions.AddThemeFontSizeOverride("font_size", 15);
-        root.AddChild(instructions);
+        instructionScroll.AddChild(instructions);
 
-        var begin = new Button
+        _helpBeginButton = new Button
         {
             Text = GameStrings.Get("ui.help.begin"),
             CustomMinimumSize = new Vector2(0, 48)
         };
-        begin.Pressed += HideHelp;
-        root.AddChild(begin);
+        _helpBeginButton.Pressed += HideHelp;
+        root.AddChild(_helpBeginButton);
     }
 
     private void ShowHelp()
@@ -705,6 +794,7 @@ public partial class TestRoomController : Node2D
         _helpPanel.Visible = true;
         _helpBlocker.MoveToFront();
         _helpPanel.MoveToFront();
+        _helpBeginButton?.GrabFocus();
     }
 
     private void HideHelp()
@@ -746,10 +836,9 @@ public partial class TestRoomController : Node2D
             return;
         }
 
-        foreach (Node child in _rewardChoices.GetChildren())
-        {
-            child.QueueFree();
-        }
+        _restartConfirmationShown = false;
+
+        ClearRewardChoices();
 
         if (_rewardTitleLabel != null)
         {
@@ -772,11 +861,7 @@ public partial class TestRoomController : Node2D
             };
             continueButton.Pressed += () =>
             {
-                _rewardPanel.Visible = false;
-                if (_rewardBlocker != null)
-                {
-                    _rewardBlocker.Visible = false;
-                }
+                HideRewardOverlay();
                 continueWithoutReward?.Invoke();
             };
             _rewardChoices.AddChild(continueButton);
@@ -792,12 +877,7 @@ public partial class TestRoomController : Node2D
             };
             button.Pressed += () =>
             {
-                _rewardPanel.Visible = false;
-                if (_rewardBlocker != null)
-                {
-                    _rewardBlocker.Visible = false;
-                }
-                GetViewport().GuiGetFocusOwner()?.ReleaseFocus();
+                HideRewardOverlay();
                 chooseReward(reward);
             };
             _rewardChoices.AddChild(button);
@@ -820,10 +900,9 @@ public partial class TestRoomController : Node2D
             return;
         }
 
-        foreach (Node child in _rewardChoices.GetChildren())
-        {
-            child.QueueFree();
-        }
+        _restartConfirmationShown = false;
+
+        ClearRewardChoices();
 
         if (_rewardTitleLabel != null)
         {
@@ -850,6 +929,88 @@ public partial class TestRoomController : Node2D
         _rewardPanel.Visible = true;
         _rewardPanel.MoveToFront();
         SetSpellEditorOpen(false);
+    }
+
+    private void ShowRestartConfirmation()
+    {
+        if (_rewardPanel == null || _rewardChoices == null)
+        {
+            return;
+        }
+
+        ClearRewardChoices();
+
+        _restartConfirmationShown = true;
+        if (_rewardTitleLabel != null)
+        {
+            _rewardTitleLabel.Text = GameStrings.Get("ui.restart.title");
+        }
+        if (_rewardDetailLabel != null)
+        {
+            _rewardDetailLabel.Text = GameStrings.Get("ui.restart.detail");
+        }
+
+        var cancel = new Button
+        {
+            Text = GameStrings.Get("ui.restart.cancel"),
+            CustomMinimumSize = new Vector2(0, 56)
+        };
+        cancel.Pressed += HideRewardOverlay;
+        _rewardChoices.AddChild(cancel);
+
+        var retry = new Button
+        {
+            Text = GameStrings.Get("ui.restart.retry"),
+            CustomMinimumSize = new Vector2(0, 56)
+        };
+        retry.Pressed += RetryCurrentSandbox;
+        _rewardChoices.AddChild(retry);
+
+        var regenerate = new Button
+        {
+            Text = GameStrings.Get("ui.restart.new_seed"),
+            CustomMinimumSize = new Vector2(0, 56)
+        };
+        regenerate.Pressed += StartNewRun;
+        _rewardChoices.AddChild(regenerate);
+
+        if (_rewardBlocker != null)
+        {
+            _rewardBlocker.Visible = true;
+            _rewardBlocker.MoveToFront();
+        }
+        _rewardPanel.Visible = true;
+        _rewardPanel.MoveToFront();
+        SetSpellEditorOpen(false);
+        cancel.GrabFocus();
+    }
+
+    private void HideRewardOverlay()
+    {
+        _restartConfirmationShown = false;
+        if (_rewardPanel != null)
+        {
+            _rewardPanel.Visible = false;
+        }
+        if (_rewardBlocker != null)
+        {
+            _rewardBlocker.Visible = false;
+        }
+        GetViewport().GuiGetFocusOwner()?.ReleaseFocus();
+    }
+
+    private void ClearRewardChoices()
+    {
+        if (_rewardChoices == null)
+        {
+            return;
+        }
+
+        foreach (Node child in _rewardChoices.GetChildren())
+        {
+            _rewardChoices.RemoveChild(child);
+            child.QueueFree();
+        }
     }
 
     private Control BuildCodexColumn()
@@ -903,7 +1064,8 @@ public partial class TestRoomController : Node2D
         scroll.AddChild(list);
 
         foreach (ClauseDefinition definition in ClauseDefinitionCatalog.All
-                     .OrderBy(definition => definition.Family)
+                     .OrderBy(definition => definition.Role)
+                     .ThenBy(definition => definition.Family)
                      .ThenBy(definition => definition.DisplayName))
         {
             list.AddChild(CreateCodexEntry(definition));
@@ -944,7 +1106,7 @@ public partial class TestRoomController : Node2D
 
         var nameButton = new Button
         {
-            Text = definition.DisplayName,
+            Text = $"{ClauseRolePresentation.GetName(definition.Role)} · {definition.DisplayName}",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             TooltipText = definition.Tooltip
         };
@@ -981,7 +1143,8 @@ public partial class TestRoomController : Node2D
 
         var detail = new Label
         {
-            Text = $"{definition.Family} | counters {definition.CounterSummary}\n{definition.Tooltip}",
+            Text = $"{ClauseRolePresentation.GetName(definition.Role)} · {definition.Family} | " +
+                   $"counters {definition.CounterSummary}\n{definition.Tooltip}",
             AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
         detail.AddThemeFontSizeOverride("font_size", 11);
@@ -1002,7 +1165,7 @@ public partial class TestRoomController : Node2D
             : GameStrings.Get("ui.codex.flow.next");
 
         _codexDetailLabel.Text =
-            $"{definition.DisplayName}\n" +
+            $"{ClauseRolePresentation.GetName(definition.Role)} · {definition.DisplayName}\n" +
             $"{definition.PlayerText}\n\n" +
             $"{definition.Tooltip}\n\n" +
             $"{flowText}";
@@ -1090,7 +1253,7 @@ public partial class TestRoomController : Node2D
             FocusMode = Control.FocusModeEnum.None,
             TooltipText = GameStrings.Get("ui.play.restart_tooltip")
         };
-        restartButton.Pressed += StartNewRun;
+        restartButton.Pressed += ShowRestartConfirmation;
         utilityRow.AddChild(restartButton);
 
         var helpButton = new Button
@@ -1175,6 +1338,15 @@ public partial class TestRoomController : Node2D
         hintLabel.AddThemeFontSizeOverride("font_size", 12);
         root.AddChild(hintLabel);
 
+        var terrainLegend = new Label
+        {
+            Text = GameStrings.Get("ui.play.terrain_legend"),
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        terrainLegend.AddThemeFontSizeOverride("font_size", 11);
+        terrainLegend.AddThemeColorOverride("font_color", GameTheme.MutedText);
+        root.AddChild(terrainLegend);
+
         _quickTraceLabel = new Label
         {
             Text = GameStrings.Get("ui.play.preview_empty"),
@@ -1258,12 +1430,24 @@ public partial class TestRoomController : Node2D
     {
         Working working = _preparedWorkings[_selectedWorkingIndex];
         IReadOnlyList<string> validationIssues = WorkingValidator.Validate(working);
+        WorkingResult? previewResult = _preview != null
+            && _previewWorkingIndex == _selectedWorkingIndex
+                ? _preview.Result
+                : null;
         bool canCast = validationIssues.Count == 0
             && _encounter?.Turns.Phase == TurnPhase.PlayerTurn
-            && _encounter.Result == GameResult.InProgress;
-        string readiness = validationIssues.Count == 0
-            ? GameStrings.Get("ui.play.ready")
-            : $"{GameStrings.Get("ui.play.needs_repair")}: {validationIssues[0]}";
+            && _encounter.Result == GameResult.InProgress
+            && previewResult?.Succeeded == true
+            && previewResult.ChangedWorld;
+        string readiness = validationIssues.Count > 0
+            ? $"{GameStrings.Get("ui.play.needs_repair")}: {validationIssues[0]}"
+            : previewResult == null
+                ? GameStrings.Get("ui.play.choose_target")
+                : !previewResult.Succeeded
+                    ? $"{GameStrings.Get("ui.play.preview_blocked")}: {previewResult.FailureReason}"
+                    : !previewResult.ChangedWorld
+                        ? GameStrings.Get("ui.play.no_effect")
+                        : GameStrings.Get("ui.play.ready");
 
         if (_workingTitleLabel != null)
         {
@@ -1317,21 +1501,48 @@ public partial class TestRoomController : Node2D
             return;
         }
 
-        Working working = _preparedWorkings[Mathf.PosMod(workingIndex, _preparedWorkings.Length)];
-        _previewWorkingIndex = Mathf.PosMod(workingIndex, _preparedWorkings.Length);
+        int normalizedIndex = Mathf.PosMod(workingIndex, _preparedWorkings.Length);
+        Working working = _preparedWorkings[normalizedIndex];
+        _previewWorkingIndex = normalizedIndex;
+
+        if (WorkingValidator.UsesNearestFoeTarget(working)
+            && !_encounter.Enemies.Any(enemy => IsTileVisible(enemy.Position)))
+        {
+            _preview = null;
+
+            if (normalizedIndex == _selectedWorkingIndex)
+            {
+                ShowExplorationPrompt();
+                RefreshWorkingUi();
+            }
+            else if (_quickTraceLabel != null)
+            {
+                _quickTraceLabel.Text = GameStrings.Get("ui.play.explore_prompt");
+            }
+
+            QueueRedraw();
+            return;
+        }
+
         _preview = _encounter.PreviewWorkingDetailed(working, _selectedTarget);
         WorkingResult result = _preview.Result;
         LogDebug($"Previewed {working.DisplayName} at {_selectedTarget}: {result.Succeeded}");
 
-        if (workingIndex == _selectedWorkingIndex)
+        if (normalizedIndex == _selectedWorkingIndex)
         {
-            ShowTrace($"{GameStrings.Get("ui.editor.preview")} · {working.DisplayName}", result, startAtFirstStep);
+            ShowTrace(
+                $"{GameStrings.Get("ui.editor.preview")} · {working.DisplayName}",
+                result,
+                startAtFirstStep && result.Succeeded && result.ChangedWorld);
+            RefreshWorkingUi();
         }
         else if (_quickTraceLabel != null)
         {
-            string status = result.Succeeded
-                ? GameStrings.Get("ui.play.ready")
-                : result.FailureReason ?? GameStrings.Get("ui.play.needs_repair");
+            string status = !result.Succeeded
+                ? result.FailureReason ?? GameStrings.Get("ui.play.needs_repair")
+                : result.ChangedWorld
+                    ? GameStrings.Get("ui.play.ready")
+                    : GameStrings.Get("ui.play.no_effect");
             _quickTraceLabel.Text =
                 $"{GameStrings.Get("ui.play.hovering")}: {working.DisplayName} · {status}\n" +
                 CollapseTraceForHud(result.Trace.ToDisplayText());
@@ -1347,9 +1558,34 @@ public partial class TestRoomController : Node2D
             return;
         }
 
+        Working working = _preparedWorkings[_selectedWorkingIndex];
         _previewWorkingIndex = _selectedWorkingIndex;
-        _preview = _encounter.PreviewWorkingDetailed(_preparedWorkings[_selectedWorkingIndex], _selectedTarget);
+        _preview = WorkingValidator.UsesNearestFoeTarget(working)
+            && !_encounter.Enemies.Any(enemy => IsTileVisible(enemy.Position))
+                ? null
+                : _encounter.PreviewWorkingDetailed(working, _selectedTarget);
+        RefreshWorkingUi();
         QueueRedraw();
+    }
+
+    private void ShowExplorationPrompt()
+    {
+        string prompt = GameStrings.Get("ui.play.explore_prompt");
+        _lastTraceResult = null;
+        _lastTraceActionLabel = "";
+        _visibleTraceSteps = int.MaxValue;
+
+        if (_traceLabel != null)
+        {
+            _traceLabel.Text = prompt;
+        }
+
+        if (_quickTraceLabel != null)
+        {
+            _quickTraceLabel.Text = prompt;
+        }
+
+        _spellEditor?.SetTraceProgress(new OmenTrace(), 0);
     }
 
     private void CastSelectedWorking()
@@ -1357,6 +1593,21 @@ public partial class TestRoomController : Node2D
         if (_encounter == null)
         {
             return;
+        }
+
+        if (_preview == null
+            || _previewWorkingIndex != _selectedWorkingIndex
+            || !_preview.Result.Succeeded
+            || !_preview.Result.ChangedWorld)
+        {
+            PreviewSelectedWorking();
+
+            if (_preview == null
+                || !_preview.Result.Succeeded
+                || !_preview.Result.ChangedWorld)
+            {
+                return;
+            }
         }
 
         _preview = null;
@@ -1370,6 +1621,7 @@ public partial class TestRoomController : Node2D
         }
 
         SyncActorVisuals();
+        RefreshSelectedTarget();
         UpdateStatus();
         RefreshWorkingUi();
         HandleEncounterResult();
@@ -1428,7 +1680,11 @@ public partial class TestRoomController : Node2D
         int visibleSteps = totalSteps == 0
             ? 0
             : Math.Clamp(_visibleTraceSteps, 1, totalSteps);
-        string status = result.Succeeded ? "ok" : $"failed: {result.FailureReason}";
+        string status = !result.Succeeded
+            ? $"failed: {result.FailureReason}"
+            : result.ChangedWorld
+                ? "ok"
+                : GameStrings.Get("ui.play.no_effect");
         string traceText =
             $"{_lastTraceActionLabel}: {status} | trace {visibleSteps}/{totalSteps} | counters {result.CounterSummary} | cost {result.CostAdjustmentSummary}\n" +
             BuildTraceDisplayText(result.Trace, visibleSteps);
@@ -1596,6 +1852,18 @@ public partial class TestRoomController : Node2D
             DrawCircle(GridToWorldCenter(condition.Position), TileSize * 0.24f, new Color(0.95f, 0.62f, 1.0f, 0.36f));
             DrawRect(GetTileRect(condition.Position).Grow(-10), new Color(0.95f, 0.62f, 1.0f, 0.95f), filled: false, width: 3.0f);
         }
+
+        foreach (TileCondition condition in _encounter.TileConditions.Where(condition =>
+                     condition.ConditionId == "condition.marked"
+                     && condition.OwnerActorId == _encounter.Player.Id
+                     && IsTileVisible(condition.Position)
+                     && !forecast.HasTileCondition(
+                         condition.Position,
+                         condition.ConditionId,
+                         forecast.Player.Id)))
+        {
+            DrawConsumedMark(condition.Position);
+        }
     }
 
     private void DrawPreviewActorChanges(TacticalEncounter forecast)
@@ -1647,7 +1915,24 @@ public partial class TestRoomController : Node2D
                     DrawRect(GetTileRect(markPosition).Grow(-9), new Color(0.95f, 0.62f, 1.0f, 0.95f), filled: false, width: 3.0f);
                 }
             }
+            else if (markedNow && !markedPredicted)
+            {
+                DrawConsumedMark(actor.Position);
+            }
         }
+    }
+
+    private void DrawConsumedMark(GridPos position)
+    {
+        Rect2 mark = GetTileRect(position).Grow(-11);
+        Color color = new(1.0f, 0.56f, 0.26f, 0.98f);
+        DrawLine(mark.Position, mark.End, color, width: 3.0f, antialiased: true);
+        DrawLine(
+            mark.Position + new Vector2(mark.Size.X, 0),
+            mark.Position + new Vector2(0, mark.Size.Y),
+            color,
+            width: 3.0f,
+            antialiased: true);
     }
 
     private static string CollapseTraceForHud(string traceText)
@@ -1663,13 +1948,61 @@ public partial class TestRoomController : Node2D
 
     private void TryPlayerStepOrAttack(Direction direction)
     {
-        if (_encounter == null || !_encounter.TryPlayerStepOrAttack(direction))
+        if (_encounter == null)
         {
             return;
         }
 
+        GridPos previousPlayerPosition = _encounter.Player.Position;
+        bool targetFollowedPlayer = _selectedTarget == previousPlayerPosition;
+
+        if (!_encounter.TryPlayerStepOrAttack(direction))
+        {
+            ShowFieldMessage(GameStrings.Get("ui.play.blocked"));
+            return;
+        }
+
+        if (targetFollowedPlayer)
+        {
+            _selectedTarget = _encounter.Player.Position;
+        }
+
         LogDebug($"Player moved or attacked {direction}.");
         ResolveEnemyTurn();
+    }
+
+    private void MoveTargetCursor(Direction direction)
+    {
+        if (_encounter == null)
+        {
+            return;
+        }
+
+        GridPos next = _selectedTarget.Offset(direction);
+
+        if (!_encounter.Grid.IsInside(next) || !_discoveredTiles.Contains(next))
+        {
+            ShowFieldMessage(GameStrings.Get("ui.play.target_blocked"));
+            return;
+        }
+
+        _selectedTarget = next;
+        PreviewSelectedWorking();
+        UpdateStatus();
+        QueueRedraw();
+    }
+
+    private void ShowFieldMessage(string message)
+    {
+        if (_quickTraceLabel != null)
+        {
+            _quickTraceLabel.Text = message;
+        }
+
+        if (_traceLabel != null && _isSpellEditorOpen)
+        {
+            _traceLabel.Text = message;
+        }
     }
 
     private void WaitPlayerTurn()
@@ -1691,8 +2024,10 @@ public partial class TestRoomController : Node2D
             return;
         }
 
+        _preview = null;
         _encounter.RunEnemyTurn();
         SyncActorVisuals();
+        RefreshSelectedTarget();
         UpdateStatus();
         RefreshWorkingUi();
         HandleEncounterResult();
@@ -1703,6 +2038,21 @@ public partial class TestRoomController : Node2D
         }
 
         QueueRedraw();
+    }
+
+    private void RefreshSelectedTarget()
+    {
+        if (_encounter == null || IsTileVisible(_selectedTarget))
+        {
+            return;
+        }
+
+        EncounterActor? visibleEnemy = _encounter.Enemies
+            .Where(enemy => IsTileVisible(enemy.Position))
+            .OrderBy(enemy => enemy.Position.ManhattanDistanceTo(_encounter.Player.Position))
+            .ThenBy(enemy => enemy.Id)
+            .FirstOrDefault();
+        _selectedTarget = visibleEnemy?.Position ?? _encounter.Player.Position;
     }
 
     private void HandleEncounterResult()
@@ -1857,18 +2207,35 @@ public partial class TestRoomController : Node2D
             Name = actor.Faction == Faction.Player ? "Player" : $"Enemy{actor.Id}"
         };
 
-        float halfSize = TileSize * 0.33f;
-        var square = new Polygon2D
-        {
-            Name = "Body",
-            Color = GetActorColor(actor),
-            Polygon =
+        bool isObjective = IsVictoryTarget(actor);
+        float halfSize = TileSize * (isObjective ? 0.38f : 0.33f);
+        Vector2[] bodyPolygon = isObjective
+            ? CreateCrownPolygon(halfSize)
+            :
             [
                 new Vector2(-halfSize, -halfSize),
                 new Vector2(halfSize, -halfSize),
                 new Vector2(halfSize, halfSize),
                 new Vector2(-halfSize, halfSize)
-            ]
+            ];
+
+        if (isObjective)
+        {
+            float haloSize = TileSize * 0.44f;
+            var halo = new Polygon2D
+            {
+                Name = "ObjectiveHalo",
+                Color = GameTheme.Gold,
+                Polygon = CreateCrownPolygon(haloSize)
+            };
+            body.AddChild(halo);
+        }
+
+        var square = new Polygon2D
+        {
+            Name = "Body",
+            Color = GetActorColor(actor),
+            Polygon = bodyPolygon
         };
 
         var label = new Label
@@ -1898,6 +2265,7 @@ public partial class TestRoomController : Node2D
         }
 
         bool marked = _encounter.HasActorCondition(actor.Id, "condition.marked", _encounter.Player.Id);
+        bool isObjective = IsVictoryTarget(actor);
         string sigil = GetActorSigil(actor);
         string markSigil = marked ? " ✦" : "";
         string actorName = actor.Faction == Faction.Player
@@ -1910,6 +2278,10 @@ public partial class TestRoomController : Node2D
             ? actor.IsAlerted ? "!" : "?"
             : "";
         label.Text = $"{awarenessSigil}{sigil}\n{actor.Health}♥{markSigil}";
+        label.AddThemeFontSizeOverride("font_size", isObjective ? 17 : 14);
+        label.AddThemeColorOverride(
+            "font_color",
+            isObjective ? new Color(1.0f, 0.91f, 0.62f) : Colors.White);
         label.TooltipText =
             $"{actorName}\n{GameStrings.Get("ui.play.health")}: {actor.Health}/{actor.MaxHealth}" +
             (actor.Faction == Faction.Enemy
@@ -1927,9 +2299,33 @@ public partial class TestRoomController : Node2D
             return new Color(0.32f, 0.72f, 0.95f);
         }
 
-        return actor.EnemyId != null && EnemyConfigCatalog.TryGet(actor.EnemyId, out EnemyConfig? config)
-            ? config.Tint
-            : new Color(0.90f, 0.35f, 0.32f);
+        if (actor.EnemyId != null && EnemyConfigCatalog.TryGet(actor.EnemyId, out EnemyConfig? config))
+        {
+            return config.Tags.Contains("boss", StringComparer.Ordinal)
+                ? config.Tint.Lightened(0.32f)
+                : config.Tint;
+        }
+
+        return new Color(0.90f, 0.35f, 0.32f);
+    }
+
+    private bool IsVictoryTarget(EncounterActor actor)
+    {
+        return _encounter?.VictoryTarget?.Id == actor.Id;
+    }
+
+    private static Vector2[] CreateCrownPolygon(float size)
+    {
+        return
+        [
+            new Vector2(-size, size * 0.78f),
+            new Vector2(-size, -size * 0.22f),
+            new Vector2(-size * 0.64f, -size),
+            new Vector2(0, -size * 0.42f),
+            new Vector2(size * 0.64f, -size),
+            new Vector2(size, -size * 0.22f),
+            new Vector2(size, size * 0.78f)
+        ];
     }
 
     private static string GetActorSigil(EncounterActor actor)
@@ -1955,7 +2351,7 @@ public partial class TestRoomController : Node2D
         {
             GameResult.PlayerWon when _encounterDefinition?.IsFinal == true => "The Crown is broken.",
             GameResult.PlayerWon => "Chamber clear. Choose what endures.",
-            GameResult.PlayerLost => "Defeat. Press R to restart.",
+            GameResult.PlayerLost => "Defeat.",
             _ => $"Round {_encounter.Turns.Round} - {_encounter.Turns.Phase}"
         };
 
@@ -1974,10 +2370,13 @@ public partial class TestRoomController : Node2D
             (visibleEnemies < livingEnemies ? " · Others unknown" : "");
         string runProgress = _runSession == null
             ? ""
-            : $"{_runSession.Definition.DisplayName} · " +
-              $"{GameStrings.Get("ui.run.chamber")} " +
-              $"{Math.Min(_runSession.CurrentEncounterIndex + 1, _runSession.Definition.EncounterIds.Count)}/" +
-              $"{_runSession.Definition.EncounterIds.Count} · Seed {_runSession.Seed}";
+            : _encounter.VictoryTargetEnemyId != null
+                ? $"{_runSession.Definition.DisplayName} · {GameStrings.Get("ui.sandbox.seed")} {_runSession.Seed}"
+                : $"{_runSession.Definition.DisplayName} · " +
+                  $"{GameStrings.Get("ui.run.chamber")} " +
+                  $"{Math.Min(_runSession.CurrentEncounterIndex + 1, _runSession.Definition.EncounterIds.Count)}/" +
+                  $"{_runSession.Definition.EncounterIds.Count} · {GameStrings.Get("ui.sandbox.seed")} {_runSession.Seed}";
+        string objectiveStatus = BuildObjectiveStatus();
         string place = _encounterDefinition == null || _environmentDefinition == null
             ? ""
             : $"{_encounterDefinition.DisplayName} · {_environmentDefinition.DisplayName}";
@@ -1993,9 +2392,23 @@ public partial class TestRoomController : Node2D
                 : $"{_environmentDefinition.Description}  •  {_encounter.FloorRules.DisplayName}: " +
                   _encounter.FloorRules.Description;
         }
+        if (_bossStatusLabel != null)
+        {
+            EncounterActor? boss = _encounter.VictoryTarget;
+            bool showBoss = boss?.IsAlive == true && IsTileVisible(boss.Position);
+            _bossStatusLabel.Visible = showBoss;
+            _bossStatusLabel.Text = showBoss && boss != null
+                ? string.Format(
+                    GameStrings.Get("ui.sandbox.boss_health"),
+                    _encounter.GetEnemyDisplayName(boss),
+                    boss.Health,
+                    boss.MaxHealth)
+                : "";
+        }
 
         _statusLabel.Text =
             $"{runProgress}\n" +
+            (objectiveStatus.Length > 0 ? $"{objectiveStatus}\n" : "") +
             $"{place}\n" +
             $"{resultText} · {GameStrings.Get("ui.play.health")} {_encounter.Player.Health}/{_encounter.Player.MaxHealth}\n" +
             $"{exploration}\n" +
@@ -2008,9 +2421,71 @@ public partial class TestRoomController : Node2D
               $"{_encounter.FloorRules.DisplayName}: {_encounter.FloorRules.Description}";
     }
 
+    private string BuildObjectiveStatus()
+    {
+        if (_encounter?.VictoryTarget is not EncounterActor target)
+        {
+            return "";
+        }
+
+        if (!target.IsAlive)
+        {
+            return string.Format(
+                GameStrings.Get("ui.sandbox.objective_broken"),
+                _encounter.GetEnemyDisplayName(target));
+        }
+
+        if (IsTileVisible(target.Position))
+        {
+            return string.Format(
+                GameStrings.Get("ui.sandbox.objective_visible"),
+                _encounter.GetEnemyDisplayName(target));
+        }
+
+        int totalTiles = Math.Max(1, _encounter.Grid.Width * _encounter.Grid.Height);
+        int exploredPercent = Math.Clamp(_discoveredTiles.Count * 100 / totalTiles, 0, 100);
+
+        if (exploredPercent < CrownEchoExplorationPercent)
+        {
+            return string.Format(
+                GameStrings.Get("ui.sandbox.echo_dormant"),
+                exploredPercent);
+        }
+
+        string direction = GetCardinalDirection(
+            _encounter.Player.Position,
+            target.Position);
+        return string.Format(
+            GameStrings.Get("ui.sandbox.echo_awake"),
+            exploredPercent,
+            direction);
+    }
+
+    private static string GetCardinalDirection(GridPos origin, GridPos target)
+    {
+        int horizontal = target.X - origin.X;
+        int vertical = target.Y - origin.Y;
+
+        if (horizontal == 0 && vertical == 0)
+        {
+            return GameStrings.Get("ui.direction.here");
+        }
+
+        if (Math.Abs(horizontal) >= Math.Abs(vertical))
+        {
+            return GameStrings.Get(horizontal >= 0
+                ? "ui.direction.east"
+                : "ui.direction.west");
+        }
+
+        return GameStrings.Get(vertical >= 0
+            ? "ui.direction.south"
+            : "ui.direction.north");
+    }
+
     private static void LogDebug(string message)
     {
-        GD.Print($"[Prototype] {message}");
+        GD.Print($"[Archive] {message}");
     }
 
     private static int CreateRunSeed()

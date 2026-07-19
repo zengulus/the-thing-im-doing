@@ -19,4 +19,5 @@ public sealed record BehaviorStepDefinition(
     string State,
     string Target,
     string Source,
-    string Mode);
+    string Mode,
+    string Owner = "");

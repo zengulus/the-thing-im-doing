@@ -82,6 +82,56 @@ public sealed class ProceduralEncounterGeneratorTests
     }
 
     [Fact]
+    public void ObjectiveEnemy_IsNeverRepeatedEvenWithoutBossTags()
+    {
+        EncounterDefinition sandbox = EncounterDefinitionCatalog.Get("encounter.archive_expanse");
+        var untaggedObjective = sandbox with
+        {
+            VictoryTargetEnemyId = "enemy.glass_hound"
+        };
+
+        EncounterLayout layout = ProceduralEncounterGenerator.Generate(
+            untaggedObjective,
+            seedOverride: 4242);
+
+        Assert.Single(layout.Enemies, enemy => enemy.EnemyId == "enemy.glass_hound");
+        Assert.Equal(untaggedObjective.Generation!.EnemyCount, layout.Enemies.Count);
+    }
+
+    [Fact]
+    public void GeneratorApi_RejectsMissingOrDuplicateObjectivePlacements()
+    {
+        EncounterDefinition sandbox = EncounterDefinitionCatalog.Get("encounter.archive_expanse");
+        var missing = sandbox with
+        {
+            Enemies = sandbox.Enemies
+                .Where(enemy => enemy.EnemyId != sandbox.VictoryTargetEnemyId)
+                .ToArray()
+        };
+        var duplicate = sandbox with
+        {
+            Enemies =
+            [
+                .. sandbox.Enemies,
+                new EncounterEnemyPlacement(
+                    sandbox.VictoryTargetEnemyId!,
+                    new GridPos(2, 2))
+            ]
+        };
+
+        Assert.Contains(
+            ProceduralEncounterGenerator.Validate(missing),
+            issue => issue.Contains("found 0"));
+        Assert.Contains(
+            ProceduralEncounterGenerator.Validate(duplicate),
+            issue => issue.Contains("found 2"));
+        Assert.Throws<System.ArgumentException>(() =>
+            ProceduralEncounterGenerator.Generate(missing, seedOverride: 1));
+        Assert.Throws<System.ArgumentException>(() =>
+            ProceduralEncounterGenerator.Generate(duplicate, seedOverride: 1));
+    }
+
+    [Fact]
     public void BossOnlyRoster_CannotExpandBeyondItsAuthoredCount()
     {
         EncounterDefinition final = EncounterDefinitionCatalog.Get("encounter.obsidian_crown");
@@ -95,7 +145,7 @@ public sealed class ProceduralEncounterGeneratorTests
 
         IReadOnlyList<string> issues = ProceduralEncounterGenerator.Validate(bossOnly);
 
-        Assert.Contains(issues, issue => issue.Contains("no non-boss enemy"));
+        Assert.Contains(issues, issue => issue.Contains("no non-objective, non-boss enemy"));
         Assert.Throws<System.ArgumentException>(() =>
             ProceduralEncounterGenerator.Generate(bossOnly, seedOverride: 1));
     }

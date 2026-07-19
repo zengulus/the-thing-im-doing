@@ -15,6 +15,8 @@ public sealed class EncounterSpellWorld : ISpellWorld
         _encounter = encounter;
     }
 
+    internal TacticalEncounter Encounter => _encounter;
+
     public bool IsInside(GridPos pos)
     {
         return _encounter.Grid.IsInside(pos);

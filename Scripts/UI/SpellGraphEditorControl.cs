@@ -9,7 +9,7 @@ namespace TheThingImDoing.UI;
 
 public partial class SpellGraphEditorControl : Control
 {
-    private const float NodeWidth = 170.0f;
+    private const float NodeWidth = 220.0f;
     private const float NodeHeight = 102.0f;
 
     private readonly Dictionary<int, PanelContainer> _nodeCards = new();
@@ -125,7 +125,7 @@ public partial class SpellGraphEditorControl : Control
         int nodeId = _working.GetNextAvailableNodeId();
         int column = (_working.Nodes.Count % 3);
         int row = _working.Nodes.Count / 3;
-        var position = new Vector2(18 + column * 210, 22 + row * 135);
+        var position = new Vector2(18 + column * 250, 22 + row * 135);
         var node = new WorkingNode(nodeId, clauseId);
 
         WorkingNode? previous = _working.Nodes.LastOrDefault();
@@ -213,11 +213,20 @@ public partial class SpellGraphEditorControl : Control
 
         var title = new Label
         {
-            Text = definition?.DisplayName ?? node.ClauseId,
+            Text = definition == null
+                ? node.ClauseId
+                : $"{ClauseRolePresentation.GetShortName(definition.Role)} · {definition.DisplayName}",
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            HorizontalAlignment = HorizontalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TooltipText = definition == null
+                ? ""
+                : ClauseRolePresentation.GetName(definition.Role)
         };
         title.AddThemeFontSizeOverride("font_size", 13);
+        if (definition != null)
+        {
+            title.AddThemeColorOverride("font_color", ClauseRolePresentation.GetColor(definition.Role));
+        }
         header.AddChild(title);
 
         var deleteButton = new Button

@@ -20,7 +20,8 @@ public sealed record EncounterDefinition(
     bool IsFinal,
     int RewardAmount,
     IReadOnlyList<string> Tags,
-    EncounterGenerationDefinition? Generation = null)
+    EncounterGenerationDefinition? Generation = null,
+    string? VictoryTargetEnemyId = null)
 {
     public string DisplayName => GameStrings.Get(DisplayNameKey);
 }
@@ -88,6 +89,9 @@ public static class EncounterDefinitionCatalog
         var enemies = new List<EncounterEnemyPlacement>();
         var tiles = new List<EncounterTilePlacement>();
         string environmentId = (content.EnvironmentId ?? "").Trim();
+        string? victoryTargetEnemyId = string.IsNullOrWhiteSpace(content.VictoryTargetEnemyId)
+            ? null
+            : content.VictoryTargetEnemyId.Trim();
 
         RequireStringKey(content.DisplayNameKey, nameof(content.DisplayNameKey), issues);
         ValidateEnvironmentReference(environmentId, issues);
@@ -201,11 +205,26 @@ public static class EncounterDefinitionCatalog
         }
         else if (generation != null
             && generation.EnemyCount > enemies.Count
-            && !enemies.Any(enemy => ProceduralEncounterGenerator.IsRepeatableEnemy(enemy.EnemyId)))
+            && !enemies.Any(enemy =>
+                enemy.EnemyId != victoryTargetEnemyId
+                && ProceduralEncounterGenerator.IsRepeatableEnemy(enemy.EnemyId)))
         {
             issues.Add(
-                "generation enemyCount exceeds the authored roster, but no non-boss enemy " +
+                "generation enemyCount exceeds the authored roster, but no non-objective, non-boss enemy " +
                 "is available for expansion.");
+        }
+
+        if (victoryTargetEnemyId != null)
+        {
+            ValidateEnemyReference(victoryTargetEnemyId, issues);
+            int targetPlacements = enemies.Count(enemy => enemy.EnemyId == victoryTargetEnemyId);
+
+            if (targetPlacements != 1)
+            {
+                issues.Add(
+                    $"victoryTargetEnemyId '{victoryTargetEnemyId}' must have exactly one authored placement; " +
+                    $"found {targetPlacements}.");
+            }
         }
 
         if (ContentRegistry.HasAnyIssue(issues, out IReadOnlyList<string> issueList))
@@ -225,7 +244,8 @@ public static class EncounterDefinitionCatalog
             content.IsFinal,
             content.RewardAmount,
             (content.Tags ?? []).Where(tag => !string.IsNullOrWhiteSpace(tag)).ToArray(),
-            generation));
+            generation,
+            victoryTargetEnemyId));
     }
 
     private static EncounterGenerationDefinition? ResolveGeneration(
@@ -343,6 +363,7 @@ public static class EncounterDefinitionCatalog
         public int RewardAmount { get; set; }
         public List<string>? Tags { get; set; } = [];
         public GenerationContentDefinition? Generation { get; set; }
+        public string? VictoryTargetEnemyId { get; set; }
     }
 
     private sealed class GridPositionContentDefinition

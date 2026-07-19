@@ -98,7 +98,8 @@ public static class BehaviorDefinitionCatalog
                     step.State ?? "",
                     step.Target ?? "",
                     step.Source ?? "",
-                    step.Mode ?? ""))
+                    step.Mode ?? "",
+                    step.Owner ?? ""))
                 .ToArray()));
     }
 
@@ -163,6 +164,13 @@ public static class BehaviorDefinitionCatalog
         {
             yield return $"step {step.Id} op '{step.Op}' maximum must be positive.";
         }
+
+        if (step.Op is "counter.consume" or "counter.at_least"
+            && step.Amount.HasValue
+            && step.Amount.Value <= 0)
+        {
+            yield return $"step {step.Id} op '{step.Op}' amount must be positive.";
+        }
     }
 
     private static string GetParameterValue(BehaviorStepContentDefinition step, string name)
@@ -179,6 +187,7 @@ public static class BehaviorDefinitionCatalog
             "target" => step.Target ?? "",
             "source" => step.Source ?? "",
             "mode" => step.Mode ?? "",
+            "owner" => step.Owner ?? "",
             _ => ""
         };
     }
@@ -213,5 +222,6 @@ public static class BehaviorDefinitionCatalog
         public string? Target { get; set; } = "";
         public string? Source { get; set; } = "";
         public string? Mode { get; set; } = "";
+        public string? Owner { get; set; } = "";
     }
 }

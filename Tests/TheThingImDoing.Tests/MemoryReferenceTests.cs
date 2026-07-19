@@ -35,11 +35,12 @@ public sealed class MemoryReferenceTests
         GridPos originalPosition = enemy.Position;
         encounter.RunEnemyTurn();
         Assert.NotEqual(originalPosition, enemy.Position);
+        encounter.AddActorCondition(enemy.Id, "condition.marked", encounter.Player.Id);
 
         WorkingResult recalled = encounter.TryCastWorking(CreateRecallDamageWorking(), encounter.Player.Position);
 
         Assert.True(recalled.Succeeded);
-        Assert.Equal(2, enemy.Health);
+        Assert.Equal(1, enemy.Health);
         Assert.Contains(recalled.Trace.Events, item =>
             item.Text == $"Focused ref.memory.primary: actor {enemy.Id}.");
     }
@@ -71,7 +72,9 @@ public sealed class MemoryReferenceTests
     public void StoredActorReference_BeyondRangeFailsWithoutSpendingTurn()
     {
         var encounter = new TacticalEncounter(30, 3, new GridPos(1, 1));
-        EncounterActor enemy = encounter.AddEnemy("enemy.root_saint", new GridPos(12, 1));
+        EncounterActor enemy = encounter.AddEnemy(
+            "enemy.root_saint",
+            new GridPos(1 + TacticalEncounter.EnemyAwarenessRadius, 1));
 
         Assert.True(encounter.TryCastWorking(CreateStoreWorking(), enemy.Position).Succeeded);
         encounter.RunEnemyTurn();
@@ -99,6 +102,7 @@ public sealed class MemoryReferenceTests
         encounter.Grid.SetTile(new GridPos(3, 1), TileState.Wall);
         var machine = new WorkingMachine();
         var world = new EncounterSpellWorld(encounter);
+        encounter.AddActorCondition(encounter.Player.Id, "condition.marked", enemy.Id);
 
         WorkingResult stored = machine.Execute(
             CreateStoreWorking(),
@@ -113,7 +117,7 @@ public sealed class MemoryReferenceTests
 
         Assert.True(stored.Succeeded);
         Assert.True(recalled.Succeeded);
-        Assert.Equal(encounter.Player.MaxHealth - 1, encounter.Player.Health);
+        Assert.Equal(encounter.Player.MaxHealth - 2, encounter.Player.Health);
     }
 
     private static Working CreateStoreWorking()

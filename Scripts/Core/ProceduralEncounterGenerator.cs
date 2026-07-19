@@ -38,6 +38,8 @@ public static class ProceduralEncounterGenerator
     public const int MinimumWidth = 32;
     public const int MinimumHeight = 24;
     public const int MaximumDimension = 64;
+    public const int ObjectiveMinimumDistance = 18;
+    public const int ObjectiveMaximumDistance = 34;
 
     public static IReadOnlyList<string> Validate(EncounterGenerationDefinition configuration)
     {
@@ -140,10 +142,26 @@ public static class ProceduralEncounterGenerator
             issues.Add("Procedural enemy count cannot omit authored enemy archetypes.");
         }
         else if (template.Generation.EnemyCount > template.Enemies.Count
-            && !template.Enemies.Any(enemy => IsRepeatableEnemy(enemy.EnemyId)))
+            && !template.Enemies.Any(enemy =>
+                enemy.EnemyId != template.VictoryTargetEnemyId
+                && IsRepeatableEnemy(enemy.EnemyId)))
         {
             issues.Add(
-                "Procedural enemy count exceeds the authored roster, but no non-boss enemy is available for expansion.");
+                "Procedural enemy count exceeds the authored roster, but no non-objective, non-boss enemy " +
+                "is available for expansion.");
+        }
+
+        if (template.VictoryTargetEnemyId != null)
+        {
+            int objectiveCount = template.Enemies.Count(enemy =>
+                enemy.EnemyId == template.VictoryTargetEnemyId);
+
+            if (objectiveCount != 1)
+            {
+                issues.Add(
+                    $"Victory target '{template.VictoryTargetEnemyId}' must occur exactly once in the " +
+                    $"authored roster; found {objectiveCount}.");
+            }
         }
 
         return issues;
@@ -182,12 +200,14 @@ public static class ProceduralEncounterGenerator
         IReadOnlyList<EncounterEnemyPlacement> enemyRoster = ExpandEnemyRoster(
             template.Enemies,
             configuration.EnemyCount,
+            template.VictoryTargetEnemyId,
             random);
         IReadOnlyList<EncounterEnemyPlacement> enemies = PlaceEnemies(
             tiles,
             enemyRoster,
             rooms,
             playerStart,
+            template.VictoryTargetEnemyId,
             random);
         IReadOnlyList<EncounterTilePlacement> placements = BuildTilePlacements(tiles);
 
@@ -455,6 +475,7 @@ public static class ProceduralEncounterGenerator
         IReadOnlyList<EncounterEnemyPlacement> enemyTemplates,
         IReadOnlyList<ProceduralRoom> rooms,
         GridPos playerStart,
+        string? victoryTargetEnemyId,
         StableRandom random)
     {
         ProceduralRoom startRoom = rooms[0];
@@ -482,10 +503,16 @@ public static class ProceduralEncounterGenerator
                 throw new InvalidOperationException("Procedural layout has too few floor tiles for its actors.");
             }
 
-            GridPos selected = candidatePool
-                .OrderByDescending(position => occupied.Min(other => position.ManhattanDistanceTo(other)))
-                .ThenByDescending(position => position.ManhattanDistanceTo(playerStart))
-                .First();
+            GridPos selected = template.EnemyId == victoryTargetEnemyId
+                ? candidatePool
+                    .OrderBy(position => DistanceOutsideObjectiveBand(
+                        position.ManhattanDistanceTo(playerStart)))
+                    .ThenByDescending(position => position.ManhattanDistanceTo(playerStart))
+                    .First()
+                : candidatePool
+                    .OrderByDescending(position => occupied.Min(other => position.ManhattanDistanceTo(other)))
+                    .ThenByDescending(position => position.ManhattanDistanceTo(playerStart))
+                    .First();
             roomCandidates.Remove(selected);
             floorCandidates.Remove(selected);
             occupied.Add(selected);
@@ -495,9 +522,22 @@ public static class ProceduralEncounterGenerator
         return placements;
     }
 
+    private static int DistanceOutsideObjectiveBand(int distance)
+    {
+        if (distance < ObjectiveMinimumDistance)
+        {
+            return ObjectiveMinimumDistance - distance;
+        }
+
+        return distance > ObjectiveMaximumDistance
+            ? distance - ObjectiveMaximumDistance
+            : 0;
+    }
+
     private static IReadOnlyList<EncounterEnemyPlacement> ExpandEnemyRoster(
         IReadOnlyList<EncounterEnemyPlacement> authoredRoster,
         int enemyCount,
+        string? victoryTargetEnemyId,
         StableRandom random)
     {
         if (authoredRoster.Count == 0)
@@ -511,13 +551,15 @@ public static class ProceduralEncounterGenerator
         }
 
         EncounterEnemyPlacement[] repeatableRoster = authoredRoster
-            .Where(template => IsRepeatableEnemy(template.EnemyId))
+            .Where(template =>
+                template.EnemyId != victoryTargetEnemyId
+                && IsRepeatableEnemy(template.EnemyId))
             .ToArray();
 
         if (enemyCount > authoredRoster.Count && repeatableRoster.Length == 0)
         {
             throw new InvalidOperationException(
-                "Procedural enemy count cannot expand a boss-only authored roster.");
+                "Procedural enemy count cannot expand an objective-only or boss-only authored roster.");
         }
 
         var roster = authoredRoster.ToList();

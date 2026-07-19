@@ -33,8 +33,39 @@ public sealed class WorkingMilestoneTests
         WorkingResult result = ExecuteWorking(encounter, working, enemy.Position);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(2, enemy.Health);
+        Assert.Equal(1, enemy.Health);
+        Assert.False(encounter.HasActorCondition(enemy.Id, "condition.marked", encounter.Player.Id));
         Assert.Contains(result.Trace.Events, traceEvent => traceEvent.Text.Contains("Damaged actor"));
+    }
+
+    [Fact]
+    public void DamageConsumer_RequiresAndConsumesOnlyTheCastersMark()
+    {
+        var encounter = new TacticalEncounter(5, 5, new GridPos(1, 1));
+        EncounterActor enemy = encounter.AddDummyEnemy(new GridPos(3, 1), health: 3);
+        Working damage = CreateDirectDamageWorking();
+        encounter.AddActorCondition(enemy.Id, "condition.marked", enemy.Id);
+
+        WorkingResult withoutSetup = ExecuteWorking(encounter, damage, enemy.Position);
+
+        Assert.True(withoutSetup.Succeeded);
+        Assert.False(withoutSetup.ChangedWorld);
+        Assert.Equal(3, enemy.Health);
+        Assert.True(encounter.HasActorCondition(enemy.Id, "condition.marked", enemy.Id));
+        Assert.Contains(withoutSetup.Trace.Events, traceEvent =>
+            traceEvent.Text.Contains("condition.marked") && traceEvent.Text.Contains("failed"));
+
+        encounter.AddActorCondition(enemy.Id, "condition.marked", encounter.Player.Id);
+        WorkingResult withSetup = ExecuteWorking(encounter, damage, enemy.Position);
+
+        Assert.True(withSetup.Succeeded);
+        Assert.True(withSetup.ChangedWorld);
+        Assert.Equal(1, enemy.Health);
+        Assert.False(encounter.HasActorCondition(enemy.Id, "condition.marked", encounter.Player.Id));
+        Assert.True(encounter.HasActorCondition(enemy.Id, "condition.marked", enemy.Id));
+        Assert.Contains(withSetup.Trace.Events, traceEvent =>
+            traceEvent.Text.Contains("Consumed condition.marked")
+            && traceEvent.Text.Contains($"actor {encounter.Player.Id}"));
     }
 
     [Fact]
@@ -129,6 +160,14 @@ public sealed class WorkingMilestoneTests
         working.AddNode(occupied);
         working.AddNode(push);
         working.EntryNodeId = aim.Id;
+        return working;
+    }
+
+    private static Working CreateDirectDamageWorking()
+    {
+        var working = new Working("working.direct_damage", "workings.mark_or_damage.name");
+        working.AddNode(new WorkingNode(1, "clause.aim_at_target") { NextNodeId = 2 });
+        working.AddNode(new WorkingNode(2, "clause.damage_them"));
         return working;
     }
 }
